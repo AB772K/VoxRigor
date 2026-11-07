@@ -8,8 +8,11 @@ from typing import Any
 import numpy as np
 import pytest
 import soundfile as sf
+from voxrigor.biometrics.dataset import load_score_dataset
 
 import voxrigor.biometrics.batch as batch
+from voxrigor.benchmarking.errors import ScoreFileError
+from voxrigor.benchmarking.reporting import build_benchmark_report
 from voxrigor.biometrics.batch import load_audio_trial_manifest
 from voxrigor.biometrics.conditions import (
     AudioConditionExperiment,
@@ -24,9 +27,6 @@ from voxrigor.biometrics.conditions import (
 )
 from voxrigor.biometrics.contracts import AudioSignal, ModelDescriptor, ModelScore
 from voxrigor.biometrics.errors import AudioInputError
-from voxrigor.benchmarking.errors import ScoreFileError
-from voxrigor.benchmarking.reporting import build_benchmark_report
-from voxrigor.biometrics.dataset import load_score_dataset
 
 
 def make_signal(
