@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import math
 import os
@@ -259,7 +260,7 @@ def _apply_one(
         if not math.isfinite(impulse_peak) or impulse_peak <= 1e-12:
             raise AudioInputError("Reverberation impulse response must not be silent")
         try:
-            from scipy.signal import fftconvolve
+            fftconvolve = importlib.import_module("scipy.signal").fftconvolve
         except ImportError as exc:  # pragma: no cover - environment-dependent
             from voxrigor.biometrics.errors import OptionalDependencyError
 
@@ -401,7 +402,7 @@ def generate_condition_dataset(experiment_path: Path, output_dir: Path) -> Path:
                 endpoint_values: dict[str, str] = {}
 
                 if source_manifest.task.value == "asv":
-                    roles = ("enrollment", "probe")
+                    roles: tuple[str, ...] = ("enrollment", "probe")
                     input_refs = {
                         "enrollment": trial.enrollment_audio,
                         "probe": trial.probe_audio,
