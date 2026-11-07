@@ -44,6 +44,10 @@ class ScoreProducer(BaseModel):
     inference_manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     inference_provenance_file: str = Field(min_length=1, max_length=500)
     inference_provenance_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    condition_provenance_file: str | None = Field(default=None, min_length=1, max_length=500)
+    condition_provenance_sha256: str | None = Field(
+        default=None, pattern=r"^[a-f0-9]{64}$"
+    )
 
     @field_validator("model_artifact_sha256")
     @classmethod
@@ -68,6 +72,30 @@ class ScoreProducer(BaseModel):
                 "inference provenance path must be relative and remain in the manifest folder"
             )
         return normalized
+
+    @field_validator("condition_provenance_file")
+    @classmethod
+    def require_relative_condition_provenance_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.replace("\\", "/")
+        if (
+            "\x00" in normalized
+            or PurePosixPath(normalized).is_absolute()
+            or PureWindowsPath(normalized).is_absolute()
+            or PureWindowsPath(value).drive
+            or ".." in PurePosixPath(normalized).parts
+        ):
+            raise ValueError("condition provenance path must be relative to the manifest folder")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_condition_provenance_pair(self) -> ScoreProducer:
+        if (self.condition_provenance_file is None) != (
+            self.condition_provenance_sha256 is None
+        ):
+            raise ValueError("condition provenance file and SHA-256 must be provided together")
+        return self
 
 
 class DatasetManifest(BaseModel):

@@ -23,6 +23,7 @@ from voxrigor.benchmarking.models import (
 from voxrigor.benchmarking.reporting import load_benchmark_report
 from voxrigor.benchmarking.runner import run_benchmark
 from voxrigor.biometrics.cli import models_app
+from voxrigor.biometrics.conditions_cli import audio_app
 from voxrigor.errors import ManifestError, ProjectExistsError, ReportError, TestNotFoundError
 from voxrigor.manifest import DEFAULT_MANIFEST, create_manifest, load_manifest
 from voxrigor.reporting import load_report, write_report
@@ -46,6 +47,7 @@ benchmark_app = typer.Typer(
 )
 app.add_typer(benchmark_app, name="benchmark")
 app.add_typer(models_app, name="models")
+app.add_typer(audio_app, name="audio")
 
 
 def _handle_error(error: Exception) -> NoReturn:

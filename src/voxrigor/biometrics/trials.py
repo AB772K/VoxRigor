@@ -72,7 +72,7 @@ class AudioTrial(BaseModel):
 
 
 class AudioTrialManifest(BaseModel):
-    """Dataset metadata and relative audio paths consumed by the batch scorer."""
+    """Dataset metadata and relative audio paths consumed by score-trials."""
 
     model_config = ConfigDict(extra="forbid")
     schema_version: Literal["0.1"] = "0.1"
@@ -92,6 +92,8 @@ class AudioTrialManifest(BaseModel):
     access_date: date | None = None
     require_group_disjointness: bool = False
     group_columns: list[Literal["speaker_id", "source_id"]] = Field(default_factory=list)
+    condition_provenance_file: str | None = Field(default=None, max_length=500)
+    condition_provenance_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     trials: list[AudioTrial] = Field(min_length=2)
 
     @field_validator(
@@ -126,8 +128,30 @@ class AudioTrialManifest(BaseModel):
             raise ValueError("source_url must be an http or https URL")
         return value
 
+    @field_validator("condition_provenance_file")
+    @classmethod
+    def validate_condition_provenance_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.replace("\\", "/")
+        posix = PurePosixPath(normalized)
+        windows = PureWindowsPath(value)
+        if (
+            "\x00" in value
+            or posix.is_absolute()
+            or windows.is_absolute()
+            or windows.drive
+            or ".." in posix.parts
+        ):
+            raise ValueError("condition provenance path must be relative to the manifest directory")
+        return normalized
+
     @model_validator(mode="after")
     def validate_trials_and_threshold(self) -> AudioTrialManifest:
+        if (self.condition_provenance_file is None) != (
+            self.condition_provenance_sha256 is None
+        ):
+            raise ValueError("condition provenance file and SHA-256 must be provided together")
         if self.task is BenchmarkTask.ASV and self.model_id != "ecapa-tdnn":
             raise ValueError("ASV audio trials require model_id='ecapa-tdnn'")
         if self.task is BenchmarkTask.PAD and self.model_id != "aasist-l-onnx":

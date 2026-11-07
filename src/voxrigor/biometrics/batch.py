@@ -214,6 +214,8 @@ def run_trial_inference(
             inference_manifest_sha256=input_manifest_hash,
             inference_provenance_file="inference-provenance.json",
             inference_provenance_sha256=_sha256_file(inference_path),
+            condition_provenance_file=manifest.condition_provenance_file,
+            condition_provenance_sha256=manifest.condition_provenance_sha256,
         )
         benchmark_manifest = DatasetManifest(
             schema_version="0.2",
