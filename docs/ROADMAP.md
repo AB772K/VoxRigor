@@ -2,7 +2,7 @@
 
 **Status:** Living development plan — Phase 4 implementation in progress  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
-**Current state:** Phase 1 and Phase 2 are merged into main. Phase 3 baseline adapters and the reproducible model-to-benchmark follow-up have passed automated CI and real-checkpoint smoke tests; the follow-up is awaiting owner review in PR #4. Phase 4 controlled audio-condition generation is under development on its own branch.
+**Current state:** Phase 1 and Phase 2 are merged into main. Phase 3 baseline adapters and the reproducible model-to-benchmark follow-up have passed automated CI and real-checkpoint smoke tests; the follow-up is awaiting owner review in PR #4. Phase 4's initial deterministic audio-condition generator has passed its six-environment CI matrix on its own branch. Physical presentation hardware integration and approved-dataset evaluation remain open.
 
 ## Phase 0 — Research, product specification and threat modeling
 

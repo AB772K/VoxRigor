@@ -1,6 +1,6 @@
 # Phase 4 — Audio Condition and Presentation Evaluation
 
-**Status:** Initial deterministic audio-condition generator implemented on the Phase 4 branch. Physical presentation rig integration is not implemented.
+**Status:** Initial deterministic audio-condition generator validated by the six-environment CI matrix. Physical presentation rig integration is not implemented.
 
 ## Purpose
 
@@ -92,6 +92,10 @@ Hard safety limits: 120-second input files, 2-second impulse responses, 2,000 ex
 ## Digital versus physical presentation
 
 A transformed file remains a **digital condition**. It must not be labelled as a physical replay or acoustic presentation attack. A physical presentation experiment requires an explicit speaker/room/microphone/capture path, calibration and repeatable hardware metadata. That optional rig is design-only at this stage.
+
+## Validation status
+
+The automated Phase 4 implementation gates passed in CI run 42413468715 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. The Linux jobs each completed 172 tests at 86.65% coverage. The Windows jobs completed successfully as well. These tests verify deterministic transformations, file integrity, provenance handoff and tamper detection. They do not validate biometric accuracy or real-world channel fidelity.
 
 ## Limitations
 
