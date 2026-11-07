@@ -50,7 +50,7 @@ def load_audio_file(
 
     np = _numpy()
     try:
-        import soundfile as sf
+        import soundfile as sf  # type: ignore[import-untyped]
     except ImportError as exc:  # pragma: no cover - environment-dependent
         raise OptionalDependencyError(
             "Audio decoding requires SoundFile. Install with: pip install 'voxrigor[audio]'"
@@ -113,7 +113,7 @@ def resample_audio(signal: AudioSignal, target_sample_rate_hz: int) -> AudioSign
             source_format=signal.source_format,
         )
     try:
-        from scipy.signal import resample_poly
+        from scipy.signal import resample_poly  # type: ignore[import-untyped]
     except ImportError as exc:  # pragma: no cover - environment-dependent
         raise OptionalDependencyError(
             "Resampling requires SciPy. Install with: pip install 'voxrigor[audio]'"
