@@ -90,9 +90,7 @@ from pathlib import Path
 from voxrigor.biometrics import AASISTLONNXAdapter, ECAPATDNNAdapter
 
 speaker = ECAPATDNNAdapter(device="cpu")
-speaker_result = speaker.score_files(
-    Path("enrollment.wav"), Path("probe.wav")
-)
+speaker_result = speaker.score_files(Path("enrollment.wav"), Path("probe.wav"))
 print(speaker_result.to_dict())
 speaker.unload()
 

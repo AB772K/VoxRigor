@@ -85,7 +85,9 @@ class ModelScore:
             try:
                 int(value, 16)
             except ValueError as exc:
-                raise ValueError("input and model artifact hashes must be SHA-256 hex digests") from exc
+                raise ValueError(
+                    "input and model artifact hashes must be SHA-256 hex digests"
+                ) from exc
 
     def to_dict(self) -> dict[str, object]:
         """Return JSON-compatible score metadata without audio content."""

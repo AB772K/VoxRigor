@@ -37,7 +37,9 @@ class ECAPATDNNAdapter:
         if device != "cpu" and not device.startswith("cuda"):
             raise ValueError("device must be 'cpu' or a CUDA device such as 'cuda:0'")
         if len(revision) != 40 or any(char not in "0123456789abcdef" for char in revision):
-            raise ValueError("model revision must be a full immutable 40-character lowercase commit SHA")
+            raise ValueError(
+                "model revision must be a full immutable 40-character lowercase commit SHA"
+            )
         self.device = device
         self.cache_dir = Path(cache_dir).expanduser() if cache_dir is not None else None
         self.revision = revision
@@ -154,9 +156,11 @@ class ECAPATDNNAdapter:
             raise ModelLoadError("ECAPA adapter is not loaded; call load() first")
         np = _numpy()
         normalized = resample_audio(signal, ECAPA_SAMPLE_RATE_HZ)
-        waveform = self._torch.from_numpy(
-            np.asarray(normalized.samples, dtype=np.float32)
-        ).unsqueeze(0).to(self.device)
+        waveform = (
+            self._torch.from_numpy(np.asarray(normalized.samples, dtype=np.float32))
+            .unsqueeze(0)
+            .to(self.device)
+        )
         try:
             with self._torch.inference_mode():
                 embedding = self._encoder.encode_batch(waveform)

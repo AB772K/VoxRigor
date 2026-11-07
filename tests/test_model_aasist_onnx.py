@@ -71,9 +71,7 @@ def test_aasist_l_rejects_missing_model(tmp_path: Path) -> None:
         adapter.load()
 
 
-def test_aasist_l_rejects_invalid_logits(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_aasist_l_rejects_invalid_logits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     model_path = tmp_path / "model.onnx"
     model_path.write_bytes(b"test-model-artifact")
 

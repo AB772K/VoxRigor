@@ -110,23 +110,22 @@ class AASISTLONNXAdapter:
             ) from exc
 
         try:
-            session = ort.InferenceSession(
-                str(self.model_path), providers=["CPUExecutionProvider"]
-            )
+            session = ort.InferenceSession(str(self.model_path), providers=["CPUExecutionProvider"])
             inputs = session.get_inputs()
             outputs = session.get_outputs()
             if len(inputs) != 1 or not outputs:
-                raise ModelLoadError("AASIST-L ONNX graph must expose one input and at least one output")
+                raise ModelLoadError(
+                    "AASIST-L ONNX graph must expose one input and at least one output"
+                )
             input_meta = inputs[0]
             if input_meta.type != "tensor(float)":
                 raise ModelLoadError("AASIST-L ONNX input must be float32")
             if len(input_meta.shape) != 2 or input_meta.shape[-1] != AASISTL_WINDOW_SAMPLES:
                 raise ModelLoadError("AASIST-L ONNX input must have shape [batch, 64600]")
             logits_candidates = [
-                item for item in outputs
-                if item.type == "tensor(float)"
-                and len(item.shape) == 2
-                and item.shape[-1] == 2
+                item
+                for item in outputs
+                if item.type == "tensor(float)" and len(item.shape) == 2 and item.shape[-1] == 2
             ]
             if len(logits_candidates) != 1:
                 raise ModelLoadError(
@@ -138,7 +137,9 @@ class AASISTLONNXAdapter:
         except ModelLoadError:
             raise
         except Exception as exc:
-            raise ModelLoadError("ONNX Runtime could not load or inspect the AASIST-L model") from exc
+            raise ModelLoadError(
+                "ONNX Runtime could not load or inspect the AASIST-L model"
+            ) from exc
 
     def unload(self) -> None:
         """Release the ONNX Runtime session."""
@@ -160,7 +161,9 @@ class AASISTLONNXAdapter:
         except Exception as exc:
             raise InferenceError("AASIST-L ONNX inference failed") from exc
         if len(outputs) != 1:
-            raise InferenceError("AASIST-L returned an unexpected number of selected output tensors")
+            raise InferenceError(
+                "AASIST-L returned an unexpected number of selected output tensors"
+            )
         logits = np.asarray(outputs[0], dtype=np.float64)
         if logits.shape != (1, 2) or not np.isfinite(logits).all():
             raise InferenceError("AASIST-L returned invalid logits; expected finite shape (1, 2)")
