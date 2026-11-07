@@ -176,9 +176,12 @@ def load_score_dataset(manifest_path: Path) -> ScoreDataset:
                 if not (float("-inf") < score < float("inf")):
                     raise ScoreFileError(f"CSV row {row_number} score must be finite")
 
-                split = (row.get("split") or "all").strip() if has_split else "all"
-                if not split:
-                    raise ScoreFileError(f"CSV row {row_number} has an empty split")
+                if has_split:
+                    split = (row.get("split") or "").strip()
+                    if not split:
+                        raise ScoreFileError(f"CSV row {row_number} has an empty split")
+                else:
+                    split = "all"
                 split_counts[split] += 1
                 split_label_counts[split][label] += 1
                 condition = (row.get("condition") or "unspecified").strip() or "unspecified"
