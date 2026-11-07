@@ -1,24 +1,21 @@
-# VoxRigor Phase 2 Upload Guide
+# VoxRigor Phase 2 Integration Status
 
-This branch contains the reviewed Phase 0/Phase 1 documentation updates, a project-specific `.gitignore`, and a GitHub Actions workflow. The Phase 2 Python implementation is supplied separately in the repository bundle and must be uploaded to this branch before the Phase 2 pull request is considered complete.
+**The Phase 2 implementation has already been uploaded to this branch. No further ZIP upload is required.** This file is retained as a record of the earlier upload procedure and is now superseded by the current branch contents.
 
-## Upload the implementation bundle
+## Current validation
 
-1. Download and extract the VoxRigor Phase 2 repository bundle supplied with this project.
-2. Open https://github.com/AB772K/VoxRigor/tree/phase-2-offline-benchmark.
-3. Choose **Add file → Upload files**.
-4. Upload the extracted files and folders, preserving `src/`, `tests/`, `schemas/`, `examples/`, `docs/` and `.github/`.
-5. Keep the existing repository `LICENSE`. Do not upload a replacement license.
-6. Keep `.gitignore`; it prevents local caches, virtual environments, secrets, benchmark outputs, audio files and model checkpoints from being committed.
-7. Commit with: `Implement Phase 2 offline ASV and PAD score evaluation`.
+- The package, synthetic ASV/PAD fixtures, tests and schemas are present in this branch.
+- Local validation: 78 tests passed; 86.75% coverage.
+- GitHub Actions: all six Ubuntu/Windows and Python 3.11/3.12/3.13 jobs passed, including lint, formatting, strict Mypy and tests.
+- Pull request: https://github.com/AB772K/VoxRigor/pull/2
 
-## Validate on Windows PowerShell
+## Windows PowerShell validation
 
-From the extracted repository directory:
+From the repository directory:
 
 ```powershell
 py -3.13 -m venv .venv
-.\\.venv\\Scripts\\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 python -m pytest -q --cov=voxrigor --cov-report=term-missing
@@ -28,4 +25,4 @@ voxrigor benchmark --help
 
 ## Phase 2 boundaries
 
-Phase 2 evaluates user-supplied **precomputed scores**. It does not load waveform audio, run biometric models, or test a live authentication application. ASV/PAD sample fixtures in the bundle are fabricated test data and are not genuine model-performance evidence.
+Phase 2 evaluates user-supplied **precomputed scores**. It does not load waveform audio, run biometric models, or test a live authentication application. The ASV/PAD sample fixtures are fabricated test data and are not real model-performance evidence.
