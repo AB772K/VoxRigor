@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from statistics import NormalDist
+from typing import cast
 
 from voxrigor.benchmarking.dataset import ScoreTrial
 from voxrigor.benchmarking.errors import MetricError
@@ -15,7 +16,7 @@ CONFIDENCE_LEVEL = 0.95
 
 def wilson_interval(
     errors: int, trials: int, confidence_level: float = CONFIDENCE_LEVEL
-) -> dict[str, float | int]:
+) -> dict[str, float | int | list[float]]:
     """Return a two-sided Wilson score interval for a binomial proportion.
 
     The interval is trial-level. It does not correct for correlation between
@@ -88,16 +89,16 @@ def _asv_curve(
 
     auc = 0.0
     for left, right in zip(curve, curve[1:], strict=False):
-        x0 = float(left["fmr"])
-        x1 = float(right["fmr"])
-        y0 = float(left["tpr"])
-        y1 = float(right["tpr"])
+        x0 = cast(float, left["fmr"])
+        x1 = cast(float, right["fmr"])
+        y0 = cast(float, left["tpr"])
+        y1 = cast(float, right["tpr"])
         auc += (x1 - x0) * (y0 + y1) / 2
 
     eer_result: dict[str, float] | None = None
     for left, right in zip(curve, curve[1:], strict=False):
-        difference_left = float(left["fmr"]) - float(left["fnmr"])
-        difference_right = float(right["fmr"]) - float(right["fnmr"])
+        difference_left = float(left["fmr"]) - cast(float, left["fnmr"])
+        difference_right = float(right["fmr"]) - cast(float, right["fnmr"])
         if difference_left == 0:
             value = float(left["fmr"])
             eer_result = {
