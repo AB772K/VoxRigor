@@ -13,7 +13,9 @@ from voxrigor.benchmarking.models import BenchmarkTask, ScoreDirection
 CONFIDENCE_LEVEL = 0.95
 
 
-def wilson_interval(errors: int, trials: int, confidence_level: float = CONFIDENCE_LEVEL) -> dict[str, float | int]:
+def wilson_interval(
+    errors: int, trials: int, confidence_level: float = CONFIDENCE_LEVEL
+) -> dict[str, float | int]:
     """Return a two-sided Wilson score interval for a binomial proportion.
 
     The interval is trial-level. It does not correct for correlation between
@@ -98,7 +100,11 @@ def _asv_curve(
         difference_right = float(right["fmr"]) - float(right["fnmr"])
         if difference_left == 0:
             value = float(left["fmr"])
-            eer_result = {"value": value, "fmr_at_intersection": value, "fnmr_at_intersection": value}
+            eer_result = {
+                "value": value,
+                "fmr_at_intersection": value,
+                "fnmr_at_intersection": value,
+            }
             break
         if difference_left < 0 <= difference_right:
             if difference_right == difference_left:
@@ -224,7 +230,10 @@ def _pad_metrics_for_records(
 
 
 def evaluate_scores(
-    records: Iterable[ScoreTrial], task: BenchmarkTask, direction: ScoreDirection, threshold: float | None
+    records: Iterable[ScoreTrial],
+    task: BenchmarkTask,
+    direction: ScoreDirection,
+    threshold: float | None,
 ) -> tuple[dict[str, object], list[dict[str, float | None]], list[dict[str, object]]]:
     """Evaluate already-filtered score trials for one task."""
 
@@ -239,7 +248,10 @@ def evaluate_scores(
 
 
 def evaluate_conditions(
-    records: Iterable[ScoreTrial], task: BenchmarkTask, direction: ScoreDirection, threshold: float | None
+    records: Iterable[ScoreTrial],
+    task: BenchmarkTask,
+    direction: ScoreDirection,
+    threshold: float | None,
 ) -> list[dict[str, object]]:
     """Return per-condition metrics without silently dropping one-class conditions."""
 
