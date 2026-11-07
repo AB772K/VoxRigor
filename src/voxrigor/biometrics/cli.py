@@ -12,7 +12,9 @@ import typer
 from voxrigor.biometrics.aasist_onnx import AASISTL_REVISION, AASISTLONNXAdapter
 from voxrigor.biometrics.catalog import list_builtin_models
 from voxrigor.biometrics.ecapa import ECAPATDNNAdapter
+from voxrigor.biometrics.batch import run_trial_inference
 from voxrigor.biometrics.errors import ModelIntegrationError
+from voxrigor.benchmarking.errors import BenchmarkError
 
 models_app = typer.Typer(
     name="models",
@@ -123,3 +125,34 @@ def models_score_aasist_l(
         adapter.unload()
     except (ModelIntegrationError, OSError, ValueError) as exc:
         _handle_model_error(exc)
+
+
+@models_app.command("score-trials")
+def models_score_trials(
+    manifest_path: Annotated[
+        Path, typer.Option("--manifest", exists=True, dir_okay=False, help="Audio-trial JSON manifest.")
+    ],
+    output_dir: Annotated[
+        Path, typer.Option("--output-dir", help="New directory for scores, benchmark manifest and provenance.")
+    ],
+    cache_dir: Annotated[
+        Path | None, typer.Option("--cache-dir", help="Local model cache directory.")
+    ] = None,
+    device: Annotated[str, typer.Option("--device", help="ECAPA device: cpu or cuda[:index].")] = "cpu",
+) -> None:
+    """Run built-in biometric models over a local audio-trial manifest."""
+
+    cache_dir = cache_dir or default_model_cache()
+    try:
+        result_dir = run_trial_inference(
+            manifest_path,
+            output_dir,
+            cache_dir=cache_dir,
+            device=device,
+        )
+    except (ModelIntegrationError, BenchmarkError, OSError, ValueError) as exc:
+        _handle_model_error(exc)
+    typer.secho("Model inference and Phase 2 handoff completed.", fg=typer.colors.GREEN)
+    typer.echo(f"Scores: {result_dir / 'scores.csv'}")
+    typer.echo(f"Benchmark manifest: {result_dir / 'benchmark.json'}")
+    typer.echo(f"Inference provenance: {result_dir / 'inference-provenance.json'}")

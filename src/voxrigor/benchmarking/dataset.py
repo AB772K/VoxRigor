@@ -109,6 +109,13 @@ def load_score_dataset(manifest_path: Path) -> ScoreDataset:
     actual_hash = sha256_file(score_path)
     if actual_hash != manifest.score_file_sha256:
         raise ScoreFileError("Score file SHA-256 does not match the dataset manifest")
+    if manifest.score_producer is not None:
+        sidecar_path = _resolve_score_path(
+            manifest_path, manifest.score_producer.inference_provenance_file
+        )
+        sidecar_hash = sha256_file(sidecar_path)
+        if sidecar_hash != manifest.score_producer.inference_provenance_sha256:
+            raise ScoreFileError("Inference provenance sidecar SHA-256 does not match the manifest")
 
     seen_ids: set[str] = set()
     records: list[ScoreTrial] = []

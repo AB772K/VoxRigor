@@ -34,11 +34,19 @@ def build_benchmark_report(
     conditions = evaluate_conditions(
         dataset.records, manifest.task, manifest.score_direction, manifest.operating_threshold
     )
-    warnings: list[str] = [
-        "This report evaluates supplied decision scores; VoxRigor did not run the upstream model.",
-        "A benchmark result is not a certification or a claim that an authentication system is secure.",
-        "Confidence intervals are trial-level and do not correct for speaker/source clustering.",
-    ]
+    if manifest.score_producer is None:
+        warnings: list[str] = [
+            "This report evaluates supplied decision scores; VoxRigor did not run the upstream model.",
+            "A benchmark result is not a certification or a claim that an authentication system is secure.",
+            "Confidence intervals are trial-level and do not correct for speaker/source clustering.",
+        ]
+    else:
+        warnings = [
+            "Scores were generated locally by VoxRigor using the model revision and artifact hashes recorded in the verified inference-provenance sidecar.",
+            "A benchmark result is not a certification or a claim that an authentication system is secure.",
+            "Confidence intervals are trial-level and do not correct for speaker/source clustering.",
+            "Model scores remain protocol- and dataset-specific; this report does not establish generalization.",
+        ]
     if manifest.threshold_source.value == "development_split":
         warnings.append(
             "Threshold-selection provenance is user-declared. VoxRigor confirms that the named "
@@ -91,11 +99,26 @@ def build_benchmark_report(
             "threshold_selection_split": manifest.threshold_selection_split,
             "group_columns": manifest.group_columns,
             "require_group_disjointness": manifest.require_group_disjointness,
+            "score_producer": (
+                manifest.score_producer.model_dump(mode="json")
+                if manifest.score_producer is not None
+                else None
+            ),
         },
         provenance={
             "score_file_sha256": dataset.score_file_sha256,
             "dataset_manifest_sha256": dataset.manifest_sha256,
             "metric_implementation": "voxrigor-score-metrics-0.1",
+            "inference_manifest_sha256": (
+                manifest.score_producer.inference_manifest_sha256
+                if manifest.score_producer is not None
+                else None
+            ),
+            "inference_provenance_sha256": (
+                manifest.score_producer.inference_provenance_sha256
+                if manifest.score_producer is not None
+                else None
+            ),
         },
         sample_accounting={
             "input_rows": dataset.input_rows,
@@ -180,6 +203,17 @@ def render_benchmark_html(report: BenchmarkReport) -> str:
         json.dumps(data["attack_species_metrics"], indent=2, ensure_ascii=False)
     )
     warning_items = "".join(f"<li>{html.escape(item)}</li>" for item in report.warnings)
+    if report.dataset.get("score_producer"):
+        interpretation = (
+            "VoxRigor generated these scores from local audio trials. The referenced inference "
+            "provenance sidecar was hash-verified before the benchmark was evaluated. Results "
+            "remain specific to the declared model, dataset and protocol."
+        )
+    else:
+        interpretation = (
+            "VoxRigor evaluated supplied score trials. It did not run or independently validate "
+            "the upstream biometric model."
+        )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VoxRigor benchmark {html.escape(str(report.run_id))}</title>
@@ -193,7 +227,7 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6f8;padding:1rem
 <p><strong>Task:</strong> {html.escape(str(dataset["task"]).upper())} · <strong>Protocol:</strong> {html.escape(str(dataset["protocol_id"]))}</p>
 <p><strong>Evaluation split:</strong> {html.escape(str(dataset["evaluation_split"]))}</p>
 <p><strong>Run ID:</strong> <code>{html.escape(str(report.run_id))}</code></p>
-<div class="notice"><strong>Interpretation:</strong> VoxRigor evaluated supplied score trials. It did not run or independently validate the upstream biometric model. Results are protocol- and dataset-specific and are not certification.</div>
+<div class="notice"><strong>Interpretation:</strong> {html.escape(interpretation)} Results are not certification.</div>
 <h2>Sample accounting</h2><pre>{html.escape(json.dumps(data["sample_accounting"], indent=2))}</pre>
 <h2>Label counts</h2><pre>{html.escape(json.dumps(data["label_counts"], indent=2))}</pre>
 <h2>Split label counts</h2><pre>{html.escape(json.dumps(data["split_label_counts"], indent=2))}</pre>
