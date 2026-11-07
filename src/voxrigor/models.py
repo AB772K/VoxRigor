@@ -9,8 +9,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-MANIFEST_SCHEMA_VERSION = "0.1"
-REPORT_SCHEMA_VERSION = "0.1"
+MANIFEST_SCHEMA_VERSION: Literal["0.1"] = "0.1"
+REPORT_SCHEMA_VERSION: Literal["0.1"] = "0.1"
 
 
 def utc_now() -> datetime:
