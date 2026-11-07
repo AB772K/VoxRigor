@@ -8,7 +8,7 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 ## Project status
 
-**Current development:** Phase 3 — optional biometric model adapters (development preview).
+**Current development:** Phase 4 — controlled audio-condition generation (development preview). Phase 3 model integrations and the model-to-benchmark pipeline have passed automated and real-checkpoint runtime validation; PR #4 is awaiting review.
 
 Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, and optional ECAPA-TDNN and AASIST-L model adapters.
 
@@ -50,6 +50,8 @@ voxrigor models list
 - [Audio-trial manifest and model-to-benchmark workflow](docs/AUDIO_TRIAL_MANIFEST.md)
 - [Third-party model notices](docs/THIRD_PARTY_MODELS.md)
 - [Phase 3 acceptance gates](docs/PHASE_3_ACCEPTANCE.md)
+- [Phase 4 audio-condition implementation](docs/PHASE_4_IMPLEMENTATION.md)
+- [Phase 4 acceptance gates](docs/PHASE_4_ACCEPTANCE.md)
 
 ## Mission
 
