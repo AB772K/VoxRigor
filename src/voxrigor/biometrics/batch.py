@@ -86,7 +86,7 @@ def _write_scores(path: Path, rows: list[dict[str, object]]) -> None:
         os.fsync(handle.fileno())
 
 
-def _build_adapter(manifest: AudioTrialManifest, cache_dir: Path, device: str):
+def _build_adapter(manifest: AudioTrialManifest, cache_dir: Path, device: str) -> Any:
     if manifest.model_id == "ecapa-tdnn":
         return ECAPATDNNAdapter(cache_dir=cache_dir / "ecapa-tdnn", device=device)
     model_path = AASISTLONNXAdapter.fetch_pretrained_model(cache_dir / "huggingface")
@@ -114,13 +114,14 @@ def run_trial_inference(
         raise TrialManifestError("Refusing to overwrite an existing inference output directory")
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
-    adapter = _build_adapter(manifest, Path(cache_dir).expanduser(), device)
+    adapter: Any | None = None
     score_rows: list[dict[str, object]] = []
     trial_provenance: list[dict[str, object]] = []
     descriptor: dict[str, object] | None = None
     artifact_hashes: tuple[str, ...] = ()
 
     try:
+        adapter = _build_adapter(manifest, Path(cache_dir).expanduser(), device)
         adapter.load()
         for trial in manifest.trials:
             if manifest.task is BenchmarkTask.ASV:
@@ -233,7 +234,8 @@ def run_trial_inference(
         shutil.rmtree(temporary, ignore_errors=True)
         raise
     finally:
-        adapter.unload()
+        if adapter is not None:
+            adapter.unload()
 
 
 def _validate_score_result(result: ModelScore, expected_model_id: str) -> None:

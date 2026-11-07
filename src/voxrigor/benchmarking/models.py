@@ -56,15 +56,17 @@ class ScoreProducer(BaseModel):
     @field_validator("inference_provenance_file")
     @classmethod
     def require_relative_provenance_path(cls, value: str) -> str:
-        normalized = value.replace("\\\\", "/")
+        normalized = value.replace("\\", "/")
         if (
-            "\\x00" in normalized
+            "\x00" in normalized
             or PurePosixPath(normalized).is_absolute()
             or PureWindowsPath(normalized).is_absolute()
             or PureWindowsPath(value).drive
             or ".." in PurePosixPath(normalized).parts
         ):
-            raise ValueError("inference provenance path must be relative and remain in the manifest folder")
+            raise ValueError(
+                "inference provenance path must be relative and remain in the manifest folder"
+            )
         return normalized
 
 

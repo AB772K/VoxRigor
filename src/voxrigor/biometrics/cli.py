@@ -10,9 +10,9 @@ from typing import Annotated, NoReturn
 import typer
 
 from voxrigor.biometrics.aasist_onnx import AASISTL_REVISION, AASISTLONNXAdapter
+from voxrigor.biometrics.batch import run_trial_inference
 from voxrigor.biometrics.catalog import list_builtin_models
 from voxrigor.biometrics.ecapa import ECAPATDNNAdapter
-from voxrigor.biometrics.batch import run_trial_inference
 from voxrigor.biometrics.errors import ModelIntegrationError
 from voxrigor.benchmarking.errors import BenchmarkError
 
