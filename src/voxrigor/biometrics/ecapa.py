@@ -6,7 +6,7 @@ import hashlib
 import importlib
 import math
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from voxrigor.biometrics.audio import load_audio_file, resample_audio
 from voxrigor.biometrics.contracts import AudioSignal, ModelDescriptor, ModelScore
@@ -72,10 +72,12 @@ class ECAPATDNNAdapter:
             return
         try:
             torch = importlib.import_module("torch")
-            classifiers_module = importlib.import_module("speechbrain.inference.classifiers")
-            hub_module = importlib.import_module("huggingface_hub")
-            encoder_classifier = getattr(classifiers_module, "EncoderClassifier")
-            snapshot_download = getattr(hub_module, "snapshot_download")
+            classifiers_module = cast(
+                Any, importlib.import_module("speechbrain.inference.classifiers")
+            )
+            hub_module = cast(Any, importlib.import_module("huggingface_hub"))
+            encoder_classifier = classifiers_module.EncoderClassifier
+            snapshot_download = hub_module.snapshot_download
         except ImportError as exc:
             raise OptionalDependencyError(
                 "ECAPA inference requires the speaker extra. Install with: "

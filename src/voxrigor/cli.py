@@ -23,8 +23,8 @@ from voxrigor.benchmarking.models import (
 from voxrigor.benchmarking.reporting import load_benchmark_report
 from voxrigor.benchmarking.runner import run_benchmark
 from voxrigor.errors import ManifestError, ProjectExistsError, ReportError, TestNotFoundError
-from voxrigor.manifest import DEFAULT_MANIFEST, create_manifest, load_manifest
 from voxrigor.biometrics.cli import models_app
+from voxrigor.manifest import DEFAULT_MANIFEST, create_manifest, load_manifest
 from voxrigor.reporting import load_report, write_report
 from voxrigor.testing import TestRunner, build_default_registry
 

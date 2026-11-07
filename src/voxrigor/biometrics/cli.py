@@ -56,11 +56,12 @@ def models_fetch(
         str, typer.Argument(help="Built-in model ID: ecapa-tdnn or aasist-l-onnx.")
     ],
     cache_dir: Annotated[
-        Path, typer.Option("--cache-dir", help="Local model cache directory.")
-    ] = default_model_cache(),
+        Path | None, typer.Option("--cache-dir", help="Local model cache directory.")
+    ] = None,
 ) -> None:
     """Download a pinned model artifact or populate the SpeechBrain model cache."""
 
+    cache_dir = cache_dir or default_model_cache()
     try:
         if model_id == "ecapa-tdnn":
             adapter = ECAPATDNNAdapter(cache_dir=cache_dir / "ecapa-tdnn")
@@ -84,12 +85,13 @@ def models_score_ecapa(
     enrollment: Annotated[Path, typer.Option("--enrollment", exists=True, dir_okay=False)],
     probe: Annotated[Path, typer.Option("--probe", exists=True, dir_okay=False)],
     cache_dir: Annotated[
-        Path, typer.Option("--cache-dir", help="Local SpeechBrain model cache directory.")
-    ] = default_model_cache() / "ecapa-tdnn",
+        Path | None, typer.Option("--cache-dir", help="Local SpeechBrain model cache directory.")
+    ] = None,
     device: Annotated[str, typer.Option("--device", help="cpu or cuda[:index].")] = "cpu",
 ) -> None:
     """Compute an uncalibrated ECAPA-TDNN cosine similarity for two local files."""
 
+    cache_dir = cache_dir or default_model_cache() / "ecapa-tdnn"
     try:
         adapter = ECAPATDNNAdapter(cache_dir=cache_dir, device=device)
         result = adapter.score_files(enrollment, probe)
@@ -107,11 +109,12 @@ def models_score_aasist_l(
         typer.Option("--model-path", help="Existing local AASIST-L ONNX file; omit to fetch it."),
     ] = None,
     cache_dir: Annotated[
-        Path, typer.Option("--cache-dir", help="Local Hugging Face model cache directory.")
-    ] = default_model_cache() / "huggingface",
+        Path | None, typer.Option("--cache-dir", help="Local Hugging Face model cache directory.")
+    ] = None,
 ) -> None:
     """Compute an uncalibrated AASIST-L bona-fide logit for one local file."""
 
+    cache_dir = cache_dir or default_model_cache() / "huggingface"
     try:
         selected_path = model_path or AASISTLONNXAdapter.fetch_pretrained_model(cache_dir)
         adapter = AASISTLONNXAdapter(selected_path)
