@@ -3,7 +3,8 @@ from pathlib import Path
 
 from voxrigor.manifest import create_manifest
 from voxrigor.reporting import load_report, render_html, write_report
-from voxrigor.testing import TestRunner as Runner, build_default_registry
+from voxrigor.testing import TestRunner as Runner
+from voxrigor.testing import build_default_registry
 
 
 def _report(tmp_path: Path):
