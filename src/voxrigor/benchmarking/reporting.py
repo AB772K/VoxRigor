@@ -9,8 +9,10 @@ import os
 import platform
 import shutil
 import tempfile
+from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 from uuid import uuid4
 
 from pydantic import ValidationError
@@ -67,8 +69,8 @@ def build_benchmark_report(
             "cross-split group separation could not be assessed."
         )
     report = BenchmarkReport(
-        run_id=str(uuid4()),
-        generated_at=datetime.now(UTC).isoformat(),
+        run_id=uuid4(),
+        generated_at=datetime.now(UTC),
         framework_version=__version__,
         python_version=platform.python_version(),
         platform=platform.platform(),
@@ -132,6 +134,20 @@ def write_benchmark_report(
                 curve,
             )
         if report.attack_species_metrics:
+            species_rows: list[dict[str, object]] = []
+            for item in report.attack_species_metrics:
+                apcer = cast(dict[str, object], item["apcer"])
+                interval = cast(list[float], apcer["confidence_interval"])
+                species_rows.append(
+                    {
+                        "attack_species": item["attack_species"],
+                        "apcer_errors": apcer["errors"],
+                        "apcer_trials": apcer["trials"],
+                        "apcer_rate": apcer["rate"],
+                        "ci95_lower": interval[0],
+                        "ci95_upper": interval[1],
+                    }
+                )
             _write_csv_atomic(
                 run_dir / "pad_attack_species.csv",
                 [
@@ -142,17 +158,7 @@ def write_benchmark_report(
                     "ci95_lower",
                     "ci95_upper",
                 ],
-                [
-                    {
-                        "attack_species": item["attack_species"],
-                        "apcer_errors": item["apcer"]["errors"],
-                        "apcer_trials": item["apcer"]["trials"],
-                        "apcer_rate": item["apcer"]["rate"],
-                        "ci95_lower": item["apcer"]["confidence_interval"][0],
-                        "ci95_upper": item["apcer"]["confidence_interval"][1],
-                    }
-                    for item in report.attack_species_metrics
-                ],
+                species_rows,
             )
         return run_dir
     except Exception as exc:
@@ -229,7 +235,9 @@ def _atomic_write(path: Path, content: str) -> None:
         raise BenchmarkError("Failed to atomically write benchmark output") from exc
 
 
-def _write_csv_atomic(path: Path, columns: list[str], rows: list[dict[str, object]]) -> None:
+def _write_csv_atomic(
+    path: Path, columns: list[str], rows: Iterable[Mapping[str, object]]
+) -> None:
     temp_name: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
