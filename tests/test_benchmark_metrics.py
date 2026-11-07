@@ -15,7 +15,9 @@ def _asv_rows() -> list[ScoreTrial]:
         ("n2", "nontarget", 0.3),
         ("n3", "nontarget", 0.2),
     ]
-    return [ScoreTrial(i, label, score, "test", "all", None, None, None) for i, label, score in values]
+    return [
+        ScoreTrial(i, label, score, "test", "all", None, None, None) for i, label, score in values
+    ]
 
 
 def test_asv_operating_point_uses_declared_inclusive_threshold() -> None:
@@ -38,8 +40,16 @@ def test_asv_lower_is_genuine_is_equivalent_after_normalization() -> None:
         _asv_rows(), BenchmarkTask.ASV, ScoreDirection.HIGHER_IS_GENUINE, 0.5
     )
     inverted_rows = [
-        ScoreTrial(row.trial_id, row.label, -row.score, row.split, row.condition,
-                   row.attack_species, row.speaker_id, row.source_id)
+        ScoreTrial(
+            row.trial_id,
+            row.label,
+            -row.score,
+            row.split,
+            row.condition,
+            row.attack_species,
+            row.speaker_id,
+            row.source_id,
+        )
         for row in _asv_rows()
     ]
     lower, _, _ = evaluate_scores(
