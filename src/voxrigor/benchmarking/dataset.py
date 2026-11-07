@@ -17,7 +17,11 @@ from voxrigor.benchmarking.models import BenchmarkTask, DatasetManifest
 
 REQUIRED_COLUMNS = {"trial_id", "label", "score"}
 SUPPORTED_COLUMNS = REQUIRED_COLUMNS | {
-    "split", "condition", "attack_species", "speaker_id", "source_id"
+    "split",
+    "condition",
+    "attack_species",
+    "speaker_id",
+    "source_id",
 }
 LABELS = {
     BenchmarkTask.ASV: {"target", "nontarget"},
@@ -135,13 +139,16 @@ def load_score_dataset(manifest_path: Path) -> ScoreDataset:
             missing_group_columns = set(manifest.group_columns) - set(headers)
             if missing_group_columns:
                 raise ScoreFileError(
-                    "Configured group columns are missing: " + ", ".join(sorted(missing_group_columns))
+                    "Configured group columns are missing: "
+                    + ", ".join(sorted(missing_group_columns))
                 )
             has_split = "split" in headers
             if not has_split and manifest.evaluation_split != "all":
                 raise ScoreFileError("evaluation_split requires a split column in the score CSV")
             if not has_split and manifest.threshold_source.value == "development_split":
-                raise ScoreFileError("development_split threshold provenance requires a split column")
+                raise ScoreFileError(
+                    "development_split threshold provenance requires a split column"
+                )
             for row_number, row in enumerate(reader, start=2):
                 input_rows += 1
                 if None in row:
@@ -247,9 +254,7 @@ def load_score_dataset(manifest_path: Path) -> ScoreDataset:
         else:
             overlap_counts[column] = 0
     if manifest.require_group_disjointness and len(split_counts) < 2:
-        raise ScoreFileError(
-            "Group-disjointness enforcement requires at least two declared splits"
-        )
+        raise ScoreFileError("Group-disjointness enforcement requires at least two declared splits")
     if manifest.require_group_disjointness:
         failures = {key: count for key, count in overlap_counts.items() if count > 0}
         if failures:
