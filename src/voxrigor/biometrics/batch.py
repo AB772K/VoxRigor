@@ -130,7 +130,32 @@ def run_trial_inference(
     descriptor: dict[str, object] | None = None
     artifact_hashes: tuple[str, ...] = ()
 
+    condition_provenance_file: str | None = None
+    condition_provenance_hash: str | None = None
     try:
+        if manifest.condition_provenance_file is not None:
+            source_condition_path = _resolve_audio_path(
+                source_manifest.parent, manifest.condition_provenance_file
+            )
+            expected_condition_hash = manifest.condition_provenance_sha256
+            actual_condition_hash = _sha256_file(source_condition_path)
+            if actual_condition_hash != expected_condition_hash:
+                raise TrialManifestError(
+                    "Audio-condition provenance sidecar SHA-256 does not match the audio-trial manifest"
+                )
+            condition_provenance_file = "condition-provenance.json"
+            copied_condition_path = temporary / condition_provenance_file
+            with source_condition_path.open("rb") as source_handle:
+                with copied_condition_path.open("xb") as output_handle:
+                    shutil.copyfileobj(source_handle, output_handle)
+                    output_handle.flush()
+                    os.fsync(output_handle.fileno())
+            condition_provenance_hash = _sha256_file(copied_condition_path)
+            if condition_provenance_hash != expected_condition_hash:
+                raise TrialManifestError(
+                    "Copied audio-condition provenance sidecar failed its SHA-256 check"
+                )
+
         adapter = _build_adapter(manifest, Path(cache_dir).expanduser(), device)
         adapter.load()
         for trial in manifest.trials:
@@ -214,8 +239,8 @@ def run_trial_inference(
             inference_manifest_sha256=input_manifest_hash,
             inference_provenance_file="inference-provenance.json",
             inference_provenance_sha256=_sha256_file(inference_path),
-            condition_provenance_file=manifest.condition_provenance_file,
-            condition_provenance_sha256=manifest.condition_provenance_sha256,
+            condition_provenance_file=condition_provenance_file,
+            condition_provenance_sha256=condition_provenance_hash,
         )
         benchmark_manifest = DatasetManifest(
             schema_version="0.2",

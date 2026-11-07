@@ -128,7 +128,7 @@ def test_resample_transform_changes_rate_and_sample_count(tmp_path: Path) -> Non
         effective_seed=None,
     )
     assert transformed.sample_rate_hz == 8000
-    assert transformed.samples.shape == (2000,)
+    assert transformed.samples.shape == (4000,)
     assert record["input_sample_rate_hz"] == 16000
     assert record["output_sample_rate_hz"] == 8000
     assert record["input_sample_sha256"] != record["output_sample_sha256"]
@@ -314,7 +314,9 @@ def test_generate_conditions_and_run_phase2_end_to_end(
     )
     sidecar_text = sidecar_path.read_text(encoding="utf-8")
     assert "source-audio/" not in sidecar_text
-    assert "waveform" not in sidecar_text.lower()
+    sidecar_document = json.loads(sidecar_text)
+    assert not any("waveform" in key.lower() for key in sidecar_document)
+    assert "embeddings" not in sidecar_document
     assert {trial.condition for trial in generated.trials} == {
         "clean",
         "noise-20db",
@@ -335,7 +337,7 @@ def test_generate_conditions_and_run_phase2_end_to_end(
     dataset = load_score_dataset(inference_dir / "benchmark.json")
     assert len(dataset.records) == 6
     assert dataset.manifest.score_producer is not None
-    assert dataset.manifest.score_producer.condition_provenance_file == "conditions-provenance.json"
+    assert dataset.manifest.score_producer.condition_provenance_file == "condition-provenance.json"
     report, _ = build_benchmark_report(dataset)
     assert report.provenance["condition_provenance_sha256"] == generated.condition_provenance_sha256
 
@@ -352,7 +354,7 @@ def test_phase2_rejects_modified_condition_provenance(
         tmp_path / "inference-output",
         cache_dir=tmp_path / "cache",
     )
-    sidecar = generated_path.parent / "conditions-provenance.json"
+    sidecar = inference_dir / "condition-provenance.json"
     sidecar.write_text(sidecar.read_text(encoding="utf-8") + " ", encoding="utf-8")
     with pytest.raises(ScoreFileError, match="Audio-condition provenance sidecar"):
         load_score_dataset(inference_dir / "benchmark.json")

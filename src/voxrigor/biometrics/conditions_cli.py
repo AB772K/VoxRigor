@@ -7,7 +7,7 @@ from typing import Annotated, NoReturn
 
 import typer
 
-from voxrigor.biometrics.conditions import generate_condition_dataset
+from voxrigor.biometrics.conditions import ConditionManifestError, generate_condition_dataset
 from voxrigor.biometrics.errors import ModelIntegrationError
 
 audio_app = typer.Typer(
