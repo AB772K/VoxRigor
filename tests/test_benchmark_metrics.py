@@ -1,4 +1,7 @@
+import pytest
+
 from voxrigor.benchmarking.dataset import ScoreTrial
+from voxrigor.benchmarking.errors import MetricError
 from voxrigor.benchmarking.metrics import evaluate_conditions, evaluate_scores, wilson_interval
 from voxrigor.benchmarking.models import BenchmarkTask, ScoreDirection
 
@@ -93,9 +96,6 @@ def test_one_class_condition_is_reported_not_computable() -> None:
 
 
 def test_invalid_wilson_counts_are_rejected() -> None:
-    import pytest
-    from voxrigor.benchmarking.errors import MetricError
-
     with pytest.raises(MetricError):
         wilson_interval(2, 1)
     with pytest.raises(MetricError):
@@ -103,18 +103,12 @@ def test_invalid_wilson_counts_are_rejected() -> None:
 
 
 def test_asv_without_both_classes_is_rejected() -> None:
-    import pytest
-    from voxrigor.benchmarking.errors import MetricError
-
     rows = [ScoreTrial("t1", "target", 0.9, "test", "all", None, None, None)]
     with pytest.raises(MetricError, match="both target and nontarget"):
         evaluate_scores(rows, BenchmarkTask.ASV, ScoreDirection.HIGHER_IS_GENUINE, None)
 
 
 def test_pad_without_threshold_is_rejected() -> None:
-    import pytest
-    from voxrigor.benchmarking.errors import MetricError
-
     rows = [
         ScoreTrial("b1", "bonafide", 0.9, "test", "all", None, None, None),
         ScoreTrial("s1", "spoof", 0.1, "test", "all", "replay", None, None),
