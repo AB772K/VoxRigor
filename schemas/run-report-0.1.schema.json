@@ -1,0 +1,330 @@
+{
+  "$defs": {
+    "ResultStatus": {
+      "description": "A deliberately explicit result vocabulary.",
+      "enum": [
+        "vulnerable",
+        "no_issue_observed",
+        "inconclusive",
+        "unsupported",
+        "execution_error"
+      ],
+      "title": "ResultStatus",
+      "type": "string"
+    },
+    "RunProvenance": {
+      "additionalProperties": false,
+      "description": "Execution metadata intended to make a run auditable and reproducible.",
+      "properties": {
+        "framework_version": {
+          "title": "Framework Version",
+          "type": "string"
+        },
+        "python_version": {
+          "title": "Python Version",
+          "type": "string"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "config_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Config Sha256",
+          "type": "string"
+        },
+        "random_seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Random Seed"
+        }
+      },
+      "required": [
+        "framework_version",
+        "python_version",
+        "platform",
+        "config_sha256"
+      ],
+      "title": "RunProvenance",
+      "type": "object"
+    },
+    "RunSummary": {
+      "additionalProperties": false,
+      "description": "Count of results by their explicit status.",
+      "properties": {
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "vulnerable": {
+          "minimum": 0,
+          "title": "Vulnerable",
+          "type": "integer"
+        },
+        "no_issue_observed": {
+          "minimum": 0,
+          "title": "No Issue Observed",
+          "type": "integer"
+        },
+        "inconclusive": {
+          "minimum": 0,
+          "title": "Inconclusive",
+          "type": "integer"
+        },
+        "unsupported": {
+          "minimum": 0,
+          "title": "Unsupported",
+          "type": "integer"
+        },
+        "execution_error": {
+          "minimum": 0,
+          "title": "Execution Error",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total",
+        "vulnerable",
+        "no_issue_observed",
+        "inconclusive",
+        "unsupported",
+        "execution_error"
+      ],
+      "title": "RunSummary",
+      "type": "object"
+    },
+    "SampleAccounting": {
+      "additionalProperties": false,
+      "description": "Reconciled sample counts for a test that consumes sample records.",
+      "properties": {
+        "input": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Input",
+          "type": "integer"
+        },
+        "evaluated": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Evaluated",
+          "type": "integer"
+        },
+        "excluded": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Excluded",
+          "type": "integer"
+        }
+      },
+      "title": "SampleAccounting",
+      "type": "object"
+    },
+    "TestDescriptor": {
+      "additionalProperties": false,
+      "description": "Public metadata for a registered test; does not contain executable code.",
+      "properties": {
+        "test_id": {
+          "pattern": "^[a-z][a-z0-9_.-]{2,79}$",
+          "title": "Test Id",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:[.-][a-zA-Z0-9.-]+)?$",
+          "title": "Version",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Category",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "test_id",
+        "version",
+        "name",
+        "category",
+        "description"
+      ],
+      "title": "TestDescriptor",
+      "type": "object"
+    },
+    "TestError": {
+      "additionalProperties": false,
+      "description": "Sanitized exception metadata; tracebacks are not written to reports.",
+      "properties": {
+        "error_type": {
+          "title": "Error Type",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error_type",
+        "message"
+      ],
+      "title": "TestError",
+      "type": "object"
+    },
+    "TestResult": {
+      "additionalProperties": false,
+      "description": "One test execution result in the common report envelope.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1",
+          "default": "0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "test": {
+          "$ref": "#/$defs/TestDescriptor"
+        },
+        "status": {
+          "$ref": "#/$defs/ResultStatus"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "measurements": {
+          "additionalProperties": true,
+          "title": "Measurements",
+          "type": "object"
+        },
+        "sample_accounting": {
+          "$ref": "#/$defs/SampleAccounting"
+        },
+        "evidence": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TestError"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "run_id",
+        "test",
+        "status",
+        "started_at",
+        "finished_at"
+      ],
+      "title": "TestResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned report generated for one local execution.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1",
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "project_id": {
+      "format": "uuid",
+      "title": "Project Id",
+      "type": "string"
+    },
+    "project_name": {
+      "title": "Project Name",
+      "type": "string"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "finished_at": {
+      "format": "date-time",
+      "title": "Finished At",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/RunProvenance"
+    },
+    "summary": {
+      "$ref": "#/$defs/RunSummary"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/TestResult"
+      },
+      "title": "Results",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "project_id",
+    "project_name",
+    "started_at",
+    "finished_at",
+    "provenance",
+    "summary",
+    "results"
+  ],
+  "title": "RunReport",
+  "type": "object",
+  "$id": "https://github.com/AB772K/VoxRigor/blob/main/schemas/run-report-0.1.schema.json"
+}

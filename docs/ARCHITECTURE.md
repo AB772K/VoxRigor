@@ -137,7 +137,7 @@ voxrigor report <run-id> --format html
 voxrigor plugins list
 ```
 
-These are interface proposals, not implemented commands.
+Phase 1 implements `version`, `init`, `validate`, `tests`, `run` and `report`. The initial scope is offline-only. The later commands shown above remain proposals until their corresponding phases.
 
 ## 9. Plugin trust model
 

@@ -4,7 +4,7 @@
 
 Research openly. Test rigorously. Report honestly.
 
-> **Project status:** Phase 0 — research, requirements definition and architecture design. VoxRigor is not yet an implemented or validated security testing product. Features described in this repository are planned unless explicitly marked as implemented.
+> **Project status:** Phase 1 core-framework prototype. The current bundled test is a runtime diagnostic only. VoxRigor does not yet evaluate voice biometrics, audio attacks, authentication protocols, or target applications.
 
 ## About
 
@@ -14,22 +14,17 @@ Voice authentication is not just a speaker-recognition model. Its security depen
 
 VoxRigor aims to provide a local-first, extensible and reproducible framework for evaluating these layers through documented test cases, model and dataset adapters, authorized target-application adapters, evidence-backed results and machine-readable reports.
 
-## Project objectives
+## What exists today
 
-- Evaluate speaker-verification systems using clearly defined biometric performance protocols.
-- Evaluate presentation-attack detection at the capture boundary using controlled, documented test conditions.
-- Measure robustness to audio-channel and recording-condition changes without confusing ordinary robustness failures with security attacks.
-- Assess authentication protocol and application workflows, including enrollment, challenge freshness, replay resistance, session lifecycle and recovery.
-- Support model-, dataset- and target-application adapters so researchers are not locked to one vendor or model.
-- Preserve experimental provenance: dataset version, sample accounting, configuration, model/checkpoint hashes, software versions, seeds and result-schema version.
-- Produce evidence-backed reports that distinguish a reproduced finding from an inconclusive or unsupported test.
-- Keep biometric data local by default and avoid collecting or transmitting voice recordings to a project-operated service.
+- Strict, versioned offline project manifest.
+- CLI for project initialization, validation, test discovery, execution and report inspection.
+- Explicit built-in test registry.
+- Run IDs, UTC timestamps and configuration SHA-256 provenance.
+- Typed result statuses and sample-accounting checks.
+- Local JSON and self-contained HTML report output.
+- Automated tests and cross-platform CI configuration.
 
-## What VoxRigor is — and is not
-
-**It is intended to be:** an open-source research and security-assessment framework for authorized evaluation of voice-biometric systems and the applications that use them.
-
-**It is not intended to be:** a voice-cloning product, a general-purpose deepfake generator, a general web vulnerability scanner, a voice-agent conversational QA platform, a biometric certification authority, or a guarantee that a tested system is secure or compliant with any regulation or standard.
+The current `core.runtime-info` diagnostic returns `inconclusive` by design. It does not test a biometric model or security control. Machine-readable schemas are provided under [`schemas/`](schemas/).
 
 ## Planned assessment layers
 
@@ -42,28 +37,36 @@ VoxRigor aims to provide a local-first, extensible and reproducible framework fo
 
 These layers will be reported separately. A PAD result does not establish application security; a model benchmark does not establish end-to-end authentication security.
 
-## Development principles
+## Quick start
 
-- **Evidence before severity:** a finding requires a defined test, observable evidence and reproducible conditions.
-- **Honest uncertainty:** results include `vulnerable`, `no_issue_observed`, `inconclusive`, `unsupported` and `execution_error` states.
-- **Reproducibility:** no silent dataset filtering, undocumented threshold tuning or untracked model weights.
-- **Privacy by default:** local processing, explicit artifact retention and redaction of secrets and personal data.
-- **Safe operation:** only owned or explicitly authorized targets; conservative defaults and bounded tests.
-- **Modularity:** optional machine-learning dependencies; documented adapter and plugin contracts.
-- **No unsupported compliance claims:** mappings to standards are informative and versioned, not certifications.
+```bash
+python -m venv .venv
+python -m pip install -e .
+voxrigor init ./my-project --name "My Voice Research"
+voxrigor validate ./my-project/voxrigor.json
+voxrigor tests
+voxrigor run --project ./my-project/voxrigor.json --output ./my-project/runs
+```
 
-## Current roadmap
+See [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) for Windows PowerShell and report-inspection instructions.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md). Phase 0 documents are being prepared before major implementation begins.
+## Development documentation
+
+- [Project charter](docs/PROJECT_CHARTER.md)
+- [Requirements](docs/REQUIREMENTS.md)
+- [Threat model](docs/THREAT_MODEL.md)
+- [Competitor analysis](docs/COMPETITOR_ANALYSIS.md)
+- [Standards and metrics](docs/STANDARDS_AND_METRICS.md)
+- [Dataset and model policy](docs/DATASET_AND_MODEL_POLICY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Initial test catalogue](docs/INITIAL_TEST_CATALOG.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Phase 1 implementation record](docs/PHASE_1_IMPLEMENTATION.md)
 
 ## Responsible use
 
-VoxRigor must only be used against systems and data that the operator owns or is explicitly authorized to assess. Do not use real customer voice recordings or biometric templates without a lawful basis, informed authorization and appropriate safeguards. Do not use the project to impersonate real people, bypass third-party authentication, or conduct tests outside an agreed scope.
+VoxRigor is intended for authorized research and evaluation. This Phase 1 prototype is offline-only and has no network target adapter. Future target testing must enforce explicit scope, use test identities, bound requests, and document authorization. Do not use real customer voice recordings or biometric templates without an appropriate lawful basis, informed authorization and safeguards.
 
 ## Licensing
 
-The original VoxRigor source code and documentation are intended to be distributed under Apache License 2.0. Third-party datasets, pretrained models, model weights, test fixtures and dependencies retain their own licenses and terms. See [`docs/DATASET_AND_MODEL_POLICY.md`](docs/DATASET_AND_MODEL_POLICY.md).
-
-## Contributing
-
-The repository is in the specification stage. Contributions are welcome after the initial architecture and contribution rules are finalized. Please open an issue before proposing a major feature so that scope, methodology, licensing and safety can be reviewed.
+Original VoxRigor code and documentation are distributed under Apache License 2.0. Third-party datasets, pretrained models, model weights, fixtures and dependencies retain their own licenses and terms. See [`docs/DATASET_AND_MODEL_POLICY.md`](docs/DATASET_AND_MODEL_POLICY.md).
