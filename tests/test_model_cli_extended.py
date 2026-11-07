@@ -32,10 +32,12 @@ class FakeECAPA:
 
 class FakeAASIST:
     fetched_path: Path | None = None
+    instances: list[FakeAASIST] = []
 
     def __init__(self, model_path: Path) -> None:
         self.model_path = model_path
         self.unloaded = False
+        self.instances.append(self)
 
     def score_file(self, _audio: Path) -> FakeResult:
         return FakeResult()
@@ -143,20 +145,14 @@ def test_score_aasist_cli_fetches_model_when_path_omitted(monkeypatch: Any, tmp_
     model = tmp_path / "downloaded.onnx"
     model.touch()
     FakeAASIST.fetched_path = model
-    instances: list[FakeAASIST] = []
-
-    def factory(path: Path) -> FakeAASIST:
-        instance = FakeAASIST(path)
-        instances.append(instance)
-        return instance
-
-    monkeypatch.setattr(cli_module, "AASISTLONNXAdapter", factory)
+    FakeAASIST.instances = []
+    monkeypatch.setattr(cli_module, "AASISTLONNXAdapter", FakeAASIST)
     result = CliRunner().invoke(
         models_app, ["score-aasist-l", "--audio", str(audio), "--cache-dir", str(tmp_path)]
     )
     assert result.exit_code == 0, result.output
-    assert instances[0].model_path == model
-    assert instances[0].unloaded
+    assert FakeAASIST.instances[0].model_path == model
+    assert FakeAASIST.instances[0].unloaded
     FakeAASIST.fetched_path = None
 
 
