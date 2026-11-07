@@ -52,7 +52,9 @@ def test_loader_filters_split_and_reconciles_rows(tmp_path: Path) -> None:
 
 def test_loader_rejects_modified_score_file_hash(tmp_path: Path) -> None:
     manifest = _write_dataset(tmp_path, VALID_CSV)
-    (tmp_path / "scores.csv").write_text(VALID_CSV + "extra,target,0.7,test,clean,e,f\n", encoding="utf-8")
+    (tmp_path / "scores.csv").write_text(
+        VALID_CSV + "extra,target,0.7,test,clean,e,f\n", encoding="utf-8"
+    )
     with pytest.raises(ScoreFileError, match="SHA-256"):
         load_score_dataset(manifest)
 
@@ -73,11 +75,7 @@ def test_loader_rejects_invalid_score_csv(tmp_path: Path, csv_text: str, expecte
 
 
 def test_pad_spoof_rows_require_attack_species(tmp_path: Path) -> None:
-    csv_text = (
-        "trial_id,label,score,split\n"
-        "b,bonafide,0.9,test\n"
-        "s,spoof,0.1,test\n"
-    )
+    csv_text = "trial_id,label,score,split\nb,bonafide,0.9,test\ns,spoof,0.1,test\n"
     manifest = _write_dataset(
         tmp_path,
         csv_text,
@@ -136,7 +134,9 @@ def test_unknown_columns_are_reported_not_interpreted(tmp_path: Path) -> None:
 
 
 def test_required_group_audit_needs_group_columns_and_two_splits(tmp_path: Path) -> None:
-    csv_text = "trial_id,label,score,split,speaker_id\nt,target,0.9,test,s1\nn,nontarget,0.1,test,s2\n"
+    csv_text = (
+        "trial_id,label,score,split,speaker_id\nt,target,0.9,test,s1\nn,nontarget,0.1,test,s2\n"
+    )
     manifest = _write_dataset(
         tmp_path, csv_text, group_columns=["speaker_id"], require_group_disjointness=True
     )
@@ -159,7 +159,9 @@ def test_required_group_audit_rejects_missing_group_values(tmp_path: Path) -> No
         load_score_dataset(manifest)
 
 
-def test_development_split_threshold_is_accepted_only_with_distinct_present_split(tmp_path: Path) -> None:
+def test_development_split_threshold_is_accepted_only_with_distinct_present_split(
+    tmp_path: Path,
+) -> None:
     manifest = _write_dataset(
         tmp_path,
         VALID_CSV,
@@ -204,10 +206,7 @@ def test_declared_group_column_rejects_missing_values_even_without_enforcement(
 
 def test_development_threshold_split_must_contain_both_classes(tmp_path: Path) -> None:
     csv_text = (
-        "trial_id,label,score,split\n"
-        "d1,target,0.9,dev\n"
-        "t1,target,0.8,test\n"
-        "t2,nontarget,0.2,test\n"
+        "trial_id,label,score,split\nd1,target,0.9,dev\nt1,target,0.8,test\nt2,nontarget,0.2,test\n"
     )
     manifest = _write_dataset(
         tmp_path,
