@@ -58,7 +58,9 @@ class DatasetManifest(BaseModel):
     require_group_disjointness: bool = False
     group_columns: list[Literal["speaker_id", "source_id"]] = Field(default_factory=list)
 
-    @field_validator("dataset_name", "dataset_version", "protocol_id", "evaluation_split", "license_name")
+    @field_validator(
+        "dataset_name", "dataset_version", "protocol_id", "evaluation_split", "license_name"
+    )
     @classmethod
     def reject_whitespace_only(cls, value: str) -> str:
         if not value.strip():
@@ -109,9 +111,13 @@ class DatasetManifest(BaseModel):
                 raise ValueError("an operating_threshold requires its source to be declared")
             if self.threshold_source is ThresholdSource.DEVELOPMENT_SPLIT:
                 if self.evaluation_split == "all":
-                    raise ValueError("development_split threshold requires a named evaluation_split")
+                    raise ValueError(
+                        "development_split threshold requires a named evaluation_split"
+                    )
                 if not self.threshold_selection_split:
-                    raise ValueError("development_split threshold requires threshold_selection_split")
+                    raise ValueError(
+                        "development_split threshold requires threshold_selection_split"
+                    )
                 if self.threshold_selection_split == self.evaluation_split:
                     raise ValueError("threshold must not be selected on the evaluation split")
             elif self.threshold_selection_split is not None:
