@@ -16,13 +16,18 @@ from typing import Any
 from pydantic import ValidationError
 
 from voxrigor import __version__
+from voxrigor.benchmarking.models import (
+    BenchmarkTask,
+    DatasetManifest,
+    ScoreDirection,
+    ScoreProducer,
+)
 from voxrigor.biometrics.aasist_onnx import AASISTLONNXAdapter
 from voxrigor.biometrics.audio import load_audio_file
 from voxrigor.biometrics.contracts import ModelScore
 from voxrigor.biometrics.ecapa import ECAPATDNNAdapter
 from voxrigor.biometrics.errors import ModelIntegrationError
 from voxrigor.biometrics.trials import AudioTrialManifest
-from voxrigor.benchmarking.models import BenchmarkTask, DatasetManifest, ScoreDirection, ScoreProducer
 
 
 class TrialManifestError(ModelIntegrationError):

@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-import voxrigor.biometrics.batch as batch
-from voxrigor.biometrics.contracts import AudioSignal, ModelDescriptor, ModelScore
 from voxrigor.benchmarking.dataset import load_score_dataset
 from voxrigor.benchmarking.errors import ScoreFileError
 from voxrigor.benchmarking.reporting import build_benchmark_report
+from voxrigor.biometrics.batch import TrialManifestError
+from voxrigor.biometrics.contracts import AudioSignal, ModelDescriptor, ModelScore
+
+import voxrigor.biometrics.batch as batch
 
 
 def descriptor(model_id: str, task: str, score_type: str) -> ModelDescriptor:
