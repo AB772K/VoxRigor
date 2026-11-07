@@ -19,3 +19,7 @@ class ReportError(VoxRigorError):
 
 class ProjectExistsError(VoxRigorError):
     """Refuse to overwrite an existing project manifest."""
+
+
+class BenchmarkError(Exception):
+    """Expected error from score-based offline benchmark evaluation."""

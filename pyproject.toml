@@ -58,6 +58,7 @@ src = ["src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -74,3 +75,6 @@ source = ["voxrigor"]
 show_missing = true
 skip_covered = false
 fail_under = 85
+
+[tool.setuptools.package-data]
+voxrigor = ["py.typed"]

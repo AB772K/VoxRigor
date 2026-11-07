@@ -1,0 +1,11 @@
+trial_id,label,score,split,condition,speaker_id,source_id
+asv-dev-001,target,0.91,dev,clean,dev-spk-01,dev-src-01
+asv-dev-002,nontarget,0.11,dev,clean,dev-spk-02,dev-src-02
+asv-test-001,target,0.95,test,clean,test-spk-01,test-src-01
+asv-test-002,target,0.80,test,clean,test-spk-02,test-src-02
+asv-test-003,target,0.42,test,codec_8k,test-spk-03,test-src-03
+asv-test-004,target,0.62,test,codec_8k,test-spk-04,test-src-04
+asv-test-005,nontarget,0.70,test,clean,test-spk-05,test-src-05
+asv-test-006,nontarget,0.35,test,clean,test-spk-06,test-src-06
+asv-test-007,nontarget,0.20,test,codec_8k,test-spk-07,test-src-07
+asv-test-008,nontarget,0.56,test,codec_8k,test-spk-08,test-src-08

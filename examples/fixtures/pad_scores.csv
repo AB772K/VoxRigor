@@ -1,0 +1,11 @@
+trial_id,label,score,split,condition,attack_species,speaker_id,source_id
+pad-test-001,bonafide,0.90,test,clean,,spk-01,src-01
+pad-test-002,bonafide,0.82,test,clean,,spk-02,src-02
+pad-test-003,bonafide,0.48,test,codec_8k,,spk-03,src-03
+pad-test-004,bonafide,0.65,test,codec_8k,,spk-04,src-04
+pad-test-005,spoof,0.75,test,replay,replay,spk-05,src-05
+pad-test-006,spoof,0.30,test,replay,replay,spk-06,src-06
+pad-test-007,spoof,0.55,test,synthetic,synthetic_speech,spk-07,src-07
+pad-test-008,spoof,0.20,test,synthetic,synthetic_speech,spk-08,src-08
+pad-test-009,spoof,0.10,test,voice_conversion,voice_conversion,spk-09,src-09
+pad-test-010,spoof,0.60,test,voice_conversion,voice_conversion,spk-10,src-10

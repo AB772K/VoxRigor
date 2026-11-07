@@ -1,0 +1,2 @@
+# Preserve the exact bytes used for fixture SHA-256 manifests on Windows and POSIX.
+*.csv text eol=lf

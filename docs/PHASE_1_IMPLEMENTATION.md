@@ -1,6 +1,6 @@
 # Phase 1 Implementation Record
 
-**Status:** Prototype implemented; local acceptance tests pass on Python 3.13.5 with 88.91% measured total coverage; lint/type CI and cross-platform CI remain pending. Ruff and mypy were not run locally because those tools were not preinstalled and package-index network access was unavailable in the build environment.
+**Status:** Prototype implemented; local acceptance tests pass on Python 3.13.5 with 88.94% measured total coverage; lint/type CI and cross-platform CI remain pending. Ruff and mypy were not run locally because those tools were not preinstalled and package-index network access was unavailable in the build environment.
 
 ## Implemented in this branch
 
@@ -26,4 +26,4 @@
 
 ## Phase 1 exit gate
 
-The local Phase 1 vertical slice currently creates and validates a manifest, discovers the diagnostic test, executes it, validates the report schema and writes JSON/HTML reports. The local test suite passes. The formal exit gate remains open until GitHub CI passes on every configured Python/OS combination and the project owner reviews the interface and limitations. The diagnostic result remains `inconclusive` and makes no security claim.
+The Phase 1 vertical slice creates and validates a manifest, discovers the diagnostic test, executes it, validates the report schema and writes JSON/HTML reports. Its standalone local suite passed 34 tests with 88.94% total coverage on Python 3.13.5. The broader Phase 2 suite also exercises the Phase 1 components. The formal exit gate remains open until GitHub CI passes on every configured Python/OS combination and the project owner reviews the interface and limitations. The diagnostic result remains `inconclusive` and makes no security claim.

@@ -1,8 +1,8 @@
 # Development Roadmap
 
-**Status:** Draft 0.1 — Phase 0  
+**Status:** Living development plan — updated after Phase 2 implementation  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
-**Current state:** Phase 1 core prototype has been implemented locally; repository upload, GitHub CI and owner review remain pending. Phase 0 documents remain drafts until accepted by the project owner.
+**Current state:** Phase 1 core prototype and Phase 2 offline score-trial evaluation are implemented in the local development snapshot. Phase 1 local tests and Phase 2 local tests pass. Phase 2 branch publication, GitHub Actions and owner review remain pending.
 
 ## Phase 0 — Research, product specification and threat modeling
 
@@ -51,7 +51,9 @@ Build:
 - per-condition result breakdowns;
 - reproducibility report.
 
-Exit gate: fixed fixtures reproduce hand-calculated and/or official reference outputs within documented tolerance; no silent sample loss; invalid protocol combinations are rejected.
+Exit gate: fixed fixtures reproduce hand-calculated and/or official reference outputs within documented tolerance; no silent sample loss; invalid protocol combinations are rejected. Current implementation supports the normalized CSV score format and generic ASV/PAD metrics only; official challenge formats and challenge-specific cost metrics remain deferred until implemented and independently validated.
+
+**Phase 2 implementation note:** the first implementation is score-only. It does not read audio or run models. This boundary keeps the metrics implementation independently testable and avoids coupling score evaluation to model frameworks.
 
 ## Phase 3 — Baseline model integrations
 
