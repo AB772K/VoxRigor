@@ -23,10 +23,10 @@ from voxrigor.biometrics.conditions import (
     generate_condition_dataset,
 )
 from voxrigor.biometrics.contracts import AudioSignal, ModelDescriptor, ModelScore
-from voxrigor.biometrics.dataset import load_score_dataset
 from voxrigor.biometrics.errors import AudioInputError
 from voxrigor.benchmarking.errors import ScoreFileError
 from voxrigor.benchmarking.reporting import build_benchmark_report
+from voxrigor.biometrics.dataset import load_score_dataset
 
 
 def make_signal(

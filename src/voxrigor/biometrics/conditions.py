@@ -5,12 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import platform
 import shutil
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
@@ -78,12 +79,7 @@ class ReverberationTransform(BaseModel):
 
 
 ConditionTransform = Annotated[
-    Union[
-        ResampleTransform,
-        GaussianNoiseTransform,
-        MuLawTransform,
-        ReverberationTransform,
-    ],
+    ResampleTransform | GaussianNoiseTransform | MuLawTransform | ReverberationTransform,
     Field(discriminator="kind"),
 ]
 
@@ -186,7 +182,7 @@ def load_condition_experiment(path: Path) -> AudioConditionExperiment:
 
 
 def _derive_seed(seed: int, trial_id: str, role: str, operation_index: int) -> int:
-    material = f"{seed}:{trial_id}:{role}:{operation_index}".encode("utf-8")
+    material = f"{seed}:{trial_id}:{role}:{operation_index}".encode()
     return int.from_bytes(hashlib.sha256(material).digest()[:4], "big")
 
 
@@ -392,7 +388,7 @@ def generate_condition_dataset(experiment_path: Path, output_dir: Path) -> Path:
         for trial in source_manifest.trials:
             for scenario in experiment.scenarios:
                 new_trial_id = "c-" + hashlib.sha256(
-                    f"{trial.trial_id}:{scenario.scenario_id}".encode("utf-8")
+                    f"{trial.trial_id}:{scenario.scenario_id}".encode()
                 ).hexdigest()[:32]
                 endpoint_records: list[dict[str, object]] = []
                 endpoint_values: dict[str, str] = {}
