@@ -108,7 +108,7 @@ def test_report_warns_when_declared_groups_overlap_across_splits(tmp_path: Path)
     # Reuse one pseudonymous speaker ID in dev and test to exercise the overlap warning.
     lines[3] = lines[3].replace("test-spk-01", "dev-spk-01")
     score_text = "\n".join(lines) + "\n"
-    (tmp_path / "scores.csv").write_text(score_text, encoding="utf-8")
+    (tmp_path / "scores.csv").write_bytes(score_text.encode("utf-8"))
     raw = json.loads((ROOT / "examples/fixtures/asv_benchmark.json").read_text(encoding="utf-8"))
     import hashlib
 
