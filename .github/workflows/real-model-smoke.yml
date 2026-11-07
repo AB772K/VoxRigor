@@ -1,6 +1,14 @@
 name: Optional real-model smoke tests
 
 on:
+  push:
+    branches:
+      - phase-3-model-pipeline
+    paths:
+      - ".github/workflows/real-model-smoke.yml"
+      - "scripts/real_model_smoke.py"
+      - "src/voxrigor/biometrics/**"
+      - "pyproject.toml"
   workflow_dispatch:
     inputs:
       model:

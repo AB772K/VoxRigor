@@ -25,9 +25,7 @@ def test_benchmark_report_schema_accepts_generated_report() -> None:
 
 
 def test_model_generated_score_manifest_schema_is_valid_and_requires_provenance() -> None:
-    schema = json.loads(
-        (ROOT / "schemas/score-dataset-manifest-0.2.schema.json").read_text()
-    )
+    schema = json.loads((ROOT / "schemas/score-dataset-manifest-0.2.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
     assert schema["properties"]["schema_version"]["const"] == "0.2"
     assert "score_producer" in schema["required"]
