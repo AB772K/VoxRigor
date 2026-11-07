@@ -8,11 +8,13 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 ## Project status
 
-**Current development:** Phase 3 — optional biometric model adapters (development preview).
+**Current development:** Phase 4 — controlled audio-condition generation (development preview). Phase 3 model integrations and the model-to-benchmark pipeline have passed automated and real-checkpoint runtime validation; PR #4 is awaiting review.
 
-Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, and optional ECAPA-TDNN and AASIST-L model adapters.
+Phase 4 first-slice status: controlled audio-condition generation has passed the six-environment CI matrix (Ubuntu and Windows, Python 3.11–3.13). Physical replay hardware and approved-dataset accuracy studies are not part of this implementation.
 
-Real pretrained-checkpoint inference validation is still pending. Consult the phase documentation before relying on the adapters in research or production.
+Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, and deterministic local audio-condition generation.
+
+Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation and physical presentation rig testing remain open research tasks.
 
 ## Installation
 
@@ -30,6 +32,9 @@ python -m pip install -e ".[speaker]"
 
 # AASIST-L ONNX anti-spoofing
 python -m pip install -e ".[pad-onnx]"
+
+# Audio condition generation (resampling, seeded noise, mu-law, reverberation)
+python -m pip install -e ".[audio]"
 ```
 
 ## Discover models
@@ -50,6 +55,8 @@ voxrigor models list
 - [Audio-trial manifest and model-to-benchmark workflow](docs/AUDIO_TRIAL_MANIFEST.md)
 - [Third-party model notices](docs/THIRD_PARTY_MODELS.md)
 - [Phase 3 acceptance gates](docs/PHASE_3_ACCEPTANCE.md)
+- [Phase 4 audio-condition implementation](docs/PHASE_4_IMPLEMENTATION.md)
+- [Phase 4 acceptance gates](docs/PHASE_4_ACCEPTANCE.md)
 
 ## Mission
 

@@ -119,6 +119,11 @@ def build_benchmark_report(
                 if manifest.score_producer is not None
                 else None
             ),
+            "condition_provenance_sha256": (
+                manifest.score_producer.condition_provenance_sha256
+                if manifest.score_producer is not None
+                else None
+            ),
         },
         sample_accounting={
             "input_rows": dataset.input_rows,

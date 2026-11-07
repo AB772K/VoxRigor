@@ -105,3 +105,17 @@ The score-producer record identifies the model revision, backend, raw score sema
 ### Real model smoke tests
 
 After the Phase 3 branch is integrated, repository maintainers can open Actions → Optional real-model smoke tests → Run workflow and select ECAPA, AASIST-L or both. The workflow downloads pinned model artifacts and tests runtime execution using generated non-biometric audio. It is not an accuracy benchmark.
+
+
+## Phase 4: generate controlled audio conditions
+
+Install the optional audio dependencies and generate a reproducible clean-plus-conditions dataset:
+
+```powershell
+python -m pip install -e ".[audio]"
+voxrigor audio conditions generate --manifest .\condition-experiment.json --output-dir .\runs\conditions\experiment-01
+```
+
+Use the generated `audio-trials.json` as input to `voxrigor models score-trials`, then run the Phase 2 benchmark evaluator. Condition labels are retained so the report can compare clean and transformed trials.
+
+Supported initial conditions are resampling, seeded Gaussian noise, 8 kHz μ-law companding, and reverberation using a local impulse response. A clean baseline is mandatory. Digital transformations are not physical replay tests. See [PHASE_4_IMPLEMENTATION.md](PHASE_4_IMPLEMENTATION.md) and [PHASE_4_ACCEPTANCE.md](PHASE_4_ACCEPTANCE.md).

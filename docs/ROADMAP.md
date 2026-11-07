@@ -1,8 +1,8 @@
 # Development Roadmap
 
-**Status:** Living development plan — updated after Phase 2 implementation  
+**Status:** Living development plan — Phase 4 implementation in progress  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
-**Current state:** Phase 1 core prototype and Phase 2 offline score-trial evaluation are implemented in the local development snapshot. Phase 1 local tests and Phase 2 local tests pass. Phase 2 branch publication, GitHub Actions and owner review remain pending.
+**Current state:** Phase 1 and Phase 2 are merged into main. Phase 3 baseline adapters and the reproducible model-to-benchmark follow-up have passed automated CI and real-checkpoint smoke tests; the follow-up is awaiting owner review in PR #4. Phase 4's initial deterministic audio-condition generator has passed its six-environment CI matrix on its own branch. Physical presentation hardware integration and approved-dataset evaluation remain open.
 
 ## Phase 0 — Research, product specification and threat modeling
 
@@ -66,7 +66,7 @@ Build:
 - model score-direction and calibration handling;
 - integration tests with small, approved fixtures.
 
-Exit gate: both adapters pass contract tests, model artifacts have provenance/license records, and results are compared with published/official baselines under compatible conditions.
+Exit gate: both adapters pass contract tests, model artifacts have provenance/license records, and results are compared with published/official baselines under compatible conditions. Adapter, provenance, batch-inference and CI implementation gates have passed. A representative approved dataset comparison remains open; checkpoint smoke tests are runtime checks, not biometric performance evidence.
 
 ## Phase 4 — Audio condition and presentation evaluation
 
@@ -80,7 +80,7 @@ Build:
 - optional local presentation rig integration design;
 - separate labels for physical presentation versus digital injection.
 
-Exit gate: each transform has known input/output behavior, no silent clipping/resampling and reproducible test artifacts; PAD reports separate capture presentation from digital injection.
+Exit gate: each transform has known input/output behavior, no silent clipping/resampling and reproducible test artifacts; PAD reports separate capture presentation from digital injection. The first Phase 4 slice covers digital audio-condition generation; physical presentation hardware integration remains a separately scoped extension.
 
 ## Phase 5 — Reference application and protocol/API security engine
 
