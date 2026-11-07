@@ -177,8 +177,8 @@ def benchmark_init(
         Path, typer.Argument(help="CSV containing trial_id,label,score columns.")
     ],
     manifest_path: Annotated[
-        Path, typer.Option("--manifest", help="Output dataset manifest JSON path.")
-    ] = Path("benchmark.json"),
+        Path | None, typer.Option("--manifest", help="Output dataset manifest JSON path.")
+    ] = None,
     task: Annotated[
         BenchmarkTask, typer.Option("--task", help="Benchmark task: asv or pad.")
     ] = BenchmarkTask.ASV,
@@ -211,6 +211,9 @@ def benchmark_init(
 
     if not scores_file.is_file():
         _handle_error(ScoreFileError("Score CSV does not exist"))
+    # Keep the manifest beside its score CSV by default so the relative
+    # manifest path works across Windows drive letters as well as POSIX paths.
+    manifest_path = manifest_path or scores_file.with_name("benchmark.json")
     if manifest_path.exists():
         _handle_error(DatasetManifestError("Refusing to overwrite an existing dataset manifest"))
 
