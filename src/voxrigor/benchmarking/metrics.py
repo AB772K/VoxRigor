@@ -112,8 +112,12 @@ def _asv_curve(
                 fraction = 0.0
             else:
                 fraction = -difference_left / (difference_right - difference_left)
-            fmr = cast(float, left["fmr"]) + fraction * (cast(float, right["fmr"]) - cast(float, left["fmr"]))
-            fnmr = cast(float, left["fnmr"]) + fraction * (cast(float, right["fnmr"]) - cast(float, left["fnmr"]))
+            fmr = cast(float, left["fmr"]) + fraction * (
+                cast(float, right["fmr"]) - cast(float, left["fmr"])
+            )
+            fnmr = cast(float, left["fnmr"]) + fraction * (
+                cast(float, right["fnmr"]) - cast(float, left["fnmr"])
+            )
             value = (fmr + fnmr) / 2
             eer_result = {
                 "value": value,
