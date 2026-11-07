@@ -47,6 +47,7 @@ voxrigor models list
 - [Architecture](docs/ARCHITECTURE.md)
 - [Phase 2 benchmark format](docs/BENCHMARK_DATA_FORMAT.md)
 - [Phase 3 implementation](docs/PHASE_3_IMPLEMENTATION.md)
+- [Audio-trial manifest and model-to-benchmark workflow](docs/AUDIO_TRIAL_MANIFEST.md)
 - [Third-party model notices](docs/THIRD_PARTY_MODELS.md)
 - [Phase 3 acceptance gates](docs/PHASE_3_ACCEPTANCE.md)
 

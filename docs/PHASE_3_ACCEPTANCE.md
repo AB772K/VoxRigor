@@ -1,28 +1,31 @@
 # Phase 3 Acceptance Criteria
 
-Phase 3 is considered integrated only after all automated gates pass and the manual real-model gates have been recorded.
+Phase 3 is integrated only when automated gates pass and real-checkpoint evidence is recorded.
 
 ## Automated gates
 
-- [ ] Core installation imports VoxRigor without importing PyTorch, SpeechBrain, ONNX Runtime or Hugging Face Hub.
-- [ ] `voxrigor models list` works with only core dependencies.
+- [ ] Core installation imports VoxRigor without PyTorch, SpeechBrain, ONNX Runtime or Hugging Face Hub.
+- [ ] models list works with core dependencies only.
 - [ ] Audio decoding rejects missing, empty, too-long, unsupported-rate and non-finite files.
-- [ ] Stereo-to-mono behavior and resampling are deterministic and tested.
-- [ ] AASIST-L fixed-window preprocessing matches the upstream first-window/tile behavior.
-- [ ] ECAPA adapter validates finite, non-zero embeddings and computes raw cosine similarity.
-- [ ] ECAPA model loading uses a full immutable model commit, a local snapshot and a local checkpoint-path override.
-- [ ] AASIST-L adapter validates the ONNX graph input and unique two-class logits output.
-- [ ] Model results include model revision, score semantics, source audio hashes and model artifact hashes.
-- [ ] Tests cover missing optional dependencies and model/runtime failures.
-- [ ] Ruff, formatting, strict Mypy and the complete test suite pass on all supported CI environments.
+- [ ] Stereo-to-mono and resampling behavior are deterministic.
+- [ ] AASIST-L fixed-window preprocessing is tested against its published wrapper.
+- [ ] ECAPA validates finite, non-zero embeddings and computes raw cosine similarity.
+- [ ] ECAPA uses an immutable model revision and local checkpoint snapshot.
+- [ ] AASIST-L validates ONNX input and unique two-class output.
+- [ ] Results include source-audio hashes, model revision, score semantics and artifact hashes.
+- [ ] Audio-trial manifests reject path traversal, duplicate IDs, invalid labels and model/task mismatches.
+- [ ] Batch inference emits Phase 2-compatible scores and a hashed provenance sidecar.
+- [ ] Phase 2 verifies score and inference-sidecar hashes.
+- [ ] Reports preserve model provenance.
+- [ ] Tests cover missing optional dependencies, inference failures and trial validation.
+- [ ] Ruff, formatting, strict Mypy, tests and the configured 85% coverage gate pass on all supported CI environments.
 
-## Manual real-model gates
+## Real-checkpoint gates
 
-- [ ] A clean `.[speaker]` environment loads the pinned SpeechBrain model and computes embeddings.
-- [ ] A clean `.[pad-onnx]` environment loads the pinned ONNX artifact and computes a finite bona-fide logit.
-- [ ] Resolved artifact hashes and model revisions are recorded.
-- [ ] A second independent run produces repeatable scores within a declared tolerance.
-- [ ] Output scores are consumed by the Phase 2 evaluator without loss of provenance.
-- [ ] No raw voice recordings or biometric embeddings are included in logs, reports or Git commits by default.
+- [ ] ECAPA smoke workflow loads its pinned SpeechBrain checkpoint and emits finite embeddings and cosine scores.
+- [ ] AASIST-L smoke workflow loads its pinned ONNX checkpoint and emits finite logits.
+- [ ] Model revisions and artifact hashes are saved as CI artifacts.
+- [ ] At least one approved evaluation dataset is scored end-to-end and consumed by Phase 2.
+- [ ] No raw audio, source paths or embeddings are committed or placed in default reports.
 
-Passing unit tests with fake runtimes does not satisfy the manual real-model gates. Do not describe the models as fully validated until those checks have been recorded.
+Fake-runtime tests do not satisfy real-checkpoint gates. Synthetic smoke audio validates runtime execution only, not biometric performance.
