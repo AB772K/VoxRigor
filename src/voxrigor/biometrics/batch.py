@@ -145,11 +145,13 @@ def run_trial_inference(
                 )
             condition_provenance_file = "condition-provenance.json"
             copied_condition_path = temporary / condition_provenance_file
-            with source_condition_path.open("rb") as source_handle:
-                with copied_condition_path.open("xb") as output_handle:
-                    shutil.copyfileobj(source_handle, output_handle)
-                    output_handle.flush()
-                    os.fsync(output_handle.fileno())
+            with (
+                source_condition_path.open("rb") as source_handle,
+                copied_condition_path.open("xb") as output_handle,
+            ):
+                shutil.copyfileobj(source_handle, output_handle)
+                output_handle.flush()
+                os.fsync(output_handle.fileno())
             condition_provenance_hash = _sha256_file(copied_condition_path)
             if condition_provenance_hash != expected_condition_hash:
                 raise TrialManifestError(

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from typer.testing import CliRunner
+from voxrigor.biometrics.conditions import ConditionManifestError
 
 import voxrigor.biometrics.conditions_cli as cli_module
 from voxrigor.biometrics.conditions_cli import audio_app
@@ -44,7 +45,7 @@ def test_audio_conditions_cli_normalizes_errors(monkeypatch: Any, tmp_path: Path
     manifest.write_text("{}", encoding="utf-8")
 
     def fail(*_args: object, **_kwargs: object) -> Path:
-        raise cli_module.ConditionManifestError("unsafe experiment")
+        raise ConditionManifestError("unsafe experiment")
 
     monkeypatch.setattr(cli_module, "generate_condition_dataset", fail)
     result = CliRunner().invoke(
