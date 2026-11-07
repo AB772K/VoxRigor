@@ -1,26 +1,27 @@
-# VoxRigor Phase 2 Upload Guide
+# VoxRigor Repository Integration Status
 
-This archive contains the current repository snapshot: Phase 0 documentation, Phase 1 core framework, Phase 2 offline ASV/PAD score evaluation, synthetic fixtures, JSON schemas, tests, and GitHub Actions configuration.
+**The repository bundle has already been integrated into the review branch. Do not upload it again.**
 
-## Before uploading
+The active branch is `phase-2-offline-benchmark`, and its implementation is proposed for merging through [Pull Request #2](https://github.com/AB772K/VoxRigor/pull/2).
 
-- Keep the existing repository `LICENSE` file. This archive intentionally does not replace it.
-- Keep `.gitignore`. It excludes Python caches, virtual environments, secrets, local benchmark outputs, audio recordings, and model checkpoints. It is intentionally project-specific.
-- Do not upload real voice recordings, biometric templates, credentials, `.env` files, personal identifiers, restricted datasets, model checkpoints, or generated run directories.
+## Validation results
 
-## Upload to the review branch
+- 78 automated tests passed locally; 86.75% coverage.
+- ASV and PAD synthetic CLI workflows validated.
+- GitHub Actions passed on Ubuntu and Windows with Python 3.11, 3.12 and 3.13.
+- Ruff lint, Ruff formatting, strict Mypy and pytest all passed in each matrix job.
 
-1. Open `https://github.com/AB772K/VoxRigor`.
-2. Select branch `phase-2-offline-benchmark` in the branch selector.
-3. Choose **Add file → Upload files**.
-4. Extract this archive on your computer.
-5. Upload the extracted files and folders while preserving their directory structure (`src/`, `tests/`, `docs/`, `schemas/`, `examples/`, `.github/`).
-6. When GitHub asks how to handle existing files, replace the existing `README.md`, `.gitignore`, `CHANGELOG.md`, `pyproject.toml`, and Phase 1/Phase 2 docs with the versions in this snapshot. Do not replace `LICENSE`.
-7. Commit with: `Implement Phase 2 offline ASV and PAD score evaluation`.
+## Important repository files
 
-## Validate on Windows PowerShell
+- `.gitignore` is project-specific and should remain. It excludes caches, virtual environments, secrets, local datasets/output, audio recordings and model checkpoints.
+- `.gitattributes` keeps CSV line endings stable across Windows and POSIX so the recorded score-file SHA-256 hashes remain reproducible.
+- Keep the existing `LICENSE`; it was not replaced.
 
-Run these commands from the extracted repository directory:
+## Phase 2 scope
+
+The benchmark engine evaluates **precomputed ASV/PAD scores**. It does not load audio or run biometric models. Supplied fixtures are fabricated numeric test data, not real performance evidence.
+
+## Manual validation on Windows PowerShell
 
 ```powershell
 py -3.13 -m venv .venv
@@ -28,19 +29,8 @@ py -3.13 -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 python -m pytest -q --cov=voxrigor --cov-report=term-missing
-voxrigor --help
-voxrigor benchmark --help
-```
-
-## Phase 2 commands
-
-The evaluator consumes precomputed scores. It does not yet read audio or perform model inference.
-
-```powershell
 voxrigor benchmark validate .\examples\fixtures\asv_benchmark.json
 voxrigor benchmark run .\examples\fixtures\asv_benchmark.json --output .\runs\asv
 voxrigor benchmark validate .\examples\fixtures\pad_benchmark.json
 voxrigor benchmark run .\examples\fixtures\pad_benchmark.json --output .\runs\pad
 ```
-
-The ASV/PAD score fixtures contain fabricated numeric values solely for parser, metric, and report tests. They are not real model results and must not be presented as such.
