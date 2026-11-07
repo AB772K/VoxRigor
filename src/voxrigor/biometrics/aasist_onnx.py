@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from voxrigor.biometrics.audio import load_audio_file, prepare_aasist_l_window
 from voxrigor.biometrics.contracts import AudioSignal, ModelDescriptor, ModelScore
@@ -57,8 +57,8 @@ class AASISTLONNXAdapter:
         """Download the pinned ONNX artifact without executing repository Python code."""
 
         try:
-            hub_module = importlib.import_module("huggingface_hub")
-            hf_hub_download = getattr(hub_module, "hf_hub_download")
+            hub_module = cast(Any, importlib.import_module("huggingface_hub"))
+            hf_hub_download = hub_module.hf_hub_download
         except ImportError as exc:
             raise OptionalDependencyError(
                 "Downloading AASIST-L requires huggingface-hub. "

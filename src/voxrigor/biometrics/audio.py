@@ -83,10 +83,7 @@ def load_audio_file(
 
     if decoded.ndim != 2 or decoded.shape[0] == 0:
         raise AudioInputError("Decoded audio has an invalid shape")
-    if decoded.shape[1] == 1:
-        mono = decoded[:, 0]
-    else:
-        mono = decoded.mean(axis=1, dtype=np.float32)
+    mono = decoded[:, 0] if decoded.shape[1] == 1 else decoded.mean(axis=1, dtype=np.float32)
     mono = np.ascontiguousarray(mono, dtype=np.float32)
     if not np.isfinite(mono).all():
         raise AudioInputError("Audio contains NaN or infinite samples")

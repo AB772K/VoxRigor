@@ -9,7 +9,7 @@ from typing import Annotated, NoReturn
 
 import typer
 
-from voxrigor.biometrics.aasist_onnx import AASISTLONNXAdapter, AASISTL_REVISION
+from voxrigor.biometrics.aasist_onnx import AASISTL_REVISION, AASISTLONNXAdapter
 from voxrigor.biometrics.catalog import list_builtin_models
 from voxrigor.biometrics.ecapa import ECAPATDNNAdapter
 from voxrigor.biometrics.errors import ModelIntegrationError
