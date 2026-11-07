@@ -367,3 +367,24 @@ def test_generate_conditions_refuses_to_overwrite(tmp_path: Path) -> None:
     output.mkdir()
     with pytest.raises(ConditionManifestError, match="overwrite"):
         generate_condition_dataset(experiment, output)
+
+
+
+def test_inference_rejects_tampered_input_condition_provenance_before_scoring(
+    tmp_path: Path,
+) -> None:
+    source_manifest = make_source_manifest(tmp_path)
+    experiment = make_experiment(tmp_path, source_manifest)
+    generated_path = generate_condition_dataset(experiment, tmp_path / "condition-output")
+    sidecar = generated_path.parent / "conditions-provenance.json"
+    sidecar.write_text(sidecar.read_text(encoding="utf-8") + " ", encoding="utf-8")
+
+    with pytest.raises(batch.TrialManifestError, match="does not match the audio-trial manifest"):
+        batch.run_trial_inference(
+            generated_path,
+            tmp_path / "inference-output",
+            cache_dir=tmp_path / "cache",
+        )
+
+    assert not (tmp_path / "inference-output").exists()
+    assert not list(tmp_path.glob(".inference-output.*"))
