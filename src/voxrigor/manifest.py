@@ -54,5 +54,3 @@ def load_manifest(path: Path) -> ProjectManifest:
             f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in exc.errors()
         )
         raise ManifestError(f"Manifest validation failed: {details}") from exc
-
-
