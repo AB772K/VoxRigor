@@ -1,4 +1,5 @@
 """Opt-in real-checkpoint smoke tests using generated non-biometric audio."""
+
 from __future__ import annotations
 
 import argparse

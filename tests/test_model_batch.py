@@ -331,7 +331,9 @@ def test_batch_cleans_temp_directory_if_adapter_creation_fails(
     def fail_fetch(_cache: Path) -> Path:
         raise ModelLoadError("model unavailable")
 
-    monkeypatch.setattr(batch.AASISTLONNXAdapter, "fetch_pretrained_model", staticmethod(fail_fetch))
+    monkeypatch.setattr(
+        batch.AASISTLONNXAdapter, "fetch_pretrained_model", staticmethod(fail_fetch)
+    )
     with pytest.raises(ModelLoadError, match="unavailable"):
         batch.run_trial_inference(source, tmp_path / "out", cache_dir=tmp_path / "cache")
     assert not (tmp_path / "out").exists()

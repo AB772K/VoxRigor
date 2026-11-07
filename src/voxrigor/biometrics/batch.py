@@ -79,8 +79,14 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
 
 def _write_scores(path: Path, rows: list[dict[str, object]]) -> None:
     columns = [
-        "trial_id", "label", "score", "split", "condition",
-        "attack_species", "speaker_id", "source_id",
+        "trial_id",
+        "label",
+        "score",
+        "split",
+        "condition",
+        "attack_species",
+        "speaker_id",
+        "source_id",
     ]
     with path.open("x", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="raise")
@@ -152,24 +158,28 @@ def run_trial_inference(
             elif result.model_artifact_sha256 != artifact_hashes:
                 raise TrialManifestError("Model artifact hashes changed during one inference run")
 
-            score_rows.append({
-                "trial_id": trial.trial_id,
-                "label": trial.label,
-                "score": result.score,
-                "split": trial.split,
-                "condition": trial.condition,
-                "attack_species": trial.attack_species or "",
-                "speaker_id": trial.speaker_id or "",
-                "source_id": trial.source_id or "",
-            })
-            trial_provenance.append({
-                "trial_id": trial.trial_id,
-                "input_sha256": list(result.input_sha256),
-                "score": result.score,
-                "score_type": result.score_type,
-                "preprocessing": list(result.preprocessing),
-                "model_artifact_sha256": list(result.model_artifact_sha256),
-            })
+            score_rows.append(
+                {
+                    "trial_id": trial.trial_id,
+                    "label": trial.label,
+                    "score": result.score,
+                    "split": trial.split,
+                    "condition": trial.condition,
+                    "attack_species": trial.attack_species or "",
+                    "speaker_id": trial.speaker_id or "",
+                    "source_id": trial.source_id or "",
+                }
+            )
+            trial_provenance.append(
+                {
+                    "trial_id": trial.trial_id,
+                    "input_sha256": list(result.input_sha256),
+                    "score": result.score,
+                    "score_type": result.score_type,
+                    "preprocessing": list(result.preprocessing),
+                    "model_artifact_sha256": list(result.model_artifact_sha256),
+                }
+            )
         if descriptor is None:
             raise TrialManifestError("Audio-trial manifest contains no executable trials")
 
@@ -250,6 +260,4 @@ def _validate_score_result(result: ModelScore, expected_model_id: str) -> None:
             "The built-in model adapter returned an unsupported score direction"
         )
     if not result.input_sha256 or not result.preprocessing:
-        raise TrialManifestError(
-            "Model adapter omitted required input or preprocessing provenance"
-        )
+        raise TrialManifestError("Model adapter omitted required input or preprocessing provenance")

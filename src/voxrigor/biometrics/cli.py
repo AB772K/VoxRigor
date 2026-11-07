@@ -130,15 +130,21 @@ def models_score_aasist_l(
 @models_app.command("score-trials")
 def models_score_trials(
     manifest_path: Annotated[
-        Path, typer.Option("--manifest", exists=True, dir_okay=False, help="Audio-trial JSON manifest.")
+        Path,
+        typer.Option("--manifest", exists=True, dir_okay=False, help="Audio-trial JSON manifest."),
     ],
     output_dir: Annotated[
-        Path, typer.Option("--output-dir", help="New directory for scores, benchmark manifest and provenance.")
+        Path,
+        typer.Option(
+            "--output-dir", help="New directory for scores, benchmark manifest and provenance."
+        ),
     ],
     cache_dir: Annotated[
         Path | None, typer.Option("--cache-dir", help="Local model cache directory.")
     ] = None,
-    device: Annotated[str, typer.Option("--device", help="ECAPA device: cpu or cuda[:index].")] = "cpu",
+    device: Annotated[
+        str, typer.Option("--device", help="ECAPA device: cpu or cuda[:index].")
+    ] = "cpu",
 ) -> None:
     """Run built-in biometric models over a local audio-trial manifest."""
 

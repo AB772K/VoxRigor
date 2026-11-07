@@ -9,9 +9,7 @@ import voxrigor.biometrics.cli as cli_module
 from voxrigor.biometrics.cli import models_app
 
 
-def test_score_trials_cli_reports_three_output_artifacts(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_trials_cli_reports_three_output_artifacts(monkeypatch: Any, tmp_path: Path) -> None:
     source = tmp_path / "trials.json"
     source.write_text("{}", encoding="utf-8")
     output = tmp_path / "out"
@@ -45,9 +43,7 @@ def test_score_trials_cli_reports_three_output_artifacts(
     assert captured["device"] == "cpu"
 
 
-def test_score_trials_cli_normalizes_execution_errors(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_trials_cli_normalizes_execution_errors(monkeypatch: Any, tmp_path: Path) -> None:
     source = tmp_path / "trials.json"
     source.write_text("{}", encoding="utf-8")
 

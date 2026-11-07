@@ -32,7 +32,9 @@ def test_audio_signal_rejects_empty_samples_and_bad_hash() -> None:
     with pytest.raises(ValueError, match="must not be empty"):
         AudioSignal(samples=[], sample_rate_hz=16000, source_sha256="a" * 64, source_format="wav")
     with pytest.raises(ValueError, match="SHA-256"):
-        AudioSignal(samples=[0.1], sample_rate_hz=16000, source_sha256="z" * 64, source_format="wav")
+        AudioSignal(
+            samples=[0.1], sample_rate_hz=16000, source_sha256="z" * 64, source_format="wav"
+        )
 
 
 @pytest.mark.parametrize("score", [math.nan, math.inf, -math.inf])

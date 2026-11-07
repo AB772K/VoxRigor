@@ -133,7 +133,9 @@ class AudioTrialManifest(BaseModel):
             raise ValueError("PAD audio trials require model_id='aasist-l-onnx'")
         if len({trial.trial_id for trial in self.trials}) != len(self.trials):
             raise ValueError("trial_id values must be unique")
-        allowed = {"target", "nontarget"} if self.task is BenchmarkTask.ASV else {"bonafide", "spoof"}
+        allowed = (
+            {"target", "nontarget"} if self.task is BenchmarkTask.ASV else {"bonafide", "spoof"}
+        )
         for trial in self.trials:
             if trial.label not in allowed:
                 raise ValueError(f"trial {trial.trial_id!r} has an invalid {self.task.value} label")
