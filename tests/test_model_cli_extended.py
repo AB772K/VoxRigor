@@ -61,9 +61,7 @@ def test_models_list_is_available_without_loading_ml_runtimes() -> None:
     assert "not universal authentication decisions" in result.output
 
 
-def test_score_ecapa_cli_returns_json_and_unloads(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_ecapa_cli_returns_json_and_unloads(monkeypatch: Any, tmp_path: Path) -> None:
     enrollment = tmp_path / "enrollment.wav"
     probe = tmp_path / "probe.wav"
     enrollment.touch()
@@ -91,9 +89,7 @@ def test_score_ecapa_cli_returns_json_and_unloads(
     assert instances[0].unloaded
 
 
-def test_score_ecapa_cli_normalizes_adapter_failure(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_ecapa_cli_normalizes_adapter_failure(monkeypatch: Any, tmp_path: Path) -> None:
     enrollment = tmp_path / "enrollment.wav"
     probe = tmp_path / "probe.wav"
     enrollment.touch()
@@ -118,9 +114,7 @@ def test_score_ecapa_cli_normalizes_adapter_failure(
     assert "checkpoint unavailable" in result.output
 
 
-def test_score_aasist_cli_accepts_existing_local_model(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_aasist_cli_accepts_existing_local_model(monkeypatch: Any, tmp_path: Path) -> None:
     audio = tmp_path / "audio.wav"
     model = tmp_path / "model.onnx"
     audio.touch()
@@ -168,9 +162,7 @@ def test_score_aasist_cli_fetches_model_when_path_omitted(
     FakeAASIST.fetched_path = None
 
 
-def test_score_aasist_cli_normalizes_model_failure(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_aasist_cli_normalizes_model_failure(monkeypatch: Any, tmp_path: Path) -> None:
     audio = tmp_path / "audio.wav"
     model = tmp_path / "model.onnx"
     audio.touch()
@@ -189,17 +181,13 @@ def test_score_aasist_cli_normalizes_model_failure(
     assert "ONNX model failed" in result.output
 
 
-def test_fetch_ecapa_cli_normalizes_load_failure(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_fetch_ecapa_cli_normalizes_load_failure(monkeypatch: Any, tmp_path: Path) -> None:
     class FailedECAPA(FakeECAPA):
         def load(self) -> None:
             raise ModelLoadError("model file missing")
 
     monkeypatch.setattr(cli_module, "ECAPATDNNAdapter", FailedECAPA)
-    result = CliRunner().invoke(
-        models_app, ["fetch", "ecapa-tdnn", "--cache-dir", str(tmp_path)]
-    )
+    result = CliRunner().invoke(models_app, ["fetch", "ecapa-tdnn", "--cache-dir", str(tmp_path)])
     assert result.exit_code == 2
     assert "model file missing" in result.output
 

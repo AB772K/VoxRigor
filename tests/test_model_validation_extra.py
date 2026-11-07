@@ -104,9 +104,7 @@ def test_manifest_requires_group_columns_when_disjointness_requested() -> None:
 
 def test_manifest_rejects_duplicate_group_columns() -> None:
     with pytest.raises(ValueError, match="must not contain duplicates"):
-        AudioTrialManifest.model_validate(
-            base_asv(group_columns=["speaker_id", "speaker_id"])
-        )
+        AudioTrialManifest.model_validate(base_asv(group_columns=["speaker_id", "speaker_id"]))
 
 
 def test_manifest_rejects_attack_species_on_asv_trial() -> None:
