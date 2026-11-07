@@ -115,9 +115,11 @@ class TestRunner:
         test_ids: list[str] | None = None,
         random_seed: int | None = None,
     ) -> RunReport:
-        selected_ids = test_ids if test_ids is not None else [
-            descriptor.test_id for descriptor in self.registry.list()
-        ]
+        selected_ids = (
+            test_ids
+            if test_ids is not None
+            else [descriptor.test_id for descriptor in self.registry.list()]
+        )
         if not selected_ids:
             raise ValueError("No tests selected")
 
