@@ -21,3 +21,14 @@ def test_benchmark_report_schema_accepts_generated_report() -> None:
     dataset = load_score_dataset(manifest)
     report, _ = build_benchmark_report(dataset)
     Draft202012Validator(schema).validate(report.model_dump(mode="json"))
+
+
+
+def test_model_generated_score_manifest_schema_is_valid_and_requires_provenance() -> None:
+    schema = json.loads(
+        (ROOT / "schemas/score-dataset-manifest-0.2.schema.json").read_text()
+    )
+    Draft202012Validator.check_schema(schema)
+    assert schema["properties"]["schema_version"]["const"] == "0.2"
+    assert "score_producer" in schema["required"]
+    assert "ScoreProducer" in schema["$defs"]

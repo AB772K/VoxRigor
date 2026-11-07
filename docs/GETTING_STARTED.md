@@ -75,3 +75,33 @@ Model files are downloaded only when a user explicitly invokes fetch or inferenc
 ## Safety and privacy
 
 Do not commit audio recordings, biometric embeddings, access tokens or other sensitive material to source control. Review run artifacts before sharing. Only test systems and recordings you own or are explicitly authorized to assess.
+
+
+## Run model inference and produce a benchmark
+
+Phase 3 adds a manifest-driven path from local audio trials to the Phase 2 score evaluator.
+
+1. Prepare a local audio dataset and a JSON audio-trial manifest. Use pseudonymous trial and group identifiers. The audio files must be inside the manifest's directory tree.
+2. Install the optional model backend required by the selected model.
+3. Run model inference to produce a score CSV, benchmark manifest and inference-provenance sidecar.
+4. Run the Phase 2 benchmark evaluator against the generated manifest.
+
+Example PowerShell commands:
+
+```powershell
+# ECAPA speaker-verification trials
+voxrigor models score-trials --manifest .\audio-trials.json --output-dir .\runs\inference\asv-example
+
+# Evaluate generated scores
+voxrigor benchmark run .\runs\inference\asv-example\benchmark.json --output .\runs\benchmarks
+```
+
+See [AUDIO_TRIAL_MANIFEST.md](AUDIO_TRIAL_MANIFEST.md) for the ASV and PAD manifest formats, labels, threshold requirements, supported metadata and privacy boundaries.
+
+For PAD, use the AASIST-L adapter, one audio path per trial, bonafide/spoof labels, an attack species for every spoof trial and a threshold fixed before evaluation. Never select a threshold using the test split.
+
+The score-producer record identifies the model revision, backend, raw score semantics and artifact hashes. The provenance sidecar records input hashes and preprocessing details. VoxRigor verifies score and sidecar hashes before evaluation.
+
+### Real model smoke tests
+
+After the Phase 3 branch is integrated, repository maintainers can open Actions → Optional real-model smoke tests → Run workflow and select ECAPA, AASIST-L or both. The workflow downloads pinned model artifacts and tests runtime execution using generated non-biometric audio. It is not an accuracy benchmark.
