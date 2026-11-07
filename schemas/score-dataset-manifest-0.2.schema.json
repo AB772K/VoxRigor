@@ -80,6 +80,22 @@
         "inference_provenance_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "condition_provenance_file": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Optional relative path to a SHA-256-verified audio-condition transformation provenance sidecar."
+        },
+        "condition_provenance_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
         }
       },
       "required": [
