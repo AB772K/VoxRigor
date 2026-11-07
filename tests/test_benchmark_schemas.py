@@ -23,7 +23,6 @@ def test_benchmark_report_schema_accepts_generated_report() -> None:
     Draft202012Validator(schema).validate(report.model_dump(mode="json"))
 
 
-
 def test_model_generated_score_manifest_schema_is_valid_and_requires_provenance() -> None:
     schema = json.loads((ROOT / "schemas/score-dataset-manifest-0.2.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
