@@ -22,7 +22,9 @@ from voxrigor.benchmarking.metrics import evaluate_conditions, evaluate_scores
 from voxrigor.benchmarking.models import BenchmarkReport
 
 
-def build_benchmark_report(dataset: ScoreDataset) -> tuple[BenchmarkReport, list[dict[str, float | None]]]:
+def build_benchmark_report(
+    dataset: ScoreDataset,
+) -> tuple[BenchmarkReport, list[dict[str, float | None]]]:
     manifest = dataset.manifest
     metrics, curve, species = evaluate_scores(
         dataset.records, manifest.task, manifest.score_direction, manifest.operating_threshold
@@ -41,9 +43,7 @@ def build_benchmark_report(dataset: ScoreDataset) -> tuple[BenchmarkReport, list
             "split exists and differs from the evaluation split, but cannot prove how the threshold was selected."
         )
     if dataset.unknown_columns:
-        warnings.append(
-            "Unmapped CSV columns were not used: " + ", ".join(dataset.unknown_columns)
-        )
+        warnings.append("Unmapped CSV columns were not used: " + ", ".join(dataset.unknown_columns))
     if any(dataset.group_overlap_counts.values()):
         warnings.append(
             "Overlapping group identifiers were observed across splits. Review the dataset protocol; "
@@ -54,7 +54,9 @@ def build_benchmark_report(dataset: ScoreDataset) -> tuple[BenchmarkReport, list
             "PAD metrics are reported per attack species. Pooled APCER is sample-weighted and is not a substitute for species-level results."
         )
     if manifest.license_name.strip().lower() == "unspecified":
-        warnings.append("Dataset license is unspecified; review source terms before sharing or redistributing data/results.")
+        warnings.append(
+            "Dataset license is unspecified; review source terms before sharing or redistributing data/results."
+        )
     if not manifest.group_columns:
         warnings.append(
             "No speaker/source group columns were declared; no cross-split group-overlap audit was performed."
@@ -132,7 +134,14 @@ def write_benchmark_report(
         if report.attack_species_metrics:
             _write_csv_atomic(
                 run_dir / "pad_attack_species.csv",
-                ["attack_species", "apcer_errors", "apcer_trials", "apcer_rate", "ci95_lower", "ci95_upper"],
+                [
+                    "attack_species",
+                    "apcer_errors",
+                    "apcer_trials",
+                    "apcer_rate",
+                    "ci95_lower",
+                    "ci95_upper",
+                ],
                 [
                     {
                         "attack_species": item["attack_species"],
@@ -158,8 +167,12 @@ def render_benchmark_html(report: BenchmarkReport) -> str:
     data = report.model_dump(mode="json")
     dataset = data["dataset"]
     metric_json = html.escape(json.dumps(data["metrics"], indent=2, ensure_ascii=False))
-    condition_json = html.escape(json.dumps(data["condition_metrics"], indent=2, ensure_ascii=False))
-    species_json = html.escape(json.dumps(data["attack_species_metrics"], indent=2, ensure_ascii=False))
+    condition_json = html.escape(
+        json.dumps(data["condition_metrics"], indent=2, ensure_ascii=False)
+    )
+    species_json = html.escape(
+        json.dumps(data["attack_species_metrics"], indent=2, ensure_ascii=False)
+    )
     warning_items = "".join(f"<li>{html.escape(item)}</li>" for item in report.warnings)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -170,19 +183,19 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6f8;padding:1rem
 .notice{{background:#fff7df;border:1px solid #efd58c;padding:1rem;border-radius:.5rem}}
 </style></head><body>
 <h1>VoxRigor Offline Benchmark Report</h1>
-<p><strong>Dataset:</strong> {html.escape(str(dataset['dataset_name']))} ({html.escape(str(dataset['dataset_id']))})</p>
-<p><strong>Task:</strong> {html.escape(str(dataset['task']).upper())} · <strong>Protocol:</strong> {html.escape(str(dataset['protocol_id']))}</p>
-<p><strong>Evaluation split:</strong> {html.escape(str(dataset['evaluation_split']))}</p>
+<p><strong>Dataset:</strong> {html.escape(str(dataset["dataset_name"]))} ({html.escape(str(dataset["dataset_id"]))})</p>
+<p><strong>Task:</strong> {html.escape(str(dataset["task"]).upper())} · <strong>Protocol:</strong> {html.escape(str(dataset["protocol_id"]))}</p>
+<p><strong>Evaluation split:</strong> {html.escape(str(dataset["evaluation_split"]))}</p>
 <p><strong>Run ID:</strong> <code>{html.escape(str(report.run_id))}</code></p>
 <div class="notice"><strong>Interpretation:</strong> VoxRigor evaluated supplied score trials. It did not run or independently validate the upstream biometric model. Results are protocol- and dataset-specific and are not certification.</div>
-<h2>Sample accounting</h2><pre>{html.escape(json.dumps(data['sample_accounting'],indent=2))}</pre>
-<h2>Label counts</h2><pre>{html.escape(json.dumps(data['label_counts'],indent=2))}</pre>
-<h2>Split label counts</h2><pre>{html.escape(json.dumps(data['split_label_counts'],indent=2))}</pre>
+<h2>Sample accounting</h2><pre>{html.escape(json.dumps(data["sample_accounting"], indent=2))}</pre>
+<h2>Label counts</h2><pre>{html.escape(json.dumps(data["label_counts"], indent=2))}</pre>
+<h2>Split label counts</h2><pre>{html.escape(json.dumps(data["split_label_counts"], indent=2))}</pre>
 <h2>Metrics</h2><pre>{metric_json}</pre>
 <h2>Condition breakdown</h2><pre>{condition_json}</pre>
 <h2>Attack-species breakdown</h2><pre>{species_json}</pre>
 <h2>Warnings and limitations</h2><ul>{warning_items}</ul>
-<h2>Provenance</h2><pre>{html.escape(json.dumps(data['provenance'],indent=2))}</pre>
+<h2>Provenance</h2><pre>{html.escape(json.dumps(data["provenance"], indent=2))}</pre>
 </body></html>"""
 
 
@@ -197,8 +210,13 @@ def _atomic_write(path: Path, content: str) -> None:
     temp_name: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", newline="\n", dir=path.parent,
-            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
         ) as handle:
             temp_name = handle.name
             handle.write(content)
@@ -215,8 +233,13 @@ def _write_csv_atomic(path: Path, columns: list[str], rows: list[dict[str, objec
     temp_name: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", newline="", dir=path.parent,
-            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
         ) as handle:
             temp_name = handle.name
             writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
