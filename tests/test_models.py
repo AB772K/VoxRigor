@@ -6,8 +6,8 @@ from voxrigor.models import (
     RunSummary,
     SampleAccounting,
     TestDescriptor as Descriptor,
-    TestResult as Result,
     TestError as Error,
+    TestResult as Result,
 )
 
 
