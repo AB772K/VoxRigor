@@ -132,9 +132,7 @@ def run(
     ] = None,
     seed: Annotated[
         int | None,
-        typer.Option(
-            "--seed", min=0, help="Optional experiment seed recorded in provenance."
-        ),
+        typer.Option("--seed", min=0, help="Optional experiment seed recorded in provenance."),
     ] = None,
 ) -> None:
     """Execute selected built-in diagnostic tests and save a local report."""
@@ -175,22 +173,39 @@ def report(
 
 @benchmark_app.command("init")
 def benchmark_init(
-    scores_file: Annotated[Path, typer.Argument(help="CSV containing trial_id,label,score columns.")],
-    manifest_path: Annotated[Path, typer.Option("--manifest", help="Output dataset manifest JSON path.")] = Path("benchmark.json"),
-    task: Annotated[BenchmarkTask, typer.Option("--task", help="Benchmark task: asv or pad.")] = BenchmarkTask.ASV,
+    scores_file: Annotated[
+        Path, typer.Argument(help="CSV containing trial_id,label,score columns.")
+    ],
+    manifest_path: Annotated[
+        Path, typer.Option("--manifest", help="Output dataset manifest JSON path.")
+    ] = Path("benchmark.json"),
+    task: Annotated[
+        BenchmarkTask, typer.Option("--task", help="Benchmark task: asv or pad.")
+    ] = BenchmarkTask.ASV,
     dataset_id: Annotated[str, typer.Option("--dataset-id")] = "local-dataset",
     dataset_name: Annotated[str, typer.Option("--dataset-name")] = "Local score dataset",
     dataset_version: Annotated[str, typer.Option("--dataset-version")] = "1.0",
     protocol_id: Annotated[str, typer.Option("--protocol-id")] = "user-defined",
     evaluation_split: Annotated[str, typer.Option("--evaluation-split")] = "all",
-    score_direction: Annotated[ScoreDirection, typer.Option("--score-direction")] = ScoreDirection.HIGHER_IS_GENUINE,
-    threshold: Annotated[float | None, typer.Option("--threshold", help="Operating threshold in the original score scale.")] = None,
-    threshold_source: Annotated[ThresholdSource, typer.Option("--threshold-source")] = ThresholdSource.NOT_PROVIDED,
-    threshold_selection_split: Annotated[str | None, typer.Option("--threshold-selection-split")] = None,
+    score_direction: Annotated[
+        ScoreDirection, typer.Option("--score-direction")
+    ] = ScoreDirection.HIGHER_IS_GENUINE,
+    threshold: Annotated[
+        float | None,
+        typer.Option("--threshold", help="Operating threshold in the original score scale."),
+    ] = None,
+    threshold_source: Annotated[
+        ThresholdSource, typer.Option("--threshold-source")
+    ] = ThresholdSource.NOT_PROVIDED,
+    threshold_selection_split: Annotated[
+        str | None, typer.Option("--threshold-selection-split")
+    ] = None,
     source_url: Annotated[str | None, typer.Option("--source-url")] = None,
     license_name: Annotated[str, typer.Option("--license")] = "unspecified",
     citation: Annotated[str | None, typer.Option("--citation")] = None,
-    access_date: Annotated[str | None, typer.Option("--access-date", help="Dataset access date (YYYY-MM-DD).") ] = None,
+    access_date: Annotated[
+        str | None, typer.Option("--access-date", help="Dataset access date (YYYY-MM-DD).")
+    ] = None,
 ) -> None:
     """Create and validate a dataset manifest for a precomputed score CSV."""
 
@@ -263,7 +278,9 @@ def benchmark_validate(
 @benchmark_app.command("run")
 def benchmark_run(
     manifest_path: Annotated[Path, typer.Argument(help="Dataset manifest JSON path.")],
-    output: Annotated[Path, typer.Option("--output", help="Directory for local benchmark runs.")] = Path("runs/benchmarks"),
+    output: Annotated[
+        Path, typer.Option("--output", help="Directory for local benchmark runs.")
+    ] = Path("runs/benchmarks"),
 ) -> None:
     """Evaluate a declared score-trial split and write JSON/HTML/CSV outputs."""
 
