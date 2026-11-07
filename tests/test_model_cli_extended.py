@@ -137,9 +137,7 @@ def test_score_aasist_cli_accepts_existing_local_model(monkeypatch: Any, tmp_pat
     assert instances[0].unloaded
 
 
-def test_score_aasist_cli_fetches_model_when_path_omitted(
-    monkeypatch: Any, tmp_path: Path
-) -> None:
+def test_score_aasist_cli_fetches_model_when_path_omitted(monkeypatch: Any, tmp_path: Path) -> None:
     audio = tmp_path / "audio.wav"
     audio.touch()
     model = tmp_path / "downloaded.onnx"
