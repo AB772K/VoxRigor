@@ -22,16 +22,33 @@ def test_benchmark_init_validate_and_run(tmp_path: Path) -> None:
     init = runner.invoke(
         app,
         [
-            "benchmark", "init", str(scores), "--manifest", str(manifest),
-            "--task", "asv", "--dataset-id", "local-test", "--dataset-name", "Local Test",
-            "--protocol-id", "synthetic-test", "--evaluation-split", "test", "--threshold", "0.5",
-            "--threshold-source", "external",
+            "benchmark",
+            "init",
+            str(scores),
+            "--manifest",
+            str(manifest),
+            "--task",
+            "asv",
+            "--dataset-id",
+            "local-test",
+            "--dataset-name",
+            "Local Test",
+            "--protocol-id",
+            "synthetic-test",
+            "--evaluation-split",
+            "test",
+            "--threshold",
+            "0.5",
+            "--threshold-source",
+            "external",
         ],
     )
     assert init.exit_code == 0, init.output
     validate = runner.invoke(app, ["benchmark", "validate", str(manifest)])
     assert validate.exit_code == 0, validate.output
-    run = runner.invoke(app, ["benchmark", "run", str(manifest), "--output", str(tmp_path / "runs")])
+    run = runner.invoke(
+        app, ["benchmark", "run", str(manifest), "--output", str(tmp_path / "runs")]
+    )
     assert run.exit_code == 0, run.output
     report_files = list((tmp_path / "runs").glob("*/report.json"))
     assert len(report_files) == 1
@@ -45,9 +62,7 @@ def test_benchmark_init_validate_and_run(tmp_path: Path) -> None:
 def test_benchmark_pad_requires_threshold(tmp_path: Path) -> None:
     scores = tmp_path / "pad.csv"
     scores.write_text(
-        "trial_id,label,score,attack_species\n"
-        "b,bonafide,0.9,\n"
-        "s,spoof,0.1,replay\n",
+        "trial_id,label,score,attack_species\nb,bonafide,0.9,\ns,spoof,0.1,replay\n",
         encoding="utf-8",
     )
     result = runner.invoke(
@@ -83,7 +98,9 @@ def test_benchmark_run_uses_new_runner_and_report_command(tmp_path: Path) -> Non
         ["benchmark", "init", str(scores), "--manifest", str(manifest), "--task", "asv"],
     )
     assert created.exit_code == 0, created.output
-    executed = runner.invoke(app, ["benchmark", "run", str(manifest), "--output", str(tmp_path / "runs")])
+    executed = runner.invoke(
+        app, ["benchmark", "run", str(manifest), "--output", str(tmp_path / "runs")]
+    )
     assert executed.exit_code == 0, executed.output
     report_path = next((tmp_path / "runs").glob("*/report.json"))
     assert "Local score dataset" in report_path.read_text(encoding="utf-8")
