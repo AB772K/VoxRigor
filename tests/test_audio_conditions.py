@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 import pytest
 import soundfile as sf
-from voxrigor.biometrics.dataset import load_score_dataset
+from voxrigor.benchmarking.dataset import load_score_dataset
 
 import voxrigor.biometrics.batch as batch
 from voxrigor.benchmarking.errors import ScoreFileError
