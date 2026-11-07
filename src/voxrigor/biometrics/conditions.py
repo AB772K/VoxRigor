@@ -17,9 +17,9 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    ValidationError,
     field_validator,
     model_validator,
-    ValidationError,
 )
 
 from voxrigor import __version__
@@ -27,7 +27,6 @@ from voxrigor.biometrics.audio import load_audio_file, resample_audio
 from voxrigor.biometrics.contracts import AudioSignal
 from voxrigor.biometrics.errors import AudioInputError, ModelIntegrationError
 from voxrigor.biometrics.trials import AudioTrial, AudioTrialManifest
-
 
 MAX_SCENARIOS = 32
 MAX_TRANSFORMS_PER_SCENARIO = 8
