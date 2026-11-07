@@ -31,7 +31,6 @@ def test_model_generated_score_manifest_schema_is_valid_and_requires_provenance(
     assert "ScoreProducer" in schema["$defs"]
 
 
-
 def test_audio_condition_experiment_schema_is_valid() -> None:
     schema = json.loads((ROOT / "schemas/audio-condition-experiment-0.1.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
