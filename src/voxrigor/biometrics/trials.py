@@ -1,4 +1,5 @@
 """Validated, path-safe audio-trial manifests for model-backed inference."""
+
 from __future__ import annotations
 
 from datetime import date
