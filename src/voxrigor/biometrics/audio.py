@@ -106,6 +106,8 @@ def resample_audio(signal: AudioSignal, target_sample_rate_hz: int) -> AudioSign
         raise AudioInputError("Target sample rate must be positive")
     if signal.sample_rate_hz == target_sample_rate_hz:
         samples = np.ascontiguousarray(signal.samples, dtype=np.float32)
+        if samples.ndim != 1 or samples.size == 0 or not np.isfinite(samples).all():
+            raise AudioInputError("Audio must contain finite, non-empty mono samples")
         return AudioSignal(
             samples=samples,
             sample_rate_hz=target_sample_rate_hz,

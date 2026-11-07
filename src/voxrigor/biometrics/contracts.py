@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict, dataclass
+from numbers import Real
 from typing import Literal
 
 ModelTask = Literal["speaker_verification", "presentation_attack_detection"]
@@ -53,11 +54,18 @@ class AudioSignal:
             raise ValueError("source_sha256 must be a SHA-256 hex digest") from exc
         if not self.source_format.strip():
             raise ValueError("source_format must not be blank")
+        if getattr(self.samples, "ndim", 1) != 1:
+            raise ValueError("audio samples must be one-dimensional mono data")
+        if isinstance(self.samples, (str, bytes)):
+            raise ValueError("audio samples must be a numeric sequence")
         try:
             if len(self.samples) == 0:  # type: ignore[arg-type]
                 raise ValueError("audio samples must not be empty")
-        except TypeError as exc:
+            first_sample = self.samples[0]  # type: ignore[index]
+        except (TypeError, KeyError, IndexError) as exc:
             raise ValueError("audio samples must be a sized one-dimensional sequence") from exc
+        if not isinstance(first_sample, Real):
+            raise ValueError("audio samples must be a one-dimensional numeric sequence")
 
 
 @dataclass(frozen=True, slots=True)
