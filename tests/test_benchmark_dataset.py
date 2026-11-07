@@ -283,7 +283,6 @@ def test_manifest_cannot_read_score_file_outside_its_directory(tmp_path: Path) -
         load_score_dataset(manifest)
 
 
-
 def test_loader_rejects_blank_split_values_instead_of_silently_excluding_rows(
     tmp_path: Path,
 ) -> None:
