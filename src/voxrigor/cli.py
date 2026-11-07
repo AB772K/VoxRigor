@@ -113,9 +113,7 @@ def run(
     ] = None,
     seed: Annotated[
         int | None,
-        typer.Option(
-            "--seed", min=0, help="Optional experiment seed recorded in provenance."
-        ),
+        typer.Option("--seed", min=0, help="Optional experiment seed recorded in provenance."),
     ] = None,
 ) -> None:
     """Execute selected built-in diagnostic tests and save a local report."""
