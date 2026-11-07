@@ -8,9 +8,9 @@ from typing import Any
 import numpy as np
 import pytest
 import soundfile as sf
-from voxrigor.benchmarking.dataset import load_score_dataset
 
 import voxrigor.biometrics.batch as batch
+from voxrigor.benchmarking.dataset import load_score_dataset
 from voxrigor.benchmarking.errors import ScoreFileError
 from voxrigor.benchmarking.reporting import build_benchmark_report
 from voxrigor.biometrics.batch import load_audio_trial_manifest
