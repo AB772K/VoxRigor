@@ -51,8 +51,7 @@ def load_manifest(path: Path) -> ProjectManifest:
         raise ManifestError(f"Could not read manifest {path}: {exc}") from exc
     except ValidationError as exc:
         details = "; ".join(
-            f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
-            for item in exc.errors()
+            f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in exc.errors()
         )
         raise ManifestError(f"Manifest validation failed: {details}") from exc
 
