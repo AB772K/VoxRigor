@@ -1,46 +1,77 @@
-# Getting Started (Phase 1)
-
-> Phase 1 is a core-framework prototype. The only bundled test is a runtime diagnostic. It does not evaluate voice biometrics, audio, authentication protocols, or a target system.
+# Getting Started
 
 ## Requirements
 
-- Python 3.11 or newer.
-- No GPU or machine-learning framework is required.
+- Python 3.11–3.13.
+- No GPU or machine-learning framework is required for core commands.
 
-## Install from a clone
+## Install the core package
 
-```bash
+```powershell
 python -m venv .venv
-# Windows PowerShell:
-.venv\\Scripts\\Activate.ps1
-# macOS/Linux:
-# source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 ```
 
 ## Create and validate a local project
 
-```bash
-voxrigor init ./my-voice-research --name "My Voice Research"
-voxrigor validate ./my-voice-research/voxrigor.json
+```powershell
+voxrigor init .\my-voice-research --name "My Voice Research"
+voxrigor validate .\my-voice-research\voxrigor.json
 ```
 
-## Discover and execute the diagnostic test
+## Phase 2: offline score evaluation
 
-```bash
-voxrigor tests
-voxrigor run --project ./my-voice-research/voxrigor.json --output ./my-voice-research/runs
+See [BENCHMARK_DATA_FORMAT.md](BENCHMARK_DATA_FORMAT.md) for the CSV and manifest formats.
+
+## Phase 3: optional biometric model adapters
+
+The core package does not install PyTorch, SpeechBrain or ONNX Runtime.
+
+Install an adapter:
+
+```powershell
+# ECAPA-TDNN speaker verification
+python -m pip install -e ".[speaker]"
+
+# AASIST-L ONNX anti-spoofing
+python -m pip install -e ".[pad-onnx]"
 ```
 
-The run writes `report.json` and `report.html` to a UUID-named directory. The built-in `core.runtime-info` test intentionally returns `inconclusive`, because it only verifies that the framework can run a test and collect provenance. It is not a security test.
+For the speaker extra, PyTorch and TorchAudio binaries must be mutually compatible. If package resolution fails for your CPU/CUDA platform, install a matched pair from the official PyTorch selector first, then install the remaining optional dependencies.
 
-## Validate an existing report
+List the model adapters without loading model weights:
 
-```bash
-voxrigor report ./my-voice-research/runs/<run-id>/report.json
+```powershell
+voxrigor models list
 ```
+
+Fetch/cache a model explicitly:
+
+```powershell
+voxrigor models fetch ecapa-tdnn
+voxrigor models fetch aasist-l-onnx
+```
+
+Score two local recordings with ECAPA-TDNN:
+
+```powershell
+voxrigor models score-ecapa --enrollment .\samples\enrollment.wav --probe .\samples\probe.wav
+```
+
+Score a local recording with AASIST-L:
+
+```powershell
+voxrigor models score-aasist-l --audio .\samples\utterance.wav
+```
+
+ECAPA returns raw cosine similarity. AASIST-L returns a raw bona-fide logit. Neither is a probability or universal threshold. AASIST-L is the lightweight AASIST variant, not full AASIST.
+
+See [PHASE_3_IMPLEMENTATION.md](PHASE_3_IMPLEMENTATION.md), [THIRD_PARTY_MODELS.md](THIRD_PARTY_MODELS.md) and [PHASE_3_ACCEPTANCE.md](PHASE_3_ACCEPTANCE.md) for provenance, licensing, preprocessing and validation limitations.
+
+Model files are downloaded only when a user explicitly invokes fetch or inference. Audio is processed locally and is not uploaded by VoxRigor.
 
 ## Safety and privacy
 
-This Phase 1 build has no network target adapter and performs no network testing. Do not add audio recordings, biometric templates, access tokens, or other sensitive material to source control. Run artifacts may contain project metadata; review them before sharing.
+Do not commit audio recordings, biometric embeddings, access tokens or other sensitive material to source control. Review run artifacts before sharing. Only test systems and recordings you own or are explicitly authorized to assess.
