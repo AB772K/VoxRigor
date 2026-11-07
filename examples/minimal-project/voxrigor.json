@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "project_id": "2b7b2b7d-9800-4fc3-a70f-aac4dcf0d7a0",
+  "name": "VoxRigor Minimal Example",
+  "description": "A local-only project used to exercise the Phase 1 framework runner.",
+  "created_at": "2026-11-07T00:00:00Z",
+  "scope": {
+    "mode": "offline",
+    "note": "Offline evaluation only; no network target adapter is enabled."
+  }
+}

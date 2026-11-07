@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use VoxRigor in research, please cite this software and the specific version or commit you used."
+title: "VoxRigor: Open-Source Voice Authentication Security Testing and Evaluation Framework"
+authors:
+  - name: "AB772K"
+version: "0.1.0.dev0"
+license: "Apache-2.0"
+repository-code: "https://github.com/AB772K/VoxRigor"
+abstract: >-
+  VoxRigor is an early-stage, local-first framework for reproducible research
+  and authorized security evaluation of voice-authentication systems. The
+  current Phase 1 prototype provides project manifests, a diagnostic test
+  runner, provenance metadata, and JSON/HTML reporting. Biometric evaluation,
+  audio testing, model adapters, and target-application testing are planned
+  roadmap capabilities and are not yet implemented.
+keywords:
+  - voice biometrics
+  - speaker verification
+  - presentation attack detection
+  - security research
+  - authentication security

@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "ScopeConfig": {
+      "additionalProperties": false,
+      "description": "Phase 1 supports offline projects only; network targets come later.",
+      "properties": {
+        "mode": {
+          "const": "offline",
+          "default": "offline",
+          "title": "Mode",
+          "type": "string"
+        },
+        "note": {
+          "default": "Offline evaluation only; no network target adapter is enabled.",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "title": "ScopeConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned, intentionally small project configuration.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1",
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "project_id": {
+      "format": "uuid",
+      "title": "Project Id",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "maxLength": 500,
+      "title": "Description",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ScopeConfig"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "ProjectManifest",
+  "type": "object",
+  "$id": "https://github.com/AB772K/VoxRigor/blob/main/schemas/project-manifest-0.1.schema.json"
+}

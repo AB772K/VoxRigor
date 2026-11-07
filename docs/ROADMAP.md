@@ -2,6 +2,7 @@
 
 **Status:** Draft 0.1 — Phase 0  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
+**Current state:** Phase 1 core prototype has been implemented locally; repository upload, GitHub CI and owner review remain pending. Phase 0 documents remain drafts until accepted by the project owner.
 
 ## Phase 0 — Research, product specification and threat modeling
 
