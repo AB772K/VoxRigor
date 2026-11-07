@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -117,9 +116,8 @@ def test_manifest_rejects_incorrect_threshold_provenance() -> None:
 
 
 def test_manifest_load_errors_are_normalized(tmp_path: Path) -> None:
-    missing = tmp_path / "missing.json"
     with pytest.raises(TrialManifestError, match="missing, unreadable or invalid"):
-        load_audio_trial_manifest(missing)
+        load_audio_trial_manifest(tmp_path / "missing.json")
     broken = tmp_path / "broken.json"
     broken.write_text("{", encoding="utf-8")
     with pytest.raises(TrialManifestError, match="missing, unreadable or invalid"):

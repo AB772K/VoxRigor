@@ -1,0 +1,61 @@
+name: Optional real-model smoke tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Which pinned checkpoint should be downloaded and exercised?
+        type: choice
+        required: true
+        options:
+          - both
+          - ecapa-tdnn
+          - aasist-l-onnx
+
+permissions:
+  contents: read
+
+jobs:
+  ecapa:
+    if: inputs.model == 'both' || inputs.model == 'ecapa-tdnn'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install CPU PyTorch and TorchAudio
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch==2.7.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cpu
+      - name: Install VoxRigor speaker extra
+        run: python -m pip install -e ".[speaker]"
+      - name: Run real ECAPA checkpoint smoke test
+        run: python scripts/real_model_smoke.py --model ecapa-tdnn --output smoke/ecapa.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voxrigor-ecapa-real-model-smoke
+          path: smoke/ecapa.json
+
+  aasist:
+    if: inputs.model == 'both' || inputs.model == 'aasist-l-onnx'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install VoxRigor PAD extra
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[pad-onnx]"
+      - name: Run real AASIST-L ONNX checkpoint smoke test
+        run: python scripts/real_model_smoke.py --model aasist-l-onnx --output smoke/aasist-l.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voxrigor-aasist-l-real-model-smoke
+          path: smoke/aasist-l.json

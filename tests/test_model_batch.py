@@ -326,11 +326,13 @@ def test_batch_cleans_temp_directory_if_adapter_creation_fails(
 ) -> None:
     source = write_pad_manifest(tmp_path)
 
+    from voxrigor.biometrics.errors import ModelLoadError
+
     def fail_fetch(_cache: Path) -> Path:
-        raise batch.ModelLoadError("model unavailable")
+        raise ModelLoadError("model unavailable")
 
     monkeypatch.setattr(batch.AASISTLONNXAdapter, "fetch_pretrained_model", staticmethod(fail_fetch))
-    with pytest.raises(batch.ModelLoadError, match="unavailable"):
+    with pytest.raises(ModelLoadError, match="unavailable"):
         batch.run_trial_inference(source, tmp_path / "out", cache_dir=tmp_path / "cache")
     assert not (tmp_path / "out").exists()
     assert not list(tmp_path.glob(".out.*"))

@@ -15,7 +15,6 @@ def test_score_trials_cli_reports_three_output_artifacts(
     source = tmp_path / "trials.json"
     source.write_text("{}", encoding="utf-8")
     output = tmp_path / "out"
-    output.mkdir()
     captured: dict[str, object] = {}
 
     def fake_run(manifest: Path, destination: Path, **kwargs: object) -> Path:

@@ -1,0 +1,266 @@
+{
+  "$defs": {
+    "BenchmarkTask": {
+      "enum": [
+        "asv",
+        "pad"
+      ],
+      "title": "BenchmarkTask",
+      "type": "string"
+    },
+    "ScoreDirection": {
+      "enum": [
+        "higher_is_genuine",
+        "lower_is_genuine"
+      ],
+      "title": "ScoreDirection",
+      "type": "string"
+    },
+    "ThresholdSource": {
+      "enum": [
+        "not_provided",
+        "development_split",
+        "external"
+      ],
+      "title": "ThresholdSource",
+      "type": "string"
+    },
+    "ScoreProducer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "backend": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "score_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "score_direction": {
+          "$ref": "#/$defs/ScoreDirection"
+        },
+        "calibrated": {
+          "type": "boolean"
+        },
+        "model_artifact_sha256": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "inference_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "inference_provenance_file": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "inference_provenance_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "framework_version",
+        "model_id",
+        "model_revision",
+        "backend",
+        "score_type",
+        "score_direction",
+        "calibrated",
+        "model_artifact_sha256",
+        "inference_manifest_sha256",
+        "inference_provenance_file",
+        "inference_provenance_sha256"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Version 0.2 adds provenance for model-generated scores. The referenced inference-provenance sidecar is required and SHA-256 verified by VoxRigor.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2",
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "dataset_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "dataset_name": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Dataset Name",
+      "type": "string"
+    },
+    "dataset_version": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Dataset Version",
+      "type": "string"
+    },
+    "task": {
+      "$ref": "#/$defs/BenchmarkTask"
+    },
+    "protocol_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "score_file": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Score File",
+      "type": "string"
+    },
+    "score_file_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Score File Sha256",
+      "type": "string"
+    },
+    "evaluation_split": {
+      "default": "all",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Evaluation Split",
+      "type": "string"
+    },
+    "score_direction": {
+      "$ref": "#/$defs/ScoreDirection",
+      "default": "higher_is_genuine"
+    },
+    "operating_threshold": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Operating Threshold"
+    },
+    "threshold_source": {
+      "$ref": "#/$defs/ThresholdSource",
+      "default": "not_provided"
+    },
+    "threshold_selection_split": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Threshold Selection Split"
+    },
+    "source_url": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Url"
+    },
+    "license_name": {
+      "default": "unspecified",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "License Name",
+      "type": "string"
+    },
+    "citation": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Citation"
+    },
+    "access_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Access Date"
+    },
+    "require_group_disjointness": {
+      "default": false,
+      "title": "Require Group Disjointness",
+      "type": "boolean"
+    },
+    "group_columns": {
+      "items": {
+        "enum": [
+          "speaker_id",
+          "source_id"
+        ],
+        "type": "string"
+      },
+      "title": "Group Columns",
+      "type": "array"
+    },
+    "score_producer": {
+      "$ref": "#/$defs/ScoreProducer"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "dataset_name",
+    "dataset_version",
+    "task",
+    "protocol_id",
+    "score_file",
+    "score_file_sha256",
+    "score_producer"
+  ],
+  "title": "VoxRigor score dataset manifest 0.2",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AB772K/VoxRigor/blob/main/schemas/score-dataset-manifest-0.2.schema.json"
+}
