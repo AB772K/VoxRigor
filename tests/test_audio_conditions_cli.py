@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any
 
 from typer.testing import CliRunner
-from voxrigor.biometrics.conditions import ConditionManifestError
 
 import voxrigor.biometrics.conditions_cli as cli_module
+from voxrigor.biometrics.conditions import ConditionManifestError
 from voxrigor.biometrics.conditions_cli import audio_app
 
 
