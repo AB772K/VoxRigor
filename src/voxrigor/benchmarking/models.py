@@ -45,9 +45,7 @@ class ScoreProducer(BaseModel):
     inference_provenance_file: str = Field(min_length=1, max_length=500)
     inference_provenance_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     condition_provenance_file: str | None = Field(default=None, min_length=1, max_length=500)
-    condition_provenance_sha256: str | None = Field(
-        default=None, pattern=r"^[a-f0-9]{64}$"
-    )
+    condition_provenance_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @field_validator("model_artifact_sha256")
     @classmethod
@@ -91,9 +89,7 @@ class ScoreProducer(BaseModel):
 
     @model_validator(mode="after")
     def validate_condition_provenance_pair(self) -> ScoreProducer:
-        if (self.condition_provenance_file is None) != (
-            self.condition_provenance_sha256 is None
-        ):
+        if (self.condition_provenance_file is None) != (self.condition_provenance_sha256 is None):
             raise ValueError("condition provenance file and SHA-256 must be provided together")
         return self
 

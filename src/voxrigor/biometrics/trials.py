@@ -148,9 +148,7 @@ class AudioTrialManifest(BaseModel):
 
     @model_validator(mode="after")
     def validate_trials_and_threshold(self) -> AudioTrialManifest:
-        if (self.condition_provenance_file is None) != (
-            self.condition_provenance_sha256 is None
-        ):
+        if (self.condition_provenance_file is None) != (self.condition_provenance_sha256 is None):
             raise ValueError("condition provenance file and SHA-256 must be provided together")
         if self.task is BenchmarkTask.ASV and self.model_id != "ecapa-tdnn":
             raise ValueError("ASV audio trials require model_id='ecapa-tdnn'")

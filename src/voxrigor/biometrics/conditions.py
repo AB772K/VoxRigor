@@ -172,7 +172,9 @@ def _resolve_local_file(base_dir: Path, relative_path: str) -> Path:
     try:
         candidate.relative_to(base)
     except ValueError as exc:
-        raise ConditionManifestError("Input paths must resolve inside the experiment directory") from exc
+        raise ConditionManifestError(
+            "Input paths must resolve inside the experiment directory"
+        ) from exc
     if not candidate.is_file():
         raise ConditionManifestError("A referenced local input file does not exist")
     return candidate
@@ -184,7 +186,9 @@ def load_condition_experiment(path: Path) -> AudioConditionExperiment:
         payload: Any = json.loads(source.read_text(encoding="utf-8"))
         return AudioConditionExperiment.model_validate(payload)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError) as exc:
-        raise ConditionManifestError("Audio-condition manifest is missing, unreadable or invalid") from exc
+        raise ConditionManifestError(
+            "Audio-condition manifest is missing, unreadable or invalid"
+        ) from exc
 
 
 def _derive_seed(seed: int, trial_id: str, role: str, operation_index: int) -> int:
@@ -241,15 +245,11 @@ def _apply_one(
         compressed = np.sign(samples) * np.log1p(mu * np.abs(samples)) / math.log1p(mu)
         encoded = np.rint((compressed + 1.0) * 127.5)
         quantized = (encoded / 127.5) - 1.0
-        decoded = np.sign(quantized) * (
-            np.power(1.0 + mu, np.abs(quantized)) - 1.0
-        ) / mu
+        decoded = np.sign(quantized) * (np.power(1.0 + mu, np.abs(quantized)) - 1.0) / mu
         output = _signal_from_samples(narrowband, decoded, operation.sample_rate_hz)
     elif isinstance(operation, ReverberationTransform):
         impulse_path = _resolve_local_file(base_dir, operation.impulse_response)
-        impulse = load_audio_file(
-            impulse_path, max_duration_seconds=MAX_IMPULSE_RESPONSE_SECONDS
-        )
+        impulse = load_audio_file(impulse_path, max_duration_seconds=MAX_IMPULSE_RESPONSE_SECONDS)
         if impulse.sample_rate_hz != signal.sample_rate_hz:
             raise AudioInputError(
                 "Reverberation impulse response must use the same sample rate as the input"
@@ -300,9 +300,7 @@ def _apply_chain(
             if isinstance(operation, GaussianNoiseTransform)
             else None
         )
-        current, details = _apply_one(
-            current, operation, base_dir, effective_seed=seed
-        )
+        current, details = _apply_one(current, operation, base_dir, effective_seed=seed)
         details["index"] = index
         details["kind"] = operation.kind
         provenance.append(details)
@@ -393,9 +391,12 @@ def generate_condition_dataset(experiment_path: Path, output_dir: Path) -> Path:
     try:
         for trial in source_manifest.trials:
             for scenario in experiment.scenarios:
-                new_trial_id = "c-" + hashlib.sha256(
-                    f"{trial.trial_id}:{scenario.scenario_id}".encode()
-                ).hexdigest()[:32]
+                new_trial_id = (
+                    "c-"
+                    + hashlib.sha256(
+                        f"{trial.trial_id}:{scenario.scenario_id}".encode()
+                    ).hexdigest()[:32]
+                )
                 endpoint_records: list[dict[str, object]] = []
                 endpoint_values: dict[str, str] = {}
 
@@ -420,7 +421,8 @@ def generate_condition_dataset(experiment_path: Path, output_dir: Path) -> Path:
                     is_targeted = (
                         role == scenario.target
                         or scenario.target == "both"
-                        or scenario.target == "audio" and role == "audio"
+                        or scenario.target == "audio"
+                        and role == "audio"
                     )
                     if is_targeted and scenario.transforms:
                         final_signal, transform_records = _apply_chain(
@@ -518,9 +520,10 @@ def generate_condition_dataset(experiment_path: Path, output_dir: Path) -> Path:
             os.fsync(handle.fileno())
 
         manifest_payload = source_manifest.model_dump(mode="json")
-        manifest_payload["dataset_id"] = "condition-" + hashlib.sha256(
-            _sha256_file(experiment_source).encode("ascii")
-        ).hexdigest()[:20]
+        manifest_payload["dataset_id"] = (
+            "condition-"
+            + hashlib.sha256(_sha256_file(experiment_source).encode("ascii")).hexdigest()[:20]
+        )
         manifest_payload["dataset_name"] = (
             source_manifest.dataset_name[:125] + " (audio conditions)"
         )[:160]

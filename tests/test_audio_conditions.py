@@ -105,9 +105,7 @@ def make_experiment(root: Path, source_manifest: Path) -> Path:
             {
                 "scenario_id": "noise-20db",
                 "target": "probe",
-                "transforms": [
-                    {"kind": "gaussian_noise", "snr_db": 20.0, "seed": 1122}
-                ],
+                "transforms": [{"kind": "gaussian_noise", "snr_db": 20.0, "seed": 1122}],
             },
             {
                 "scenario_id": "telephony-mulaw",
@@ -183,9 +181,7 @@ def test_mulaw_refuses_over_range_audio_without_clipping(tmp_path: Path) -> None
         source_format="wav",
     )
     with pytest.raises(AudioInputError, match="no clipping"):
-        _apply_one(
-            original, MuLawTransform(kind="mulaw"), tmp_path, effective_seed=None
-        )
+        _apply_one(original, MuLawTransform(kind="mulaw"), tmp_path, effective_seed=None)
 
 
 def test_reverberation_uses_local_ir_and_records_its_hash(tmp_path: Path) -> None:
@@ -200,9 +196,7 @@ def test_reverberation_uses_local_ir_and_records_its_hash(tmp_path: Path) -> Non
     write_wav(ir_path, ir)
     transformed, record = _apply_one(
         original,
-        ReverberationTransform(
-            kind="reverberation", impulse_response="impulse.wav", wet_mix=0.5
-        ),
+        ReverberationTransform(kind="reverberation", impulse_response="impulse.wav", wet_mix=0.5),
         tmp_path,
         effective_seed=None,
     )
@@ -258,9 +252,7 @@ def test_transform_chain_records_order_and_derived_noise_seed(tmp_path: Path) ->
         ResampleTransform(kind="resample", target_sample_rate_hz=8000),
         GaussianNoiseTransform(kind="gaussian_noise", snr_db=25.0, seed=42),
     ]
-    first, records = _apply_chain(
-        original, operations, tmp_path, trial_id="trial-1", role="probe"
-    )
+    first, records = _apply_chain(original, operations, tmp_path, trial_id="trial-1", role="probe")
     second, records_2 = _apply_chain(
         original, operations, tmp_path, trial_id="trial-1", role="probe"
     )
@@ -316,7 +308,10 @@ def test_generate_conditions_and_run_phase2_end_to_end(
     assert len(generated.trials) == 6
     assert generated.condition_provenance_file == "conditions-provenance.json"
     sidecar_path = generated_path.parent / generated.condition_provenance_file
-    assert hashlib.sha256(sidecar_path.read_bytes()).hexdigest() == generated.condition_provenance_sha256
+    assert (
+        hashlib.sha256(sidecar_path.read_bytes()).hexdigest()
+        == generated.condition_provenance_sha256
+    )
     sidecar_text = sidecar_path.read_text(encoding="utf-8")
     assert "source-audio/" not in sidecar_text
     assert "waveform" not in sidecar_text.lower()

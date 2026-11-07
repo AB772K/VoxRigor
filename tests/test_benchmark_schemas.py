@@ -33,17 +33,13 @@ def test_model_generated_score_manifest_schema_is_valid_and_requires_provenance(
 
 
 def test_audio_condition_experiment_schema_is_valid() -> None:
-    schema = json.loads(
-        (ROOT / "schemas/audio-condition-experiment-0.1.schema.json").read_text()
-    )
+    schema = json.loads((ROOT / "schemas/audio-condition-experiment-0.1.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
     assert schema["properties"]["scenarios"]["maxItems"] == 32
 
 
 def test_score_producer_schema_supports_condition_provenance() -> None:
-    schema = json.loads(
-        (ROOT / "schemas/score-dataset-manifest-0.2.schema.json").read_text()
-    )
+    schema = json.loads((ROOT / "schemas/score-dataset-manifest-0.2.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
     producer = schema["$defs"]["ScoreProducer"]["properties"]
     assert "condition_provenance_file" in producer
