@@ -6,8 +6,8 @@ from datetime import date, datetime
 from enum import StrEnum
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Literal
-from uuid import UUID
 from urllib.parse import urlparse
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
