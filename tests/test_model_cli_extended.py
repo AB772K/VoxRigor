@@ -188,5 +188,6 @@ def test_fetch_ecapa_cli_normalizes_load_failure(monkeypatch: Any, tmp_path: Pat
 
 def test_default_model_cache_uses_xdg_on_posix(monkeypatch: Any) -> None:
     monkeypatch.setattr(cli_module.os, "name", "posix")
+    monkeypatch.setenv("HOME", "/tmp/voxrigor-home")
     monkeypatch.setenv("XDG_CACHE_HOME", "/tmp/voxrigor-cache")
     assert cli_module.default_model_cache() == Path("/tmp/voxrigor-cache/voxrigor/models")
