@@ -235,9 +235,7 @@ def _atomic_write(path: Path, content: str) -> None:
         raise BenchmarkError("Failed to atomically write benchmark output") from exc
 
 
-def _write_csv_atomic(
-    path: Path, columns: list[str], rows: Iterable[Mapping[str, object]]
-) -> None:
+def _write_csv_atomic(path: Path, columns: list[str], rows: Iterable[Mapping[str, object]]) -> None:
     temp_name: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
