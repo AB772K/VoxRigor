@@ -287,7 +287,9 @@ def test_manifest_cannot_read_score_file_outside_its_directory(tmp_path: Path) -
 def test_loader_rejects_blank_split_values_instead_of_silently_excluding_rows(
     tmp_path: Path,
 ) -> None:
-    csv_text = "trial_id,label,score,split\nt1,target,0.9,test\nn1,nontarget,0.1,test\nt2,target,0.8,\n"
+    csv_text = (
+        "trial_id,label,score,split\nt1,target,0.9,test\nn1,nontarget,0.1,test\nt2,target,0.8,\n"
+    )
     manifest = _write_dataset(tmp_path, csv_text)
     with pytest.raises(ScoreFileError, match="empty split"):
         load_score_dataset(manifest)
