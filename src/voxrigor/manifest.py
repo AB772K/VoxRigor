@@ -55,3 +55,4 @@ def load_manifest(path: Path) -> ProjectManifest:
         )
         raise ManifestError(f"Manifest validation failed: {details}") from exc
 
+
