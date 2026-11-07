@@ -1,14 +1,10 @@
 import pytest
 from pydantic import ValidationError
 
-from voxrigor.models import (
-    ResultStatus,
-    RunSummary,
-    SampleAccounting,
-    TestDescriptor as Descriptor,
-    TestError as Error,
-    TestResult as Result,
-)
+from voxrigor.models import ResultStatus, RunSummary, SampleAccounting
+from voxrigor.models import TestDescriptor as Descriptor
+from voxrigor.models import TestError as Error
+from voxrigor.models import TestResult as Result
 
 
 def test_status_vocabulary_is_complete() -> None:
