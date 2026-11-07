@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "voxrigor-asv-fixture",
+  "dataset_name": "VoxRigor Synthetic ASV Fixture",
+  "dataset_version": "1.0",
+  "task": "asv",
+  "protocol_id": "synthetic-asv-v1",
+  "score_file": "asv_scores.csv",
+  "score_file_sha256": "2a5526a4b85ec3874513d41b051fefe256fd68ae15c2958e012b18a77b53ab1e",
+  "evaluation_split": "test",
+  "score_direction": "higher_is_genuine",
+  "operating_threshold": 0.5,
+  "threshold_source": "external",
+  "threshold_selection_split": null,
+  "source_url": null,
+  "license_name": "VoxRigor synthetic fixture",
+  "citation": null,
+  "access_date": null,
+  "require_group_disjointness": false,
+  "group_columns": []
+}

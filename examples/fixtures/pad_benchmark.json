@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "voxrigor-pad-fixture",
+  "dataset_name": "VoxRigor Synthetic PAD Fixture",
+  "dataset_version": "1.0",
+  "task": "pad",
+  "protocol_id": "synthetic-pad-v1",
+  "score_file": "pad_scores.csv",
+  "score_file_sha256": "580f69b930f5e1149d7145c6cfe98002c9bf251f788ae8e28bf4bdb60e93eab7",
+  "evaluation_split": "test",
+  "score_direction": "higher_is_genuine",
+  "operating_threshold": 0.5,
+  "threshold_source": "external",
+  "threshold_selection_split": null,
+  "source_url": null,
+  "license_name": "VoxRigor synthetic fixture",
+  "citation": null,
+  "access_date": null,
+  "require_group_disjointness": false,
+  "group_columns": []
+}

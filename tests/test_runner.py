@@ -3,12 +3,18 @@ from uuid import UUID
 import pytest
 
 from voxrigor.errors import TestNotFoundError as UnknownTestError
-from voxrigor.models import ProjectManifest, ResultStatus, SampleAccounting
-from voxrigor.models import TestDescriptor as Descriptor
-from voxrigor.testing import TestOutcome as Outcome
-from voxrigor.testing import TestRegistry as Registry
-from voxrigor.testing import TestRunner as Runner
-from voxrigor.testing import build_default_registry
+from voxrigor.models import (
+    ProjectManifest,
+    ResultStatus,
+    SampleAccounting,
+    TestDescriptor as Descriptor,
+)
+from voxrigor.testing import (
+    TestOutcome as Outcome,
+    TestRegistry as Registry,
+    TestRunner as Runner,
+    build_default_registry,
+)
 
 
 class BrokenTest:

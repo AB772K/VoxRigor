@@ -1,0 +1,23 @@
+import json
+from pathlib import Path
+
+from jsonschema import Draft202012Validator
+
+from voxrigor.benchmarking.dataset import load_score_dataset
+from voxrigor.benchmarking.reporting import build_benchmark_report
+
+ROOT = Path(__file__).parents[1]
+
+
+def test_dataset_manifest_schema_is_valid() -> None:
+    schema = json.loads((ROOT / "schemas/score-dataset-manifest-0.1.schema.json").read_text())
+    Draft202012Validator.check_schema(schema)
+
+
+def test_benchmark_report_schema_accepts_generated_report() -> None:
+    schema = json.loads((ROOT / "schemas/benchmark-report-0.1.schema.json").read_text())
+    Draft202012Validator.check_schema(schema)
+    manifest = ROOT / "examples/fixtures/asv_benchmark.json"
+    dataset = load_score_dataset(manifest)
+    report, _ = build_benchmark_report(dataset)
+    Draft202012Validator(schema).validate(report.model_dump(mode="json"))

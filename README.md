@@ -4,7 +4,7 @@
 
 Research openly. Test rigorously. Report honestly.
 
-> **Project status:** Early research prototype — Phase 1 core framework and Phase 2 offline score-based ASV/PAD evaluation are implemented locally. Phase 2 accepts user-supplied precomputed scores; it does not yet load audio, run models, or test target applications. Cross-platform CI and independent review remain pending.
+> **Project status:** Early research prototype — Phase 1 core framework and Phase 2 offline score-based ASV/PAD evaluation are implemented in the development branch. Phase 2 accepts user-supplied precomputed scores; it does not yet load audio, run models, or test target applications. Cross-platform CI and independent review remain pending.
 
 ## About
 

@@ -1,21 +1,29 @@
 # Phase 1 Validation Record
 
-**Validation target:** uploaded Phase 1 implementation on `main`, exercised again by the Phase 2 combined test suite.
+**Validation target:** repository snapshot on `main` before Phase 2 integration.
 
 ## Local verification
 
-The original Phase 1 standalone suite reported 34 passing tests and 88.94% coverage on Python 3.13.5. The full Phase 2 combined suite includes the Phase 1 tests and currently reports 77 passed, 86.56% total coverage, editable installation and wheel build success.
+Executed against Python 3.13.5:
 
-## Repository integration issue
+- `python -m pytest -q --cov=voxrigor --cov-report=term-missing`
+- Result: 34 passed.
+- Total measured statement coverage: 88.94%.
+- `python -m pip install -e . --no-build-isolation`
+- Result: editable wheel built and package installed successfully with the environment's existing dependencies.
 
-The Phase 1 upload omitted `.github/workflows/ci.yml`, so remote CI had not been running. The workflow is now included in the Phase 2 development branch. It has not yet passed remotely.
+The CLI's `init`, `validate`, `tests`, `run` and `report` path was covered by the automated test suite.
 
-## Remaining exit checks
+## Repository integration issue found
 
-- [ ] GitHub Actions passes on Ubuntu and Windows with Python 3.11, 3.12 and 3.13.
-- [ ] Ruff lint and formatting checks pass.
+The `.github/workflows/ci.yml` file was not present in the uploaded Phase 1 repository tree, so the planned GitHub Actions matrix had not been running. It is included in the Phase 2 development snapshot, but must be published and pass before Phase 1 is formally closed.
+
+## Remaining Phase 1 acceptance checks
+
+- [ ] GitHub Actions passes on Ubuntu and Windows for Python 3.11, 3.12 and 3.13.
+- [ ] Ruff lint and format checks pass.
 - [ ] Mypy strict check passes.
-- [x] Local editable package installation and wheel build pass.
-- [x] Local unit, CLI and schema tests pass.
+- [x] Editable package build/install passes locally.
+- [x] Existing unit and CLI tests pass locally.
 
-Local tests do not replace remote cross-platform verification. Phase 1 is not formally closed until the outstanding checks pass.
+Local success is not a substitute for the remote cross-platform checks.

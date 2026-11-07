@@ -1,0 +1,129 @@
+{
+  "additionalProperties": false,
+  "description": "Versioned result envelope for one score-based benchmark execution.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1",
+      "default": "0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "framework_version": {
+      "title": "Framework Version",
+      "type": "string"
+    },
+    "python_version": {
+      "title": "Python Version",
+      "type": "string"
+    },
+    "platform": {
+      "title": "Platform",
+      "type": "string"
+    },
+    "dataset": {
+      "additionalProperties": true,
+      "title": "Dataset",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "sample_accounting": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Sample Accounting",
+      "type": "object"
+    },
+    "label_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Label Counts",
+      "type": "object"
+    },
+    "split_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Split Counts",
+      "type": "object"
+    },
+    "split_label_counts": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "title": "Split Label Counts",
+      "type": "object"
+    },
+    "group_overlap_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Group Overlap Counts",
+      "type": "object"
+    },
+    "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+    },
+    "condition_metrics": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Condition Metrics",
+      "type": "array"
+    },
+    "attack_species_metrics": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Attack Species Metrics",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "generated_at",
+    "framework_version",
+    "python_version",
+    "platform",
+    "dataset",
+    "provenance",
+    "sample_accounting",
+    "label_counts",
+    "split_counts",
+    "split_label_counts",
+    "group_overlap_counts",
+    "metrics"
+  ],
+  "title": "VoxRigor benchmark report",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AB772K/VoxRigor/blob/main/schemas/benchmark-report-0.1.schema.json"
+}

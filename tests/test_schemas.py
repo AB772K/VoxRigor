@@ -5,8 +5,7 @@ from jsonschema import Draft202012Validator
 
 from voxrigor.manifest import create_manifest
 from voxrigor.models import ProjectManifest
-from voxrigor.testing import TestRunner as Runner
-from voxrigor.testing import build_default_registry
+from voxrigor.testing import TestRunner as Runner, build_default_registry
 
 SCHEMA_DIR = Path(__file__).parents[1] / "schemas"
 

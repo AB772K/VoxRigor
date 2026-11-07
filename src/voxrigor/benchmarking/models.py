@@ -1,0 +1,162 @@
+"""Typed, versioned models for score-based offline benchmark evaluation."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from enum import StrEnum
+from pathlib import PurePosixPath, PureWindowsPath
+from typing import Literal
+from uuid import UUID
+from urllib.parse import urlparse
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+class BenchmarkTask(StrEnum):
+    ASV = "asv"
+    PAD = "pad"
+
+
+class ScoreDirection(StrEnum):
+    HIGHER_IS_GENUINE = "higher_is_genuine"
+    LOWER_IS_GENUINE = "lower_is_genuine"
+
+
+class ThresholdSource(StrEnum):
+    NOT_PROVIDED = "not_provided"
+    DEVELOPMENT_SPLIT = "development_split"
+    EXTERNAL = "external"
+
+
+class DatasetManifest(BaseModel):
+    """Metadata needed to interpret a score-trial CSV reproducibly.
+
+    The score file is a user-supplied, precomputed decision-score file. This
+    manifest does not claim that VoxRigor generated the scores or verified the
+    upstream model's preprocessing.
+    """
+
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+    schema_version: Literal["0.1"] = "0.1"
+    dataset_id: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]{2,79}$")
+    dataset_name: str = Field(min_length=1, max_length=160)
+    dataset_version: str = Field(min_length=1, max_length=80)
+    task: BenchmarkTask
+    protocol_id: str = Field(min_length=1, max_length=120)
+    score_file: str = Field(min_length=1, max_length=500)
+    score_file_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    evaluation_split: str = Field(default="all", min_length=1, max_length=80)
+    score_direction: ScoreDirection = ScoreDirection.HIGHER_IS_GENUINE
+    operating_threshold: float | None = Field(default=None, allow_inf_nan=False)
+    threshold_source: ThresholdSource = ThresholdSource.NOT_PROVIDED
+    threshold_selection_split: str | None = Field(default=None, max_length=80)
+    source_url: str | None = Field(default=None, max_length=1000)
+    license_name: str = Field(default="unspecified", min_length=1, max_length=160)
+    citation: str | None = Field(default=None, max_length=2000)
+    access_date: date | None = None
+    require_group_disjointness: bool = False
+    group_columns: list[Literal["speaker_id", "source_id"]] = Field(default_factory=list)
+
+    @field_validator("dataset_name", "dataset_version", "protocol_id", "evaluation_split", "license_name")
+    @classmethod
+    def reject_whitespace_only(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("value must contain a non-whitespace character")
+        return value.strip()
+
+    @field_validator("threshold_selection_split")
+    @classmethod
+    def normalize_threshold_selection_split(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("threshold_selection_split must not be blank")
+        return cleaned
+
+    @field_validator("score_file")
+    @classmethod
+    def require_relative_score_path(cls, value: str) -> str:
+        normalized = value.replace("\\", "/")
+        if (
+            "\x00" in normalized
+            or PurePosixPath(normalized).is_absolute()
+            or PureWindowsPath(normalized).is_absolute()
+        ):
+            raise ValueError("score_file must be a relative path")
+        return normalized
+
+    @field_validator("source_url")
+    @classmethod
+    def validate_source_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("source_url must be an http or https URL")
+        return value
+
+    @model_validator(mode="after")
+    def validate_threshold_provenance(self) -> DatasetManifest:
+        if self.operating_threshold is None:
+            if self.threshold_source is not ThresholdSource.NOT_PROVIDED:
+                raise ValueError("threshold_source must be not_provided when no threshold is set")
+            if self.threshold_selection_split is not None:
+                raise ValueError("threshold_selection_split requires an operating_threshold")
+        else:
+            if self.threshold_source is ThresholdSource.NOT_PROVIDED:
+                raise ValueError("an operating_threshold requires its source to be declared")
+            if self.threshold_source is ThresholdSource.DEVELOPMENT_SPLIT:
+                if self.evaluation_split == "all":
+                    raise ValueError("development_split threshold requires a named evaluation_split")
+                if not self.threshold_selection_split:
+                    raise ValueError("development_split threshold requires threshold_selection_split")
+                if self.threshold_selection_split == self.evaluation_split:
+                    raise ValueError("threshold must not be selected on the evaluation split")
+            elif self.threshold_selection_split is not None:
+                raise ValueError("external threshold must not specify a selection split")
+
+        if self.task is BenchmarkTask.PAD and self.operating_threshold is None:
+            raise ValueError("PAD evaluation requires a predeclared operating_threshold")
+        if len(set(self.group_columns)) != len(self.group_columns):
+            raise ValueError("group_columns must not contain duplicates")
+        if self.require_group_disjointness and not self.group_columns:
+            raise ValueError("group_columns are required when group disjointness is enforced")
+        return self
+
+
+class RateEstimate(BaseModel):
+    """A binomial rate with transparent counts and a trial-level Wilson interval."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    errors: int = Field(ge=0)
+    trials: int = Field(gt=0)
+    rate: float = Field(ge=0, le=1)
+    confidence_level: float = Field(ge=0, lt=1)
+    confidence_interval: tuple[float, float] = Field(min_length=2, max_length=2)
+
+
+class BenchmarkReport(BaseModel):
+    """Versioned result envelope for one score-based benchmark execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["0.1"] = "0.1"
+    run_id: UUID
+    generated_at: datetime
+    framework_version: str
+    python_version: str
+    platform: str
+    dataset: dict[str, object]
+    provenance: dict[str, object]
+    sample_accounting: dict[str, int]
+    label_counts: dict[str, int]
+    split_counts: dict[str, int]
+    split_label_counts: dict[str, dict[str, int]]
+    group_overlap_counts: dict[str, int]
+    metrics: dict[str, object]
+    condition_metrics: list[dict[str, object]] = Field(default_factory=list)
+    attack_species_metrics: list[dict[str, object]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)

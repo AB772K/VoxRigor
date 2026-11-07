@@ -1,20 +1,29 @@
 # Phase 1 Implementation Record
 
-**Status:** Phase 1 core framework is implemented. The original standalone suite passed 34 tests with 88.94% coverage on Python 3.13.5. The combined Phase 2 suite currently passes 77 tests with 86.56% total coverage. Ruff, mypy and remote cross-platform CI remain unverified.
+**Status:** Prototype implemented; local acceptance tests pass on Python 3.13.5 with 88.94% measured total coverage; lint/type CI and cross-platform CI remain pending. Ruff and mypy were not run locally because those tools were not preinstalled and package-index network access was unavailable in the build environment.
 
-## Implemented
+## Implemented in this branch
 
-- Lightweight Python package without mandatory machine-learning dependencies.
-- CLI: `version`, `init`, `validate`, `tests`, `run` and `report`.
-- Pydantic project manifest and explicit built-in diagnostic registry.
-- Test runner with UUID run IDs, UTC timestamps and result states.
-- SHA-256 and canonical configuration provenance.
-- Local JSON/HTML reports with escaping and atomic writes.
+- Lightweight Python package with no mandatory ML dependencies.
+- CLI commands: `version`, `init`, `validate`, `tests`, `run`, and `report`.
+- Strict Pydantic project manifest schema (`0.1`).
+- Explicit built-in test registry; no automatic third-party plugin imports.
+- Test runner with UUID run IDs, UTC timestamps and explicit result states.
+- Exception-to-`execution_error` conversion; sample-accounting reconciliation.
+- SHA-256 and canonical configuration hashing utilities.
+- Local run directory with atomic JSON and HTML report writes.
+- HTML escaping for dynamic report content.
+- Unit tests, JSON Schema validation and GitHub Actions CI matrix for Ubuntu and Windows on Python 3.11–3.13.
 
-## Not part of Phase 1
+## Intentionally not implemented
 
-Biometric score ingestion and metrics are Phase 2; model inference is Phase 3; audio transformation and PAD capture testing are Phase 4; network target/protocol testing is Phase 5; custom AI training is a later research phase.
+- Score/trial dataset ingestion and biometric metrics (Phase 2).
+- Model inference, ECAPA-TDNN or AASIST integrations (Phase 3).
+- Audio transformation or presentation attack generation (Phase 4).
+- Network target adapters or protocol testing (Phase 5).
+- Arbitrary third-party plugin loading or sandboxing.
+- Custom AI training.
 
-## Exit gate
+## Phase 1 exit gate
 
-The framework diagnostic returns `inconclusive` and makes no security claim. Phase 1 local functionality is tested, but formal closure requires passing Ubuntu/Windows CI on Python 3.11–3.13 plus Ruff and strict mypy checks.
+The Phase 1 vertical slice creates and validates a manifest, discovers the diagnostic test, executes it, validates the report schema and writes JSON/HTML reports. Its standalone local suite passed 34 tests with 88.94% total coverage on Python 3.13.5. The broader Phase 2 suite also exercises the Phase 1 components. The formal exit gate remains open until GitHub CI passes on every configured Python/OS combination and the project owner reviews the interface and limitations. The diagnostic result remains `inconclusive` and makes no security claim.
