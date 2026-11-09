@@ -49,7 +49,7 @@ def fit_platt_calibrator(
     positives = sum(labels)
     negatives = len(labels) - positives
     if positives == 0 or negatives == 0:
-        raise ValueError("calibration data must contain target and nontarget trials")
+        raise ValueError("calibration data must contain both target and nontarget trials")
     if not 0 < regularization < 1 or max_iterations < 1:
         raise ValueError("invalid calibration optimizer configuration")
 
