@@ -21,12 +21,16 @@ from voxrigor.protocol.scope import ProtocolScope
 
 
 @contextmanager
-def local_fixture(profile: FixtureProfile, ttl: float = 0.1) -> Iterator[ProtocolScope]:
+def local_fixture(
+    profile: FixtureProfile,
+    ttl: float = 0.1,
+    session_ttl: float = 0.25,
+) -> Iterator[ProtocolScope]:
     server = create_reference_server(
         profile=profile,
         port=0,
         challenge_ttl_seconds=ttl,
-        session_ttl_seconds=0.1,
+        session_ttl_seconds=session_ttl,
     )
     thread = threading.Thread(
         target=server.serve_forever,
@@ -217,7 +221,7 @@ def test_reenrollment_is_owner_authorized_and_increments_version() -> None:
 
 
 def test_expired_fixed_session_is_rejected() -> None:
-    with local_fixture("fixed") as scope:
+    with local_fixture("fixed", session_ttl=0.1) as scope:
         client = ScopedHttpClient(scope)
         challenge = client.request(
             "POST",
