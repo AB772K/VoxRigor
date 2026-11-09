@@ -96,6 +96,7 @@ def _dataset_summary(dataset: ScoreDataset) -> dict[str, object]:
             if manifest.score_producer is not None
             else None
         ),
+        "condition_counts": dataset.condition_counts,
         "sample_counts": {
             "input_rows": dataset.input_rows,
             "evaluated_rows": len(dataset.records),
@@ -349,6 +350,63 @@ def _cluster_bootstrap_uncertainty(
     }
 
 
+def _condition_stratification_report(
+    records: tuple[ScoreTrial, ...],
+    direction: ScoreDirection,
+    threshold: float,
+    calibrator: object,
+    probability_threshold: float,
+) -> list[dict[str, object]]:
+    """Evaluate each held-out condition using the calibration-fitted mapping and frozen threshold."""
+
+    by_condition: dict[str, list[ScoreTrial]] = {}
+    for record in records:
+        condition = record.condition.strip() or "unspecified"
+        by_condition.setdefault(condition, []).append(record)
+
+    results: list[dict[str, object]] = []
+    for condition, condition_records in sorted(by_condition.items()):
+        target_count = sum(record.label == "target" for record in condition_records)
+        nontarget_count = sum(record.label == "nontarget" for record in condition_records)
+        result: dict[str, object] = {
+            "condition": condition,
+            "condition_specified": condition != "unspecified",
+            "sample_counts": {
+                "total": len(condition_records),
+                "target": target_count,
+                "nontarget": nontarget_count,
+            },
+        }
+        if target_count == 0 or nontarget_count == 0:
+            result["status"] = "not_computable"
+            result["reason"] = (
+                "This condition does not contain both target and nontarget trials; "
+                "the condition-specific error rates and ranking metrics were not calculated."
+            )
+        else:
+            raw_metrics, _, _ = evaluate_scores(
+                condition_records, BenchmarkTask.ASV, direction, threshold=None
+            )
+            operating = _operating_rates(condition_records, direction, threshold)
+            calibration_metrics = evaluate_calibration(
+                condition_records,
+                cast(Any, calibrator),
+                direction,
+                probability_threshold=probability_threshold,
+            )
+            result.update(
+                {
+                    "status": "computed",
+                    "raw_score_metrics": raw_metrics,
+                    "transferred_operating_point": operating,
+                    "calibration_metrics": calibration_metrics,
+                }
+            )
+        results.append(result)
+
+    return results
+
+
 def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]:
     """Fit only on the declared calibration dataset and evaluate on held-out datasets."""
 
@@ -401,6 +459,14 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
                 loaded.manifest.cluster_bootstrap,
                 raw_metrics,
                 transferred_operating_point,
+            )
+        if loaded.manifest.stratify_by_condition:
+            evaluation_result["condition_analysis"] = _condition_stratification_report(
+                dataset.records,
+                direction,
+                raw_threshold,
+                calibrator,
+                loaded.manifest.probability_threshold,
             )
         evaluation_results.append(evaluation_result)
 
