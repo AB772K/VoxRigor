@@ -11,6 +11,7 @@ from typing import Any
 
 from voxrigor.protocol.errors import ProtocolError
 from voxrigor.protocol.scope import ProtocolScope
+
 MAX_REQUEST_BODY_BYTES = 16 * 1024
 MAX_RESPONSE_BODY_BYTES = 32 * 1024
 
