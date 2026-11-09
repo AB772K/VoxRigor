@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import json
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
 from typing import Any
 
 from voxrigor.protocol.errors import ProtocolError

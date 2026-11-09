@@ -11,7 +11,6 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from voxrigor import __version__
 from voxrigor.protocol.client import HttpResult, ScopedHttpClient
 from voxrigor.protocol.errors import ProtocolError
 from voxrigor.protocol.reference import fixture_proof

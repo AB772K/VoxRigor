@@ -6,15 +6,16 @@ recognition, presentation-attack detection, voice liveness or any biometric accu
 
 from __future__ import annotations
 
+from collections import deque
+from dataclasses import dataclass, field
+
 import hashlib
 import hmac
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import secrets
 import threading
 import time
-from collections import deque
-from dataclasses import dataclass, field
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Literal, cast
 
 
@@ -24,7 +25,7 @@ _FIXTURE_PROOF_KEY = b"VoxRigor-local-fixture-only-not-a-credential"
 
 def fixture_proof(subject_id: str, nonce: str) -> str:
     """Build the deterministic test-only assertion understood by the reference fixture."""
-    message = f"{subject_id}:{nonce}".encode("utf-8")
+    message = f"{subject_id}:{nonce}".encode()
     return hmac.new(_FIXTURE_PROOF_KEY, message, hashlib.sha256).hexdigest()
 
 

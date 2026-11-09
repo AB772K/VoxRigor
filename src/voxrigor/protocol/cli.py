@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 import typer
 
@@ -22,7 +22,7 @@ protocol_app = typer.Typer(
 )
 
 
-def _handle_error(error: Exception) -> None:
+def _handle_error(error: Exception) -> NoReturn:
     typer.secho(f"Error: {error}", fg=typer.colors.RED, err=True)
     raise typer.Exit(code=2) from error
 
