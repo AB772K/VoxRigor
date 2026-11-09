@@ -12,12 +12,10 @@ import json
 import secrets
 import threading
 import time
-
 from collections import deque
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Literal, cast
-
 
 FixtureProfile = Literal["fixed", "vulnerable"]
 _FIXTURE_PROOF_KEY = b"VoxRigor-local-fixture-only-not-a-credential"
