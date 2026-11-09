@@ -77,7 +77,6 @@ def test_aasist_window_tiles_short_audio_and_truncates_long_audio() -> None:
     assert np.array_equal(truncated[0], long_samples[:AASIST_L_WINDOW_SAMPLES])
 
 
-
 @pytest.mark.parametrize(
     ("frames", "channels", "message"),
     [
