@@ -226,9 +226,7 @@ def _percentile(values: list[float], probability: float) -> float:
     lower_index = int(position)
     upper_index = min(lower_index + 1, len(ordered) - 1)
     fraction = position - lower_index
-    return ordered[lower_index] + fraction * (
-        ordered[upper_index] - ordered[lower_index]
-    )
+    return ordered[lower_index] + fraction * (ordered[upper_index] - ordered[lower_index])
 
 
 def _cluster_bootstrap_uncertainty(
@@ -264,9 +262,7 @@ def _cluster_bootstrap_uncertainty(
         }
         for label in ("target", "nontarget")
     }
-    insufficient = [
-        label for label, values in clusters_by_label.items() if len(values) < 2
-    ]
+    insufficient = [label for label, values in clusters_by_label.items() if len(values) < 2]
     if insufficient:
         raise ResearchExperimentError(
             "cluster bootstrap requires at least two distinct clusters containing each class: "
