@@ -142,6 +142,7 @@ def test_reference_server_refuses_non_loopback_bind() -> None:
             ReferenceApplication(profile="fixed", challenge_ttl_seconds=1.0),
         )
 
+
 def test_fixed_fixture_binds_challenge_to_recovery_purpose() -> None:
     with local_fixture("fixed") as scope:
         client = ScopedHttpClient(scope)
