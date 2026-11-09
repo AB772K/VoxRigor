@@ -169,5 +169,7 @@ def protocol_demo(
         thread.join(timeout=2.0)
     typer.echo(f"Fixture profile: {profile}")
     typer.echo(f"Findings: {len(report.findings)}")
-    typer.echo(f"Vulnerable checks: {sum(item.status is CheckStatus.VULNERABLE for item in report.findings)}")
+    typer.echo(
+        f"Vulnerable checks: {sum(item.status is CheckStatus.VULNERABLE for item in report.findings)}"
+    )
     typer.echo(f"Report: {saved / 'report.md'}")
