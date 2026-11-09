@@ -22,6 +22,7 @@ from voxrigor.benchmarking.errors import MetricError
 from voxrigor.benchmarking.metrics import evaluate_scores, wilson_interval
 from voxrigor.benchmarking.models import BenchmarkTask, ScoreDirection
 from voxrigor.research.calibration import (
+    PlattCalibrator,
     evaluate_calibration,
     fit_platt_calibrator,
     normalize_score,
@@ -354,7 +355,7 @@ def _condition_stratification_report(
     records: tuple[ScoreTrial, ...],
     direction: ScoreDirection,
     threshold: float,
-    calibrator: object,
+    calibrator: PlattCalibrator,
     probability_threshold: float,
 ) -> list[dict[str, object]]:
     """Evaluate each held-out condition using the calibration-fitted mapping and frozen threshold."""
@@ -390,7 +391,7 @@ def _condition_stratification_report(
             operating = _operating_rates(condition_records, direction, threshold)
             calibration_metrics = evaluate_calibration(
                 condition_records,
-                cast(Any, calibrator),
+                calibrator,
                 direction,
                 probability_threshold=probability_threshold,
             )
