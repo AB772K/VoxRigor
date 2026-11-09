@@ -12,11 +12,11 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 The latest Phase 5 lifecycle extension passed the six-job GitHub Actions matrix on Ubuntu and Windows with Python 3.11, 3.12 and 3.13 (run [42593363565](https://github.com/AB772K/VoxRigor/actions/runs/42593363565)). The validation includes Ruff lint, Ruff formatting, strict Mypy, and the complete test suite. The Linux jobs completed 201 tests at 85.58% coverage against the configured 85% gate.
 
-Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, and a bounded loopback-only protocol/API security engine with fixed and intentionally vulnerable reference profiles.
+Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, a bounded loopback-only protocol/API security engine, and the initial score-only cross-dataset research runner.
 
 Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation, cross-dataset generalization studies, calibration research and physical presentation-rig validation remain research tasks.
 
-The Phase 5 reference protocol service uses a deterministic synthetic assertion; it does not implement speaker recognition, PAD or liveness detection. Its results validate the scanner against controlled fixtures and must not be interpreted as production-system security evidence.
+The Phase 5 reference protocol service uses a deterministic synthetic assertion; it does not implement speaker recognition, PAD or liveness detection. Its results validate the scanner against controlled fixtures and must not be interpreted as production-system security evidence. Phase 6's automated research fixtures are synthetic score data, not biometric-performance evidence.
 
 ## Installation
 
@@ -45,6 +45,14 @@ python -m pip install -e ".[audio]"
 voxrigor models list
 ```
 
+## Run a research experiment
+
+See [Phase 6 implementation](docs/PHASE_6_IMPLEMENTATION.md) for the manifest format and methodology.
+
+```powershell
+voxrigor research evaluate .\research-experiment.json --output .\runs\research
+```
+
 ## Documentation
 
 - [Getting started](docs/GETTING_STARTED.md)
@@ -61,6 +69,8 @@ voxrigor models list
 - [Phase 4 acceptance gates](docs/PHASE_4_ACCEPTANCE.md)
 - [Phase 5 protocol and API engine](docs/PHASE_5_IMPLEMENTATION.md)
 - [Phase 5 acceptance gates](docs/PHASE_5_ACCEPTANCE.md)
+- [Phase 6 research experiments](docs/PHASE_6_IMPLEMENTATION.md)
+- [Phase 6 acceptance gates](docs/PHASE_6_ACCEPTANCE.md)
 - [Development roadmap](docs/ROADMAP.md)
 
 ## Mission

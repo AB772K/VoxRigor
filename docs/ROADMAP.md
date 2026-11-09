@@ -1,8 +1,8 @@
 # Development Roadmap
 
-**Status:** Phase 6 — research and custom-AI experiment infrastructure.  
-**Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.  
-**Current state:** Phase 1, Phase 2, Phase 3 model adapters and the Phase 3 model-to-benchmark follow-up are integrated into main. Phase 4 deterministic digital audio-condition generation and provenance checks are implemented; physical presentation hardware and approved-dataset experiments remain open. Phase 5's loopback-only protocol/API engine and lifecycle extension are implemented and passed the six-environment CI matrix. Phase 5 general target adapters and full recovery/fallback workflows remain future integration work. Phase 6 starts with score-based cross-dataset experiments, calibration and operating-point transfer; custom training is deferred until supported by a research hypothesis and approved data.
+**Status:** Living development plan — Phase 5 local protocol engine (first slice validated)  
+**Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
+**Current state:** Phase 1, Phase 2 and the Phase 3 model-to-benchmark follow-up are merged into main. Phase 4 PR #5 is merged into the Phase 3 development branch, not main; its CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Phase 4 audio-decoder resource hardening and the initial Phase 5 local protocol engine have passed the six-environment CI matrix. Phase 5's purpose binding, re-enrollment ownership and session expiry extension is under CI validation on a separate branch. Remote target adapters and complete recovery/fallback workflows remain open.
 
 ## Phase 0 — Research, product specification and threat modeling
 
@@ -80,37 +80,36 @@ Build:
 - optional local presentation rig integration design;
 - separate labels for physical presentation versus digital injection.
 
-Exit gate: each transform has known input/output behavior, no silent clipping/resampling and reproducible test artifacts; PAD reports separate capture presentation from digital injection. The implemented slice covers deterministic digital audio-condition generation and provenance verification. Physical presentation hardware integration and approved-dataset condition analysis remain open.
+Exit gate: each transform has known input/output behavior, no silent clipping/resampling and reproducible test artifacts; PAD reports separate capture presentation from digital injection. The first Phase 4 slice covers digital audio-condition generation; physical presentation hardware integration remains a separately scoped extension.
 
 ## Phase 5 — Reference application and protocol/API security engine
 
 **Goal:** assess an end-to-end voice-authentication workflow in a controlled environment.
 
-Implemented:
+Build:
 - deliberately testable local reference authentication service;
-- loopback-only REST client with explicit scope acknowledgement;
-- disposable in-memory test identities and fixtures;
-- bounded challenge, enrollment, replay/session and authorization tests;
+- REST target adapter;
+- explicit scope manifest and allowlist enforcement;
+- disposable test-account lifecycle;
+- challenge, enrollment, replay/session and authorization tests;
 - request/time/resource bounds;
-- evidence capture and redaction;
-- challenge purpose binding, re-enrollment ownership and session-expiry checks.
+- evidence capture and redaction.
 
-Exit gate for the initial local fixture: fixed and vulnerable profiles produce the expected distinct results; scope restrictions and safe bounds are enforced. This implementation gate passed CI run [42593363565](https://github.com/AB772K/VoxRigor/actions/runs/42593363565) on Ubuntu/Windows and Python 3.11–3.13. It does not complete general target adapters, full recovery channels or remote assessment.
+Exit gate: end-to-end tests demonstrate both a known vulnerable fixture and a fixed fixture, with verified outcomes and safe cleanup. Out-of-scope targets are refused.
 
 ## Phase 6 — Research and custom AI experiments
 
-**Goal:** measure whether systems and countermeasures generalize across datasets and attack/capture conditions before proposing custom models.
+**Goal:** pursue original research only after stable baselines and valid test protocols exist.
 
 Build:
-- a versioned experiment manifest that links calibration/development data to independent evaluation datasets;
-- calibration and reliability metrics fitted only on development/calibration data;
-- operating-point selection on calibration data and frozen transfer to evaluation data;
-- cross-dataset and cross-condition comparisons with sample, group-overlap and provenance accounting;
+- cross-dataset/generalization experiments;
+- calibration and operating-point studies;
+- attack-condition analysis;
+- model fine-tuning/training recipes when justified by a research hypothesis;
 - ablations and independent test splits;
-- experiment cards, model cards and reproducible research exports;
-- model fine-tuning/training recipes only when justified by a falsifiable research hypothesis.
+- model cards and experiment cards.
 
-Exit gate: an experiment can be rerun from declared manifests; calibration and thresholds do not inspect evaluation labels; dataset/model lineage and overlap limitations are explicit; a proposed improvement is evaluated on independent data and generalizes beyond training/development data. No custom model is included as a default until its value and limitations are demonstrated.
+Exit gate: any proposed improvement generalizes beyond the training/development data and is independently reproducible. No custom model is included as a default until its value and limitations are demonstrated.
 
 ## Phase 7 — Plugin SDK, integrations and usability
 

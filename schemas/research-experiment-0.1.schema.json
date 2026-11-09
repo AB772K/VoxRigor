@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxrigor.example/schemas/research-experiment-0.1.schema.json",
+  "title": "VoxRigor Research Experiment Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "experiment_id",
+    "description",
+    "system_id",
+    "calibration_dataset_manifest",
+    "evaluation_datasets",
+    "target_fmr"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "experiment_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$" },
+    "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "system_id": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "calibration_dataset_manifest": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "evaluation_datasets": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain_id", "dataset_manifest"],
+        "properties": {
+          "domain_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$" },
+          "dataset_manifest": { "type": "string", "minLength": 1, "maxLength": 500 }
+        }
+      }
+    },
+    "target_fmr": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+    "probability_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 },
+    "group_columns": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["speaker_id", "source_id"] }
+    },
+    "require_group_disjointness": { "type": "boolean", "default": false }
+  }
+}
