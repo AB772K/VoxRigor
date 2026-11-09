@@ -245,6 +245,34 @@ def load_research_comparison(path: Path) -> LoadedResearchComparison:
     )
 
 
+def _comparison_dataset_summary(dataset: ScoreDataset) -> dict[str, object]:
+    manifest = dataset.manifest
+    return {
+        "dataset_id": manifest.dataset_id,
+        "dataset_name": manifest.dataset_name,
+        "dataset_version": manifest.dataset_version,
+        "protocol_id": manifest.protocol_id,
+        "evaluation_split": manifest.evaluation_split,
+        "score_direction": manifest.score_direction.value,
+        "score_file_sha256": dataset.score_file_sha256,
+        "manifest_sha256": dataset.manifest_sha256,
+        "score_producer": (
+            manifest.score_producer.model_dump(mode="json")
+            if manifest.score_producer is not None
+            else None
+        ),
+        "condition_counts": dataset.condition_counts,
+        "sample_counts": {
+            "input_rows": dataset.input_rows,
+            "evaluated_rows": len(dataset.records),
+            "other_split_rows": dataset.other_split_rows,
+            "labels": dataset.label_counts,
+        },
+        "license_name": manifest.license_name,
+        "source_url": manifest.source_url,
+    }
+
+
 def _system_point_metrics(report: dict[str, object], domain_id: str) -> dict[str, object]:
     evaluations = cast(list[dict[str, object]], report["evaluation_datasets"])
     item = next(entry for entry in evaluations if entry["domain_id"] == domain_id)
@@ -454,6 +482,14 @@ def build_research_comparison_report(
 
         domain_result: dict[str, object] = {
             "domain_id": domain_id,
+            "datasets_by_system": {
+                system_id: _comparison_dataset_summary(
+                    system.experiment.evaluation_datasets[domain_index].dataset
+                )
+                for system_id, system in (
+                    (item.system_id, item) for item in loaded.systems
+                )
+            },
             "trial_alignment": "exact trial_id, label, split, condition and group alignment validated",
             "systems": metrics_by_system,
             "differences_vs_reference": metric_deltas,
