@@ -90,6 +90,7 @@ voxrigor research compare .\research-comparison.json --output .\runs\research-co
 - [Phase 6 research experiments](docs/PHASE_6_IMPLEMENTATION.md)
 - [Phase 6 acceptance gates](docs/PHASE_6_ACCEPTANCE.md)
 - [Phase 7 plugin SDK](docs/PHASE_7_IMPLEMENTATION.md)
+- [Plugin SDK versioning and compatibility policy](docs/PLUGIN_SDK_COMPATIBILITY.md)
 - [Phase 7 acceptance gates](docs/PHASE_7_ACCEPTANCE.md)
 - [Development roadmap](docs/ROADMAP.md)
 
