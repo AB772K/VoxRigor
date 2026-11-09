@@ -400,8 +400,8 @@ class RootlessPodmanBackend:
         gid = str(_CONTAINER_GID)
         temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
         output_mount = (
-            f"/output:rw,noexec,nosuid,nodev,size={policy.output_bytes},"
-            f"mode=0700,uid={uid},gid={gid}"
+            f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},"
+            f"mode=0555,uid={uid},gid={gid}"
         )
         temporary_mount = (
             f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=0700,uid={uid},gid={gid}"
@@ -549,9 +549,11 @@ class RootlessPodmanBackend:
         tmpfs = host.get("Tmpfs")
         if not isinstance(tmpfs, dict):
             raise PodmanBackendError("Podman did not configure bounded tmpfs mounts")
-        output_settings = str(tmpfs.get("/output", ""))
-        if f"size={policy.output_bytes}" not in output_settings:
-            raise PodmanBackendError("Podman did not apply the per-worker output quota")
+        output_settings = str(tmpfs.get("/output", "")).lower()
+        if f"size={policy.output_bytes}" not in output_settings or "ro" not in output_settings:
+            raise PodmanBackendError(
+                "Podman did not apply a bounded read-only output mount"
+            )
         if "/tmp" not in tmpfs:
             raise PodmanBackendError(
                 "Podman did not create an ephemeral bounded temporary directory"
@@ -803,9 +805,34 @@ class RootlessPodmanBackend:
             directory.cleanup()
             raise
 
+    @staticmethod
+    def _validate_spec_permissions(spec: WorkerExecutionSpec) -> None:
+        """Reject capabilities not implemented by this initial Linux worker slice."""
+
+        granted = set(spec.granted_permissions)
+        if PluginPermission.NETWORK_LOOPBACK in granted:
+            raise PodmanBackendError("network.loopback is not supported by the initial worker backend")
+        if PluginPermission.FILESYSTEM_WRITE in granted:
+            raise PodmanBackendError(
+                "filesystem.write is not supported until a validated artifact-export broker exists"
+            )
+        for item in spec.staged_inputs:
+            media_kind = item.reference.media_kind.lower()
+            if media_kind == "audio" or media_kind.startswith("audio_"):
+                required = PluginPermission.AUDIO_READ
+            elif media_kind == "model" or media_kind.startswith("model_"):
+                required = PluginPermission.MODEL_LOAD
+            else:
+                required = PluginPermission.FILESYSTEM_READ
+            if required not in granted:
+                raise PodmanBackendError(
+                    f"Staged input kind {media_kind!r} requires the {required.value!r} grant"
+                )
+
     def launch(self, spec: WorkerExecutionSpec) -> _WorkerSession:
         """Prepare host-staged inputs and return a not-yet-started worker session."""
 
+        self._validate_spec_permissions(spec)
         if (
             spec.policy.network_enabled
             or spec.policy.microphone_enabled
@@ -825,6 +852,7 @@ def execute_isolated_plugin_test(
 ) -> tuple[WorkerDescribeResponse, WorkerExecuteResponse]:
     """Perform a complete describe/execute/shutdown exchange in a verified worker."""
 
+    backend._validate_spec_permissions(spec)
     readiness = verify_isolation_backend(backend, spec.policy)
     if not readiness.verified:
         raise PodmanBackendError("Worker isolation preflight did not verify")
@@ -875,6 +903,8 @@ def execute_isolated_plugin_test(
             raise WorkerExecutionError("Worker description response did not match the request")
         if description.metadata.api_version != hello.plugin_api_version:
             raise WorkerExecutionError("Worker and plugin API versions did not match")
+        if set(description.metadata.required_permissions) != set(spec.granted_permissions):
+            raise WorkerExecutionError("Worker plugin permissions did not match the host grants")
         if spec.test_id not in {item.test_id for item in description.tests}:
             raise WorkerExecutionError("Selected test is not registered by the isolated plugin")
 
