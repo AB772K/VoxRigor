@@ -224,9 +224,7 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
         )
 
         # The purpose is part of the challenge binding, not just request metadata.
-        _, purpose_id, purpose_nonce = _challenge(
-            client, "alice", purpose="enrollment"
-        )
+        _, purpose_id, purpose_nonce = _challenge(client, "alice", purpose="enrollment")
         purpose_result = _verify(
             client,
             purpose_id,
@@ -236,9 +234,7 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
         )
         if purpose_result.status_code == 200:
             purpose_status = CheckStatus.VULNERABLE
-            purpose_summary = (
-                "A challenge issued for enrollment was accepted for authentication."
-            )
+            purpose_summary = "A challenge issued for enrollment was accepted for authentication."
         elif purpose_result.status_code in {403, 409, 410}:
             purpose_status = CheckStatus.NO_ISSUE_OBSERVED
             purpose_summary = "The challenge could not be reused for a different purpose."
@@ -441,9 +437,7 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
             session_expiry_evidence = _evidence("/v1/me", expired_session)
         else:
             session_expiry_status = CheckStatus.INCONCLUSIVE
-            session_expiry_summary = (
-                "The declared session lifetime exceeds the configured test wait budget; the runner did not wait for expiry."
-            )
+            session_expiry_summary = "The declared session lifetime exceeds the configured test wait budget; the runner did not wait for expiry."
             session_expiry_evidence = {
                 "route": "/v1/verify",
                 "reported_expires_in": session_ttl,

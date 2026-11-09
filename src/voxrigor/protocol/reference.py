@@ -355,8 +355,7 @@ class ReferenceRequestHandler(BaseHTTPRequestHandler):
             proof = payload.get("proof")
             purpose = payload.get("purpose", "authentication")
             if not all(
-                isinstance(item, str)
-                for item in (challenge_id, subject_id, proof, purpose)
+                isinstance(item, str) for item in (challenge_id, subject_id, proof, purpose)
             ):
                 self._send(400, {"error": "challenge_id_subject_id_proof_and_purpose_required"})
                 return
