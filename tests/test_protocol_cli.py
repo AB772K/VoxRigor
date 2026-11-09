@@ -62,6 +62,8 @@ def test_protocol_run_loads_scope_and_writes_redacted_report(
         findings=[],
     )
     captured: dict[str, object] = {}
+    scope_path = tmp_path / "scope.json"
+    scope_path.write_text("{}", encoding="utf-8")
 
     monkeypatch.setattr(cli_module, "load_scope_manifest", lambda _path: scope)
     monkeypatch.setattr(
