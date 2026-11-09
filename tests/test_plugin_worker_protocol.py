@@ -124,7 +124,7 @@ def test_decoder_rejects_invalid_utf8_nonstandard_numbers_and_crlf() -> None:
         decode_worker_frame(
             b'{"kind":"failure","request_id":"'
             + REQUEST_ID.encode()
-            + b'","code":"test","message":"x","extra":NaN}\\n'
+            + b'","code":"test","message":"x","extra":NaN}\n'
         )
 
     with pytest.raises(WorkerProtocolError, match="CRLF"):
