@@ -55,9 +55,7 @@ class PluginMetadata(BaseModel):
 
     @field_validator("required_permissions")
     @classmethod
-    def permissions_must_be_unique(
-        cls, values: list[PluginPermission]
-    ) -> list[PluginPermission]:
+    def permissions_must_be_unique(cls, values: list[PluginPermission]) -> list[PluginPermission]:
         if len(set(values)) != len(values):
             raise ValueError("required_permissions must not contain duplicates")
         return values
@@ -73,9 +71,7 @@ class EnabledPluginConfig(BaseModel):
 
     @field_validator("granted_permissions")
     @classmethod
-    def grants_must_be_unique(
-        cls, values: list[PluginPermission]
-    ) -> list[PluginPermission]:
+    def grants_must_be_unique(cls, values: list[PluginPermission]) -> list[PluginPermission]:
         if len(set(values)) != len(values):
             raise ValueError("granted_permissions must not contain duplicates")
         return values
@@ -184,8 +180,7 @@ def load_plugin_config(path: Path) -> PluginConfig:
         raise PluginLoadError("Plugin configuration is not readable UTF-8 JSON") from exc
     except ValidationError as exc:
         details = "; ".join(
-            f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
-            for item in exc.errors()
+            f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in exc.errors()
         )
         raise PluginLoadError(f"Plugin configuration validation failed: {details}") from exc
 
@@ -364,9 +359,7 @@ def load_enabled_plugins(
 
         pending = context.pending_tests
         if not pending:
-            raise PluginLoadError(
-                f"Plugin {enabled.plugin_id!r} did not register any tests"
-            )
+            raise PluginLoadError(f"Plugin {enabled.plugin_id!r} did not register any tests")
 
         new_ids = [plugin_test.descriptor.test_id for plugin_test in pending]
         duplicates = sorted((set(new_ids) | staged_test_ids) & existing_test_ids)
