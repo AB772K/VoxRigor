@@ -8,6 +8,7 @@ from typing import Any, cast
 
 import pytest
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError as JSONSchemaValidationError
 from typer.testing import CliRunner
 
 from voxrigor.cli import app
@@ -27,7 +28,6 @@ from voxrigor.plugins import (
 from voxrigor.testing import (
     TestContext,
     TestOutcome,
-    TestPlugin,
     TestRegistry,
     build_default_registry,
 )
@@ -147,7 +147,7 @@ def test_plugin_config_schema_and_pydantic_contract_agree() -> None:
             {"plugin_id": "demo.voice", "granted_permissions": ["network.remote"]}
         ],
     }
-    with pytest.raises(Exception):
+    with pytest.raises(JSONSchemaValidationError):
         Draft202012Validator(_schema()).validate(invalid)
     with pytest.raises(ValueError):
         PluginConfig.model_validate(invalid)
