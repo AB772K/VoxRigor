@@ -390,6 +390,11 @@ def test_nested_bootstrap_refits_calibration_and_threshold_deterministically(
             assert lower <= upper
             assert metric["valid_replicates"] == bootstrap["replicates_valid"]
 
+    run_dir = run_research_experiment(manifest, tmp_path / "nested-runs")
+    html_report = (run_dir / "report.html").read_text(encoding="utf-8")
+    assert "Nested calibration/evaluation cluster bootstrap" in html_report
+    assert "normalized operating threshold" in html_report
+
 
 def test_nested_bootstrap_rejects_overlapping_calibration_and_evaluation_clusters() -> None:
     calibration_records = (
