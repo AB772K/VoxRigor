@@ -27,8 +27,8 @@ from voxrigor.biometrics.conditions_cli import audio_app
 from voxrigor.errors import ManifestError, ProjectExistsError, ReportError, TestNotFoundError
 from voxrigor.manifest import DEFAULT_MANIFEST, create_manifest, load_manifest
 from voxrigor.protocol.cli import protocol_app
-from voxrigor.research.cli import research_app
 from voxrigor.reporting import load_report, write_report
+from voxrigor.research.cli import research_app
 from voxrigor.testing import TestRunner, build_default_registry
 
 DEFAULT_PROJECT_PATH = Path(".")
