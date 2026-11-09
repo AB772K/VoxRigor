@@ -121,9 +121,7 @@ def _entry_point(
 
 
 def _schema() -> dict[str, Any]:
-    schema = json.loads(
-        (SCHEMA_DIR / "plugin-config-0.1.schema.json").read_text(encoding="utf-8")
-    )
+    schema = json.loads((SCHEMA_DIR / "plugin-config-0.1.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
     return schema
 
@@ -143,9 +141,7 @@ def test_plugin_config_schema_and_pydantic_contract_agree() -> None:
 
     invalid = {
         "schema_version": "0.1",
-        "enabled_plugins": [
-            {"plugin_id": "demo.voice", "granted_permissions": ["network.remote"]}
-        ],
+        "enabled_plugins": [{"plugin_id": "demo.voice", "granted_permissions": ["network.remote"]}],
     }
     with pytest.raises(JSONSchemaValidationError):
         Draft202012Validator(_schema()).validate(invalid)
@@ -171,7 +167,9 @@ def test_plugin_config_rejects_duplicate_ids_and_permissions(tmp_path: Path) -> 
         )
 
 
-def test_discovery_lists_metadata_without_importing_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_discovery_lists_metadata_without_importing_plugins(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: list[str] = []
     entry = _entry_point("demo.voice", lambda: calls.append("loaded"))
     monkeypatch.setattr(
@@ -250,9 +248,7 @@ def test_plugin_id_and_test_namespace_must_match_allow_list(tmp_path: Path) -> N
             config, build_default_registry(), installed_entry_points=[cast(Any, mismatch)]
         )
 
-    wrong_namespace = _entry_point(
-        "demo.voice", lambda: InvalidNamespacePlugin("demo.voice")
-    )
+    wrong_namespace = _entry_point("demo.voice", lambda: InvalidNamespacePlugin("demo.voice"))
     with pytest.raises(PluginLoadError, match="test IDs beginning"):
         load_enabled_plugins(
             config, build_default_registry(), installed_entry_points=[cast(Any, wrong_namespace)]
@@ -356,7 +352,9 @@ def test_cli_requires_explicit_plugin_config_before_plugin_code_runs(
         lambda **kwargs: [entry] if kwargs.get("group") == PLUGIN_ENTRY_POINT_GROUP else [],
     )
     project_path = tmp_path / "voxrigor.json"
-    project_path.write_text(ProjectManifest(name="Plugin CLI test").model_dump_json(), encoding="utf-8")
+    project_path.write_text(
+        ProjectManifest(name="Plugin CLI test").model_dump_json(), encoding="utf-8"
+    )
     config = _write_config(tmp_path / "plugins.json", [_enabled("demo.voice")])
 
     result = runner.invoke(
