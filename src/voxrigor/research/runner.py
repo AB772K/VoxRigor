@@ -388,9 +388,7 @@ def _nested_calibration_bootstrap_uncertainty(
             }
             for label in ("target", "nontarget")
         }
-        insufficient = [
-            label for label, values in clusters_by_label.items() if len(values) < 2
-        ]
+        insufficient = [label for label, values in clusters_by_label.items() if len(values) < 2]
         if insufficient:
             raise ResearchExperimentError(
                 f"nested bootstrap requires at least two distinct clusters containing each class "
@@ -455,9 +453,7 @@ def _nested_calibration_bootstrap_uncertainty(
         ]
         try:
             calibrator = fit_platt_calibrator(sampled_calibration, direction)
-            threshold = _select_threshold_at_target_fmr(
-                sampled_calibration, direction, target_fmr
-            )
+            threshold = _select_threshold_at_target_fmr(sampled_calibration, direction, target_fmr)
             raw_metrics, _, _ = evaluate_scores(
                 sampled_evaluation, BenchmarkTask.ASV, direction, threshold=None
             )
@@ -479,12 +475,8 @@ def _nested_calibration_bootstrap_uncertainty(
         bootstrap_values["roc_auc"].append(cast(float, raw_metrics["roc_auc"]))
         bootstrap_values["fmr_at_resampled_threshold"].append(cast(float, fmr["rate"]))
         bootstrap_values["fnmr_at_resampled_threshold"].append(cast(float, fnmr["rate"]))
-        bootstrap_values["brier_score"].append(
-            cast(float, calibration_metrics["brier_score"])
-        )
-        bootstrap_values["log_loss"].append(
-            cast(float, calibration_metrics["log_loss"])
-        )
+        bootstrap_values["brier_score"].append(cast(float, calibration_metrics["brier_score"]))
+        bootstrap_values["log_loss"].append(cast(float, calibration_metrics["log_loss"]))
         bootstrap_values["expected_calibration_error"].append(
             cast(float, calibration_metrics["expected_calibration_error"])
         )
@@ -501,15 +493,9 @@ def _nested_calibration_bootstrap_uncertainty(
     tail_probability = (1.0 - config.confidence_level) / 2.0
     point_eer = cast(float, cast(dict[str, object], point_metrics["eer"])["value"])
     point_auc = cast(float, point_metrics["roc_auc"])
-    point_fmr = cast(
-        float, cast(dict[str, object], point_operating_point["fmr"])["rate"]
-    )
-    point_fnmr = cast(
-        float, cast(dict[str, object], point_operating_point["fnmr"])["rate"]
-    )
-    point_threshold = cast(
-        float, point_operating_point["threshold_normalized_higher_is_genuine"]
-    )
+    point_fmr = cast(float, cast(dict[str, object], point_operating_point["fmr"])["rate"])
+    point_fnmr = cast(float, cast(dict[str, object], point_operating_point["fnmr"])["rate"])
+    point_threshold = cast(float, point_operating_point["threshold_normalized_higher_is_genuine"])
     point_estimates = {
         "eer": point_eer,
         "roc_auc": point_auc,
