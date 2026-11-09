@@ -468,7 +468,7 @@ class RootlessPodmanBackend:
         document: dict[str, object],
         policy: IsolationPolicy,
         *,
-        expected_binds: tuple[str, ...],
+        expected_binds: tuple[tuple[str, str], ...],
     ) -> None:
         host = document.get("HostConfig")
         config = document.get("Config")
@@ -589,6 +589,27 @@ class RootlessPodmanBackend:
         if host.get("VolumesFrom") not in (None, []):
             raise PodmanBackendError("Worker must not inherit mounts from another container")
 
+    def _verify_container(
+        self,
+        container_id: str,
+        policy: IsolationPolicy,
+        *,
+        expected_binds: tuple[tuple[str, str], ...],
+    ) -> None:
+        """Inspect the actual container configuration before it can execute."""
+
+        inspect_raw = self._run_checked(
+            [self.binary, "inspect", container_id],
+            timeout=15,
+            operation="inspect isolated worker container",
+        )
+        document = self._json_document(inspect_raw, operation="worker container inspect")
+        self._verify_container_document(
+            document,
+            policy,
+            expected_binds=expected_binds,
+        )
+
     def _create_and_inspect(
         self,
         policy: IsolationPolicy,
@@ -601,14 +622,8 @@ class RootlessPodmanBackend:
         if not container_id:
             raise PodmanBackendError("Podman returned an empty container ID")
         try:
-            inspect_raw = self._run_checked(
-                [self.binary, "inspect", container_id],
-                timeout=15,
-                operation="inspect isolation probe container",
-            )
-            document = self._json_document(inspect_raw, operation="container inspect")
-            self._verify_container_document(
-                document,
+            self._verify_container(
+                container_id,
                 policy,
                 expected_binds=expected_binds,
             )
