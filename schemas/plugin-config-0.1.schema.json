@@ -13,7 +13,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["plugin_id", "granted_permissions"],
+        "required": ["plugin_id"],
         "properties": {
           "plugin_id": {
             "type": "string",
