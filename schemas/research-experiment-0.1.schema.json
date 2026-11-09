@@ -41,6 +41,7 @@
       "items": { "enum": ["speaker_id", "source_id"] }
     },
     "require_group_disjointness": { "type": "boolean", "default": false },
+    "stratify_by_condition": { "type": "boolean", "default": false },
     "cluster_bootstrap": {
       "type": "object",
       "additionalProperties": false,
