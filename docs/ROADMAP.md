@@ -1,8 +1,8 @@
 # Development Roadmap
 
-**Status:** Living development plan — Phase 5 local protocol engine (first slice validated)  
-**Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
-**Current state:** Phase 1, Phase 2 and the Phase 3 model-to-benchmark follow-up are merged into main. Phase 4 PR #5 is merged into the Phase 3 development branch, not main; its CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Phase 4 audio-decoder resource hardening and the initial Phase 5 local protocol engine have passed the six-environment CI matrix. Phase 5's purpose binding, re-enrollment ownership and session expiry extension is under CI validation on a separate branch. Remote target adapters and complete recovery/fallback workflows remain open.
+**Status:** Phase 6 — cross-dataset research and uncertainty evaluation.  
+**Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.  
+**Current state:** Phase 1–3 and the Phase 5 local protocol/lifecycle engine are integrated into main. Phase 4 digital audio-condition generation and provenance are implemented; physical presentation hardware remains open. Phase 6 includes a score-only ASV cross-dataset calibration runner and optional deterministic cluster-bootstrap intervals for held-out evaluation metrics. Approved representative datasets, multiple model-family comparisons, cluster-aware calibration/threshold uncertainty, condition-stratified studies and justified custom-model experiments remain open.
 
 ## Phase 0 — Research, product specification and threat modeling
 
