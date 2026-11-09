@@ -334,10 +334,10 @@ def _render_html(report: dict[str, object]) -> str:
             "<tr>"
             f"<td>{html.escape(str(result['domain_id']))}</td>"
             f"<td>{html.escape(str(dataset['dataset_id']))}</td>"
-            f"<td>{float(eer['value']):.6f}</td>"
-            f"<td>{float(metrics['roc_auc']):.6f}</td>"
-            f"<td>{float(calibration['brier_score']):.6f}</td>"
-            f"<td>{float(calibration['expected_calibration_error']):.6f}</td>"
+            f"<td>{cast(float, eer['value']):.6f}</td>"
+            f"<td>{cast(float, metrics['roc_auc']):.6f}</td>"
+            f"<td>{cast(float, calibration['brier_score']):.6f}</td>"
+            f"<td>{cast(float, calibration['expected_calibration_error']):.6f}</td>"
             "</tr>"
         )
     warnings_list = cast(list[str], report["warnings"])
