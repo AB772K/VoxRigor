@@ -19,7 +19,8 @@
 - [x] Add paired multi-system comparison for 2–8 independently calibrated ASV systems with exact trial/label/split/condition/group alignment and optional paired cluster-bootstrap deltas.
 - [ ] Compare calibration and operating-point transfer empirically across multiple speaker-verification model families using approved representative datasets; the comparison tool alone is not an empirical result.
 - [x] Add optional deterministic cluster-bootstrap intervals for held-out EER, ROC-AUC and frozen-threshold FMR/FNMR, with class/cluster and valid-replicate safeguards.
-- [ ] Extend uncertainty to include calibration-set and threshold-selection variability through a separately specified nested or paired resampling design.
+- [x] Add optional two-stage nested cluster bootstrap that independently resamples calibration and evaluation clusters, re-fits Platt calibration and re-selects the target-FMR threshold per replicate, with cluster-disjointness and valid-replicate safeguards.
+- [ ] Extend uncertainty to include model-training, hyperparameter-search and independent dataset-acquisition variability through separately justified experiments.
 - [ ] Add protocol-specific cost metrics only with a matching official protocol and independently validated implementation.
 - [x] Add optional condition-stratified held-out ASV analysis using Phase 4 condition labels, with frozen calibration/threshold transfer and not-computable handling for one-class conditions.
 - [ ] Add a separately specified PAD calibration/evaluation protocol; ASV logistic calibration must not be reused for PAD without methodological justification.
