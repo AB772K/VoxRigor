@@ -103,8 +103,16 @@ def _container_document(policy: IsolationPolicy | None = None) -> dict[str, obje
             "SecurityOpt": ["no-new-privileges"],
             "Devices": [],
             "Ulimits": [
-                {"Name": "cpu", "Soft": selected.cpu_time_seconds, "Hard": selected.cpu_time_seconds},
-                {"Name": "nofile", "Soft": selected.open_file_count, "Hard": selected.open_file_count},
+                {
+                    "Name": "cpu",
+                    "Soft": selected.cpu_time_seconds,
+                    "Hard": selected.cpu_time_seconds,
+                },
+                {
+                    "Name": "nofile",
+                    "Soft": selected.open_file_count,
+                    "Hard": selected.open_file_count,
+                },
             ],
             "Tmpfs": {
                 "/tmp": "rw,noexec,nosuid,nodev,size=16777216",
@@ -198,25 +206,34 @@ class _FakeSession:
         return 0
 
 
-def test_run_checked_returns_stdout_and_rejects_nonzero_exit(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_checked_returns_stdout_and_rejects_nonzero_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     backend = _backend()
     monkeypatch.setattr(
         podman_module.subprocess,
         "run",
         lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout="ok\n", stderr=""),
     )
-    assert backend._run_checked(["podman", "version"], timeout=3, operation="read version") == "ok\n"
+    assert (
+        backend._run_checked(["podman", "version"], timeout=3, operation="read version")
+        == "ok\n"
+    )
 
     monkeypatch.setattr(
         podman_module.subprocess,
         "run",
-        lambda *_args, **_kwargs: SimpleNamespace(returncode=125, stdout="", stderr="runtime denied"),
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=125, stdout="", stderr="runtime denied"
+        ),
     )
     with pytest.raises(PodmanBackendError, match="runtime denied"):
         backend._run_checked(["podman", "info"], timeout=3, operation="inspect runtime")
 
 
-@pytest.mark.parametrize("error", [OSError("missing podman"), subprocess.TimeoutExpired("podman", 1)])
+@pytest.mark.parametrize(
+    "error", [OSError("missing podman"), subprocess.TimeoutExpired("podman", 1)]
+)
 def test_run_checked_wraps_host_process_errors(
     monkeypatch: pytest.MonkeyPatch,
     error: Exception,
@@ -241,7 +258,12 @@ def test_json_document_accepts_object_or_singleton_list_and_rejects_bad_shapes()
 
 
 def test_nested_json_helper_stops_at_non_mapping_values() -> None:
-    assert _backend()._nested({"host": {"security": {"rootless": True}}}, "host", "security", "rootless") is True
+    assert (
+        _backend()._nested(
+            {"host": {"security": {"rootless": True}}}, "host", "security", "rootless"
+        )
+        is True
+    )
     assert _backend()._nested({"host": None}, "host", "security") is None
 
 
@@ -306,7 +328,9 @@ def test_verify_container_accepts_inspected_policy_and_rejects_missing_host_conf
     monkeypatch.setattr(backend, "_run_checked", lambda *_args, **_kwargs: json.dumps(document))
     backend._verify_container("container-id", IsolationPolicy(), expected_binds=())
 
-    monkeypatch.setattr(backend, "_run_checked", lambda *_args, **_kwargs: json.dumps({"Config": {}}))
+    monkeypatch.setattr(
+        backend, "_run_checked", lambda *_args, **_kwargs: json.dumps({"Config": {}})
+    )
     with pytest.raises(PodmanBackendError, match="HostConfig"):
         backend._verify_container("container-id", IsolationPolicy(), expected_binds=())
 
@@ -323,9 +347,7 @@ def test_verify_container_document_rejects_unapproved_mount_type_and_rw_staged_i
 
     document = _container_document()
     document["HostConfig"]["Binds"] = ["/tmp/staged:/inputs/input-audio-1:rw"]
-    document["Mounts"] = [
-        {"Type": "bind", "Destination": "/inputs/input-audio-1", "RW": True}
-    ]
+    document["Mounts"] = [{"Type": "bind", "Destination": "/inputs/input-audio-1", "RW": True}]
     with pytest.raises(PodmanBackendError, match="read-only"):
         RootlessPodmanBackend._verify_container_document(
             document,
@@ -345,7 +367,9 @@ def test_create_and_inspect_removes_container_when_verification_fails(
         "_verify_container",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(PodmanBackendError("bad config")),
     )
-    monkeypatch.setattr(backend, "_remove_container", lambda container_id: removed.append(container_id))
+    monkeypatch.setattr(
+        backend, "_remove_container", lambda container_id: removed.append(container_id)
+    )
 
     with pytest.raises(PodmanBackendError, match="bad config"):
         backend._create_and_inspect(IsolationPolicy(), command=["podman", "create"])
