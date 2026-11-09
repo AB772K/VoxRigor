@@ -70,6 +70,7 @@ class ResearchExperimentManifest(BaseModel):
     group_columns: list[Literal["speaker_id", "source_id"]] = Field(default_factory=list)
     require_group_disjointness: bool = False
     cluster_bootstrap: ClusterBootstrapConfig | None = None
+    stratify_by_condition: bool = False
 
     @field_validator("calibration_dataset_manifest")
     @classmethod
