@@ -551,9 +551,7 @@ class RootlessPodmanBackend:
             raise PodmanBackendError("Podman did not configure bounded tmpfs mounts")
         output_settings = str(tmpfs.get("/output", "")).lower()
         if f"size={policy.output_bytes}" not in output_settings or "ro" not in output_settings:
-            raise PodmanBackendError(
-                "Podman did not apply a bounded read-only output mount"
-            )
+            raise PodmanBackendError("Podman did not apply a bounded read-only output mount")
         if "/tmp" not in tmpfs:
             raise PodmanBackendError(
                 "Podman did not create an ephemeral bounded temporary directory"
@@ -811,7 +809,9 @@ class RootlessPodmanBackend:
 
         granted = set(spec.granted_permissions)
         if PluginPermission.NETWORK_LOOPBACK in granted:
-            raise PodmanBackendError("network.loopback is not supported by the initial worker backend")
+            raise PodmanBackendError(
+                "network.loopback is not supported by the initial worker backend"
+            )
         if PluginPermission.FILESYSTEM_WRITE in granted:
             raise PodmanBackendError(
                 "filesystem.write is not supported until a validated artifact-export broker exists"
