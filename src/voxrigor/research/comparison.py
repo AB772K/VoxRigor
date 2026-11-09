@@ -8,7 +8,6 @@ import os
 import platform
 import random
 import tempfile
-from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from math import ceil
@@ -407,7 +406,6 @@ def build_research_comparison_report(
         for system in loaded.systems
     }
     reference_id = loaded.manifest.reference_system_id
-    reference_report = system_reports[reference_id]
     domain_ids = [
         item.domain_id for item in loaded.systems[0].experiment.evaluation_datasets
     ]
