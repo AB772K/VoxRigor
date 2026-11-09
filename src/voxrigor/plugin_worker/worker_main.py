@@ -298,11 +298,8 @@ def serve() -> int:
                 continue
             continue
 
-        _send_failure(
-            message.request_id,
-            "unexpected_message",
-            "This message is not valid in the current worker state.",
-        )
+        # The remaining variants are worker-to-host messages and must never
+        # be accepted from the host. They do not all carry a request ID.
         return 2
 
 
