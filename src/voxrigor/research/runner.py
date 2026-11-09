@@ -6,17 +6,19 @@ import html
 import json
 import os
 import platform
+import random
 import tempfile
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from itertools import combinations
-from math import inf, nextafter
+from math import ceil, inf, nextafter
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
 
 from voxrigor import __version__
 from voxrigor.benchmarking.dataset import ScoreDataset, ScoreTrial
+from voxrigor.benchmarking.errors import MetricError
 from voxrigor.benchmarking.metrics import evaluate_scores, wilson_interval
 from voxrigor.benchmarking.models import BenchmarkTask, ScoreDirection
 from voxrigor.research.calibration import (
@@ -25,6 +27,7 @@ from voxrigor.research.calibration import (
     normalize_score,
 )
 from voxrigor.research.experiment import (
+    ClusterBootstrapConfig,
     LoadedResearchExperiment,
     ResearchExperimentError,
     load_research_experiment,
@@ -213,6 +216,145 @@ def _validate_score_lineage(
     }
 
 
+def _percentile(values: list[float], probability: float) -> float:
+    """Calculate a linearly interpolated percentile from finite bootstrap values."""
+
+    if not values:
+        raise ResearchExperimentError("cannot calculate a percentile from an empty sample")
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * probability
+    lower_index = int(position)
+    upper_index = min(lower_index + 1, len(ordered) - 1)
+    fraction = position - lower_index
+    return ordered[lower_index] + fraction * (
+        ordered[upper_index] - ordered[lower_index]
+    )
+
+
+def _cluster_bootstrap_uncertainty(
+    records: tuple[ScoreTrial, ...],
+    direction: ScoreDirection,
+    threshold: float,
+    config: ClusterBootstrapConfig,
+    point_metrics: dict[str, object],
+    point_operating_point: dict[str, object],
+) -> dict[str, object]:
+    """Estimate held-out metric uncertainty by resampling complete clusters."""
+
+    clusters: dict[str, list[ScoreTrial]] = {}
+    for record in records:
+        cluster_id = getattr(record, config.cluster_column)
+        if not isinstance(cluster_id, str) or not cluster_id.strip():
+            raise ResearchExperimentError(
+                f"cluster bootstrap requires a non-empty {config.cluster_column} value on every evaluation trial"
+            )
+        clusters.setdefault(cluster_id, []).append(record)
+
+    cluster_ids = sorted(clusters)
+    if len(cluster_ids) < 2:
+        raise ResearchExperimentError(
+            "cluster bootstrap requires at least two distinct clusters per evaluation dataset"
+        )
+
+    clusters_by_label = {
+        label: {
+            cluster_id
+            for cluster_id, cluster_records in clusters.items()
+            if any(record.label == label for record in cluster_records)
+        }
+        for label in ("target", "nontarget")
+    }
+    insufficient = [
+        label for label, values in clusters_by_label.items() if len(values) < 2
+    ]
+    if insufficient:
+        raise ResearchExperimentError(
+            "cluster bootstrap requires at least two distinct clusters containing each class: "
+            + ", ".join(insufficient)
+        )
+
+    bootstrap_values: dict[str, list[float]] = {
+        "eer": [],
+        "roc_auc": [],
+        "fmr": [],
+        "fnmr": [],
+    }
+    invalid_replicates = 0
+    generator = random.Random(config.seed)
+    for _ in range(config.replicates):
+        sampled_records: list[ScoreTrial] = []
+        for selected_cluster in generator.choices(cluster_ids, k=len(cluster_ids)):
+            sampled_records.extend(clusters[selected_cluster])
+        try:
+            metrics, _, _ = evaluate_scores(
+                sampled_records, BenchmarkTask.ASV, direction, threshold=None
+            )
+            operating = _operating_rates(sampled_records, direction, threshold)
+        except MetricError:
+            invalid_replicates += 1
+            continue
+
+        eer = cast(dict[str, object], metrics["eer"])
+        fmr = cast(dict[str, object], operating["fmr"])
+        fnmr = cast(dict[str, object], operating["fnmr"])
+        bootstrap_values["eer"].append(cast(float, eer["value"]))
+        bootstrap_values["roc_auc"].append(cast(float, metrics["roc_auc"]))
+        bootstrap_values["fmr"].append(cast(float, fmr["rate"]))
+        bootstrap_values["fnmr"].append(cast(float, fnmr["rate"]))
+
+    valid_replicates = len(bootstrap_values["eer"])
+    minimum_valid = ceil(config.replicates * 0.8)
+    if valid_replicates < minimum_valid:
+        raise ResearchExperimentError(
+            f"cluster bootstrap produced {valid_replicates}/{config.replicates} valid replicates; "
+            f"at least {minimum_valid} are required (80%)"
+        )
+
+    tail_probability = (1.0 - config.confidence_level) / 2.0
+    point_eer = cast(float, cast(dict[str, object], point_metrics["eer"])["value"])
+    point_auc = cast(float, point_metrics["roc_auc"])
+    point_fmr = cast(float, cast(dict[str, object], point_operating_point["fmr"])["rate"])
+    point_fnmr = cast(float, cast(dict[str, object], point_operating_point["fnmr"])["rate"])
+
+    def interval(name: str, point_estimate: float) -> dict[str, object]:
+        values = bootstrap_values[name]
+        return {
+            "point_estimate": point_estimate,
+            "percentile_interval": [
+                _percentile(values, tail_probability),
+                _percentile(values, 1.0 - tail_probability),
+            ],
+            "valid_replicates": len(values),
+        }
+
+    return {
+        "method": "nonparametric cluster bootstrap; complete clusters sampled with replacement",
+        "cluster_column": config.cluster_column,
+        "cluster_count": len(cluster_ids),
+        "clusters_by_class": {
+            label: len(values) for label, values in clusters_by_label.items()
+        },
+        "replicates_requested": config.replicates,
+        "replicates_valid": valid_replicates,
+        "replicates_invalid": invalid_replicates,
+        "seed": config.seed,
+        "confidence_level": config.confidence_level,
+        "minimum_valid_fraction": 0.8,
+        "metrics": {
+            "eer": interval("eer", point_eer),
+            "roc_auc": interval("roc_auc", point_auc),
+            "fmr_at_frozen_threshold": interval("fmr", point_fmr),
+            "fnmr_at_frozen_threshold": interval("fnmr", point_fnmr),
+        },
+        "estimand_note": (
+            "Intervals resample the configured cluster unit in this held-out evaluation dataset only. "
+            "The calibration mapping and operating threshold remain fixed, so these intervals do not "
+            "include calibration-set or threshold-selection uncertainty. The results are only as "
+            "representative as the supplied cluster identifiers and sampling frame."
+        ),
+    }
+
+
 def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]:
     """Fit only on the declared calibration dataset and evaluate on held-out datasets."""
 
@@ -244,22 +386,33 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
         raw_metrics, _, _ = evaluate_scores(
             dataset.records, BenchmarkTask.ASV, direction, threshold=None
         )
-        evaluation_results.append(
-            {
-                "domain_id": item.domain_id,
-                "dataset": _dataset_summary(dataset),
-                "raw_score_metrics": raw_metrics,
-                "transferred_operating_point": _operating_rates(
-                    dataset.records, direction, raw_threshold
-                ),
-                "calibration_metrics": evaluate_calibration(
-                    dataset.records,
-                    calibrator,
-                    direction,
-                    probability_threshold=loaded.manifest.probability_threshold,
-                ),
-            }
+        transferred_operating_point = _operating_rates(
+            dataset.records, direction, raw_threshold
         )
+        evaluation_result: dict[str, object] = {
+            "domain_id": item.domain_id,
+            "dataset": _dataset_summary(dataset),
+            "raw_score_metrics": raw_metrics,
+            "transferred_operating_point": transferred_operating_point,
+            "calibration_metrics": evaluate_calibration(
+                dataset.records,
+                calibrator,
+                direction,
+                probability_threshold=loaded.manifest.probability_threshold,
+            ),
+        }
+        if loaded.manifest.cluster_bootstrap is not None:
+            evaluation_result["cluster_bootstrap_uncertainty"] = (
+                _cluster_bootstrap_uncertainty(
+                    dataset.records,
+                    direction,
+                    raw_threshold,
+                    loaded.manifest.cluster_bootstrap,
+                    raw_metrics,
+                    transferred_operating_point,
+                )
+            )
+        evaluation_results.append(evaluation_result)
 
     return {
         "schema_version": "0.1",
