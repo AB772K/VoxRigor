@@ -67,7 +67,11 @@ class StagedInputReference(_WorkerModel):
 
     @model_validator(mode="after")
     def display_name_must_not_be_a_path(self) -> StagedInputReference:
-        if "/" in self.display_name or "\\" in self.display_name or self.display_name in {".", ".."}:
+        if (
+            "/" in self.display_name
+            or "\\" in self.display_name
+            or self.display_name in {".", ".."}
+        ):
             raise ValueError("display_name must be a plain filename, not a path")
         return self
 
@@ -124,7 +128,9 @@ class WorkerExecuteRequest(_WorkerModel):
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
     test_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,79}$")
     project_name: str = Field(min_length=1, max_length=120)
-    staged_inputs: list[StagedInputReference] = Field(default_factory=list, max_length=MAX_WORKER_INPUTS)
+    staged_inputs: list[StagedInputReference] = Field(
+        default_factory=list, max_length=MAX_WORKER_INPUTS
+    )
     limits: WorkerResourceLimits
 
     @model_validator(mode="after")
@@ -156,7 +162,9 @@ class WorkerExecuteResponse(_WorkerModel):
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
     test_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,79}$")
     status: ResultStatus
-    measurements: dict[str, MeasurementValue] = Field(default_factory=dict, max_length=MAX_WORKER_MEASUREMENTS)
+    measurements: dict[str, MeasurementValue] = Field(
+        default_factory=dict, max_length=MAX_WORKER_MEASUREMENTS
+    )
     limitations: list[str] = Field(default_factory=list, max_length=64)
     sample_accounting: WorkerSampleAccounting = Field(default_factory=WorkerSampleAccounting)
 
@@ -281,10 +289,14 @@ def decode_worker_frame(frame: bytes, *, max_bytes: int = MAX_WORKER_FRAME_BYTES
     except WorkerProtocolError:
         raise
     except (json.JSONDecodeError, ValidationError, TypeError, ValueError) as exc:
-        raise WorkerProtocolError(f"worker frame failed protocol validation: {type(exc).__name__}") from exc
+        raise WorkerProtocolError(
+            f"worker frame failed protocol validation: {type(exc).__name__}"
+        ) from exc
 
 
-def encode_worker_frame(message: WorkerMessage, *, max_bytes: int = MAX_WORKER_FRAME_BYTES) -> bytes:
+def encode_worker_frame(
+    message: WorkerMessage, *, max_bytes: int = MAX_WORKER_FRAME_BYTES
+) -> bytes:
     """Encode one validated message as bounded UTF-8 JSON followed by LF."""
 
     if max_bytes < 1:
