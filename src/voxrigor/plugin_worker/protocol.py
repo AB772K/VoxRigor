@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Annotated, BinaryIO, Literal, TypeAlias, Union
+from typing import Annotated, BinaryIO, Literal, TypeAlias
 
 from pydantic import (
     BaseModel,
@@ -225,18 +225,16 @@ class WorkerShutdownResponse(_WorkerModel):
 
 
 WorkerMessage: TypeAlias = Annotated[
-    Union[
-        WorkerHello,
-        WorkerDescribeRequest,
-        WorkerDescribeResponse,
-        WorkerExecuteRequest,
-        WorkerExecuteResponse,
-        WorkerFailure,
-        WorkerCancelRequest,
-        WorkerCancelled,
-        WorkerShutdownRequest,
-        WorkerShutdownResponse,
-    ],
+    WorkerHello
+    | WorkerDescribeRequest
+    | WorkerDescribeResponse
+    | WorkerExecuteRequest
+    | WorkerExecuteResponse
+    | WorkerFailure
+    | WorkerCancelRequest
+    | WorkerCancelled
+    | WorkerShutdownRequest
+    | WorkerShutdownResponse,
     Field(discriminator="kind"),
 ]
 _WORKER_MESSAGE_ADAPTER = TypeAdapter(WorkerMessage)
