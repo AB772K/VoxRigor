@@ -11,11 +11,11 @@ from typing import cast
 
 import pytest
 
-from voxrigor.models import ResultStatus, TestDescriptor as Descriptor
+from voxrigor.models import ResultStatus
+from voxrigor.models import TestDescriptor as Descriptor
 from voxrigor.plugin_worker import podman as podman_module
 from voxrigor.plugin_worker.isolation import (
     REQUIRED_ISOLATION_CONTROLS,
-    IsolationBackendUnavailable,
     IsolationPolicy,
     IsolationReadiness,
 )
@@ -29,8 +29,8 @@ from voxrigor.plugin_worker.podman import (
     execute_isolated_plugin_test,
 )
 from voxrigor.plugin_worker.protocol import (
-    WORKER_PROTOCOL_VERSION,
     StagedInputReference,
+    WORKER_PROTOCOL_VERSION,
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
@@ -42,8 +42,7 @@ from voxrigor.plugin_worker.protocol import (
     WorkerShutdownResponse,
     encode_worker_frame,
 )
-from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata, PluginPermission
-from voxrigor.testing import SampleAccounting, TestOutcome as Outcome
+from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata
 
 IMAGE = "registry.example.invalid/voxrigor-worker@sha256:" + "a" * 64
 REQUEST_ID = "123e4567-e89b-42d3-a456-426614174000"
