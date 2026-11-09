@@ -58,8 +58,8 @@ class IsolationReadiness(BaseModel):
     backend_id: str = Field(min_length=1, max_length=80)
     runtime_version: str = Field(min_length=1, max_length=80)
     verified: bool
-    enforced_controls: tuple[str, ...] = Field(default=(), max_length=64)
-    missing_controls: tuple[str, ...] = Field(default=(), max_length=64)
+    enforced_controls: list[str] = Field(default_factory=list, max_length=64)
+    missing_controls: list[str] = Field(default_factory=list, max_length=64)
     detail: str = Field(default="", max_length=500)
 
 
