@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Annotated, BinaryIO, IO, Literal, TypeAlias
+from typing import IO, Annotated, BinaryIO, Literal, TypeAlias
 
 from pydantic import (
     BaseModel,
