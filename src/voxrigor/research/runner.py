@@ -779,6 +779,7 @@ def _atomic_write(path: Path, content: str) -> None:
 def _render_html(report: dict[str, object]) -> str:
     rows: list[str] = []
     condition_rows: list[str] = []
+    nested_bootstrap_rows: list[str] = []
     evaluation_datasets = cast(list[dict[str, object]], report["evaluation_datasets"])
     for result in evaluation_datasets:
         dataset = cast(dict[str, object], result["dataset"])
@@ -795,6 +796,37 @@ def _render_html(report: dict[str, object]) -> str:
             f"<td>{cast(float, calibration['expected_calibration_error']):.6f}</td>"
             "</tr>"
         )
+        nested_bootstrap = result.get("nested_calibration_bootstrap_uncertainty")
+        if nested_bootstrap is not None:
+            nested = cast(dict[str, object], nested_bootstrap)
+            threshold_selection = cast(dict[str, object], nested["threshold_selection"])
+            normalized_threshold = cast(
+                dict[str, object], threshold_selection["normalized_higher_is_genuine"]
+            )
+            threshold_interval = cast(list[float], normalized_threshold["percentile_interval"])
+            nested_bootstrap_rows.append(
+                "<tr>"
+                f"<td>{html.escape(str(result['domain_id']))}</td>"
+                "<td>normalized operating threshold</td>"
+                f"<td>{cast(float, normalized_threshold['point_estimate']):.6f}</td>"
+                f"<td>{threshold_interval[0]:.6f}</td>"
+                f"<td>{threshold_interval[1]:.6f}</td>"
+                f"<td>{nested['replicates_valid']}</td>"
+                "</tr>"
+            )
+            nested_metrics = cast(dict[str, dict[str, object]], nested["metrics"])
+            for metric_name, metric in nested_metrics.items():
+                interval_values = cast(list[float], metric["percentile_interval"])
+                nested_bootstrap_rows.append(
+                    "<tr>"
+                    f"<td>{html.escape(str(result['domain_id']))}</td>"
+                    f"<td>{html.escape(metric_name)}</td>"
+                    f"<td>{cast(float, metric['point_estimate']):.6f}</td>"
+                    f"<td>{interval_values[0]:.6f}</td>"
+                    f"<td>{interval_values[1]:.6f}</td>"
+                    f"<td>{metric['valid_replicates']}</td>"
+                    "</tr>"
+                )
         for condition in cast(list[dict[str, object]], result.get("condition_analysis", [])):
             sample_counts = cast(dict[str, int], condition["sample_counts"])
             status = str(condition["status"])
@@ -824,6 +856,18 @@ def _render_html(report: dict[str, object]) -> str:
             )
     warnings_list = cast(list[str], report["warnings"])
     warnings = "".join(f"<li>{html.escape(item)}</li>" for item in warnings_list)
+    nested_bootstrap_section = ""
+    if nested_bootstrap_rows:
+        nested_bootstrap_section = (
+            "<h2>Nested calibration/evaluation cluster bootstrap</h2>"
+            "<p>Calibration is re-fitted and the operating threshold is re-selected "
+            "within each replicate. Calibration and evaluation clusters are sampled independently.</p>"
+            "<table><thead><tr><th>Domain</th><th>Statistic</th><th>Point estimate</th>"
+            "<th>Lower percentile</th><th>Upper percentile</th><th>Valid replicates</th>"
+            "</tr></thead><tbody>"
+            + "".join(nested_bootstrap_rows)
+            + "</tbody></table>"
+        )
     condition_section = ""
     if condition_rows:
         condition_section = (
@@ -847,6 +891,7 @@ def _render_html(report: dict[str, object]) -> str:
         + "".join(rows)
         + "</tbody></table>"
         + condition_section
+        + nested_bootstrap_section
         + "<h2>Warnings and limitations</h2><ul>"
         + warnings
         + "</ul></body></html>\n"
