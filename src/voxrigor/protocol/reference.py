@@ -101,7 +101,9 @@ class ReferenceApplication:
                 "expires_in": self.challenge_ttl_seconds,
             }
 
-    def verify(self, challenge_id: str, subject_id: str, proof: str) -> tuple[int, dict[str, object]]:
+    def verify(
+        self, challenge_id: str, subject_id: str, proof: str
+    ) -> tuple[int, dict[str, object]]:
         with self.lock:
             challenge = self.challenges.get(challenge_id)
             if challenge is None:
@@ -196,7 +198,9 @@ class ReferenceRequestHandler(BaseHTTPRequestHandler):
         if length <= 0 or length > 16 * 1024:
             self._send(413 if length > 16 * 1024 else 400, {"error": "invalid_request_size"})
             return None
-        content_type = self.headers.get("Content-Type", "").split(";", maxsplit=1)[0].strip().lower()
+        content_type = (
+            self.headers.get("Content-Type", "").split(";", maxsplit=1)[0].strip().lower()
+        )
         if content_type != "application/json":
             self._send(415, {"error": "application_json_required"})
             return None

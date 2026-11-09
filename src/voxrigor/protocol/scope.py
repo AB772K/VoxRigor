@@ -40,11 +40,15 @@ class ProtocolScope(BaseModel):
         if parsed.username is not None or parsed.password is not None:
             raise ValueError("target_url must not contain credentials")
         if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
-            raise ValueError("target_url must identify only an origin; custom paths are not supported")
+            raise ValueError(
+                "target_url must identify only an origin; custom paths are not supported"
+            )
         try:
             address = ipaddress.ip_address(host)
         except ValueError as exc:
-            raise ValueError("target_url host must be a loopback IP literal; DNS names are not allowed") from exc
+            raise ValueError(
+                "target_url host must be a loopback IP literal; DNS names are not allowed"
+            ) from exc
         if not address.is_loopback:
             raise ValueError("protocol testing is restricted to loopback IP addresses")
         if not 1 <= port <= 65535:

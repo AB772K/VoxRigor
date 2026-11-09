@@ -79,7 +79,9 @@ class ScopedHttpClient:
 
         selected_method = method.upper()
         if selected_method not in {"GET", "POST"}:
-            raise ProtocolError("Only GET and POST are supported by the non-destructive protocol profile")
+            raise ProtocolError(
+                "Only GET and POST are supported by the non-destructive protocol profile"
+            )
         if route not in _ALLOWED_ROUTES:
             raise ProtocolError("Requested route is not in the protocol test allowlist")
         self._requests_made += 1
@@ -97,7 +99,12 @@ class ScopedHttpClient:
                 raise ProtocolError("Protocol request body exceeds the 16 KiB limit")
             headers["Content-Type"] = "application/json"
         if bearer_token is not None:
-            if not bearer_token or len(bearer_token) > 512 or "\r" in bearer_token or "\n" in bearer_token:
+            if (
+                not bearer_token
+                or len(bearer_token) > 512
+                or "\r" in bearer_token
+                or "\n" in bearer_token
+            ):
                 raise ProtocolError("Invalid in-memory bearer token")
             headers["Authorization"] = f"Bearer {bearer_token}"
 

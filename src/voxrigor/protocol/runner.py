@@ -154,7 +154,9 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
         _, challenge_id, nonce = _challenge(client, "alice")
         first = _verify(client, challenge_id, "alice", nonce)
         if first.status_code != 200:
-            raise ProtocolError("Could not establish the first disposable session for replay testing")
+            raise ProtocolError(
+                "Could not establish the first disposable session for replay testing"
+            )
         replay = _verify(client, challenge_id, "alice", nonce)
         if replay.status_code == 200:
             replay_status = CheckStatus.VULNERABLE
@@ -182,13 +184,17 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
         binding = _verify(client, binding_id, "bob", binding_nonce)
         if binding.status_code == 200:
             binding_status = CheckStatus.VULNERABLE
-            binding_summary = "A challenge issued for one subject was accepted for a different subject."
+            binding_summary = (
+                "A challenge issued for one subject was accepted for a different subject."
+            )
         elif binding.status_code in {403, 404, 409, 410}:
             binding_status = CheckStatus.NO_ISSUE_OBSERVED
             binding_summary = "The cross-subject challenge use was rejected."
         else:
             binding_status = CheckStatus.INCONCLUSIVE
-            binding_summary = "The target returned an unexpected response to cross-subject challenge use."
+            binding_summary = (
+                "The target returned an unexpected response to cross-subject challenge use."
+            )
         findings.append(
             _finding(
                 "PROTOCOL-CHALLENGE-SUBJECT-BINDING",
@@ -216,7 +222,9 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
                 expiry_summary = "The expired challenge was rejected."
             else:
                 expiry_status = CheckStatus.INCONCLUSIVE
-                expiry_summary = "The target returned an unexpected response for an expired challenge."
+                expiry_summary = (
+                    "The target returned an unexpected response for an expired challenge."
+                )
             findings.append(
                 _finding(
                     "PROTOCOL-CHALLENGE-EXPIRY",
@@ -239,7 +247,9 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
                     "Perform an approved expiry test with a declared test window rather than weakening the time budget.",
                     {
                         "route": "/v1/challenges",
-                        "reported_expires_in": float(ttl_value) if isinstance(ttl_value, (int, float)) else None,
+                        "reported_expires_in": (
+                            float(ttl_value) if isinstance(ttl_value, (int, float)) else None
+                        ),
                         "max_wait_seconds": scope.max_test_wait_seconds,
                     },
                 )
@@ -259,7 +269,9 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
             bola_summary = "Cross-subject access to Bob's enrollment object was denied."
         else:
             bola_status = CheckStatus.INCONCLUSIVE
-            bola_summary = "The target returned an unexpected response to the enrollment authorization test."
+            bola_summary = (
+                "The target returned an unexpected response to the enrollment authorization test."
+            )
         findings.append(
             _finding(
                 "API-OBJECT-AUTHORIZATION",
@@ -281,7 +293,9 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
             admin_summary = "The administrative function was denied to a regular user."
         else:
             admin_status = CheckStatus.INCONCLUSIVE
-            admin_summary = "The target returned an unexpected response to the function authorization test."
+            admin_summary = (
+                "The target returned an unexpected response to the function authorization test."
+            )
         findings.append(
             _finding(
                 "API-FUNCTION-AUTHORIZATION",
@@ -329,10 +343,14 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
         accepted = sum(result.status_code == 201 for result in rate_results)
         if rate_limited:
             rate_status = CheckStatus.NO_ISSUE_OBSERVED
-            rate_summary = "The target rejected at least one request after its challenge-rate threshold."
+            rate_summary = (
+                "The target rejected at least one request after its challenge-rate threshold."
+            )
         elif accepted == len(rate_results):
             rate_status = CheckStatus.VULNERABLE
-            rate_summary = "All repeated challenge requests were accepted without an observed rate limit."
+            rate_summary = (
+                "All repeated challenge requests were accepted without an observed rate limit."
+            )
         else:
             rate_status = CheckStatus.INCONCLUSIVE
             rate_summary = "The target returned a mixed response pattern that did not demonstrate the expected rate-limit behavior."
@@ -395,7 +413,9 @@ def write_protocol_report(report: ProtocolReport, output_dir: Path) -> Path:
             handle.write(f"- Target: {report.target_label} ({report.target_url})\n")
             handle.write(f"- Generated: {report.generated_at.isoformat()}\n")
             handle.write(f"- HTTP requests: {report.request_count}\n\n")
-            handle.write("> no_issue_observed is not a security guarantee. This local profile does not perform biometric inference.\n\n")
+            handle.write(
+                "> no_issue_observed is not a security guarantee. This local profile does not perform biometric inference.\n\n"
+            )
             handle.write("| Check | Status | Severity | Summary |\n")
             handle.write("|---|---|---|---|\n")
             for finding in report.findings:
@@ -406,7 +426,9 @@ def write_protocol_report(report: ProtocolReport, output_dir: Path) -> Path:
             handle.write("\n## Warnings\n\n")
             for warning in report.warnings:
                 handle.write(f"- {warning}\n")
-            handle.write("\nEvidence excludes request bodies, response payloads, tokens and fixture proofs.\n")
+            handle.write(
+                "\nEvidence excludes request bodies, response payloads, tokens and fixture proofs.\n"
+            )
         temporary.rename(destination)
         return destination
     except Exception:

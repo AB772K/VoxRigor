@@ -30,10 +30,14 @@ def _handle_error(error: Exception) -> NoReturn:
 @protocol_app.command("init-scope")
 def protocol_init_scope(
     target_url: Annotated[
-        str, typer.Option("--target-url", help="Explicit loopback IP and port, e.g. http://127.0.0.1:8765.")
+        str,
+        typer.Option(
+            "--target-url", help="Explicit loopback IP and port, e.g. http://127.0.0.1:8765."
+        ),
     ],
     output: Annotated[
-        Path, typer.Option("--output", help="New scope JSON file; existing files are not overwritten.")
+        Path,
+        typer.Option("--output", help="New scope JSON file; existing files are not overwritten."),
     ] = Path("protocol-scope.json"),
     acknowledge_authorization: Annotated[
         bool,
@@ -61,7 +65,8 @@ def protocol_init_scope(
 def protocol_serve(
     port: Annotated[int, typer.Option("--port", min=0, max=65535)] = 8765,
     profile: Annotated[
-        FixtureProfile, typer.Option("--fixture-profile", help="fixed or intentionally vulnerable local fixture.")
+        FixtureProfile,
+        typer.Option("--fixture-profile", help="fixed or intentionally vulnerable local fixture."),
     ] = "fixed",
     challenge_ttl_seconds: Annotated[
         float, typer.Option("--challenge-ttl-seconds", min=0.1, max=120.0)
@@ -78,7 +83,9 @@ def protocol_serve(
     except ValueError as exc:
         _handle_error(exc)
     selected_port = int(server.server_address[1])
-    typer.echo(f"VoxRigor reference service ({profile}) listening on http://127.0.0.1:{selected_port}")
+    typer.echo(
+        f"VoxRigor reference service ({profile}) listening on http://127.0.0.1:{selected_port}"
+    )
     typer.echo("The fixture uses a synthetic assertion. It is not a biometric verifier.")
     typer.echo("Press Ctrl+C to stop. In-memory accounts and sessions are discarded on exit.")
     try:
@@ -92,7 +99,8 @@ def protocol_serve(
 @protocol_app.command("run")
 def protocol_run(
     scope_path: Annotated[
-        Path, typer.Option("--scope", exists=True, dir_okay=False, help="Explicit local scope JSON.")
+        Path,
+        typer.Option("--scope", exists=True, dir_okay=False, help="Explicit local scope JSON."),
     ],
     output_dir: Annotated[
         Path, typer.Option("--output", help="New directory for the redacted report.")
@@ -109,7 +117,9 @@ def protocol_run(
     typer.secho("Local protocol assessment completed.", fg=typer.colors.GREEN)
     typer.echo(f"Checks recorded: {len(report.findings)}")
     typer.echo(f"HTTP requests: {report.request_count}")
-    typer.echo(f"Vulnerable checks: {sum(item.status is CheckStatus.VULNERABLE for item in report.findings)}")
+    typer.echo(
+        f"Vulnerable checks: {sum(item.status is CheckStatus.VULNERABLE for item in report.findings)}"
+    )
     typer.echo(f"JSON report: {destination / 'report.json'}")
     typer.echo(f"Markdown report: {destination / 'report.md'}")
     typer.echo("no_issue_observed is not a security guarantee.")

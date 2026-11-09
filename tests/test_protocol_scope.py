@@ -30,9 +30,7 @@ def test_scope_rejects_non_loopback_or_ambiguous_targets(target_url: str) -> Non
 
 def test_scope_requires_explicit_authorization_acknowledgement() -> None:
     with pytest.raises(ValidationError):
-        ProtocolScope.model_validate(
-            {"target_url": "http://127.0.0.1:8765", "authorized": False}
-        )
+        ProtocolScope.model_validate({"target_url": "http://127.0.0.1:8765", "authorized": False})
 
 
 def test_scope_enforces_small_request_and_timeout_budgets() -> None:
@@ -74,7 +72,6 @@ def test_scope_loader_rejects_unknown_fields(tmp_path: Path) -> None:
     )
     with pytest.raises(Exception, match="invalid"):
         load_scope_manifest(path)
-
 
 
 def test_scope_example_requires_explicit_authorization_acknowledgement(tmp_path: Path) -> None:
