@@ -194,11 +194,18 @@ def test_worker_serve_rejects_malformed_input_frame(monkeypatch: pytest.MonkeyPa
 def test_worker_serve_rejects_worker_to_host_message_from_host(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    result, messages = _serve(monkeypatch, [encode_worker_frame(WorkerHello(
-        protocol_version=WORKER_PROTOCOL_VERSION,
-        worker_version="host-fixture",
-        plugin_api_version=PLUGIN_API_VERSION,
-    ))])
+    result, messages = _serve(
+        monkeypatch,
+        [
+            encode_worker_frame(
+                WorkerHello(
+                    protocol_version=WORKER_PROTOCOL_VERSION,
+                    worker_version="host-fixture",
+                    plugin_api_version=PLUGIN_API_VERSION,
+                )
+            )
+        ],
+    )
 
     assert result == 2
     assert len(messages) == 1
@@ -258,11 +265,16 @@ def test_worker_serve_rejects_mismatched_execution_identity_or_limits(
 ) -> None:
     result, messages = _serve(
         monkeypatch,
-        [encode_worker_frame(_describe()), encode_worker_frame(_execute(
-            plugin_id=plugin_id,
-            test_id=test_id,
-            limits=limits,
-        ))],
+        [
+            encode_worker_frame(_describe()),
+            encode_worker_frame(
+                _execute(
+                    plugin_id=plugin_id,
+                    test_id=test_id,
+                    limits=limits,
+                )
+            ),
+        ],
         metadata=_metadata(),
         registry=_registry(),
     )
