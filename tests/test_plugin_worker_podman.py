@@ -185,7 +185,9 @@ def test_in_container_probe_script_is_valid_python() -> None:
     compile(script, "<voxrigor-podman-probe>", "exec")
 
 
-def test_preflight_refuses_non_linux_before_invoking_podman(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_preflight_refuses_non_linux_before_invoking_podman(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(sys, "platform", "win32")
     with pytest.raises(PodmanBackendError, match="native Linux"):
         _backend().preflight(IsolationPolicy())
