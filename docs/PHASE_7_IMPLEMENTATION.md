@@ -48,7 +48,7 @@ A third-party package declares an entry point in its own pyproject.toml:
 
 ~~~toml
 [project.entry-points."voxrigor.plugins"]
-demo.voice = "demo_voice.plugin:create_plugin"
+"demo.voice" = "demo_voice.plugin:create_plugin"
 ~~~
 
 A plugin factory returns an object with PluginMetadata and register(context). The plugin ID in metadata must match the entry-point and allow-list ID. The plugin can register only test IDs beginning with its own plugin ID followed by a period. Duplicate IDs, missing methods, invalid descriptors, API-version mismatches and permission mismatches are rejected.
