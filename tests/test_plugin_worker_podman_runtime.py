@@ -29,8 +29,8 @@ from voxrigor.plugin_worker.podman import (
     execute_isolated_plugin_test,
 )
 from voxrigor.plugin_worker.protocol import (
-    StagedInputReference,
     WORKER_PROTOCOL_VERSION,
+    StagedInputReference,
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
