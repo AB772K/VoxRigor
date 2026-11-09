@@ -89,9 +89,7 @@ def test_independent_example_plugin_wheel_installs_and_runs_in_clean_venv(
         json.dumps(
             {
                 "schema_version": "0.1",
-                "enabled_plugins": [
-                    {"plugin_id": "demo.voice", "granted_permissions": []}
-                ],
+                "enabled_plugins": [{"plugin_id": "demo.voice", "granted_permissions": []}],
             },
             indent=2,
         ),
@@ -135,9 +133,7 @@ def test_independent_example_plugin_wheel_installs_and_runs_in_clean_venv(
     assert len(reports) == 1
     report = json.loads(reports[0].read_text(encoding="utf-8"))
     plugin_results = [
-        item
-        for item in report["results"]
-        if item["test"]["test_id"] == "demo.voice.sdk-diagnostic"
+        item for item in report["results"] if item["test"]["test_id"] == "demo.voice.sdk-diagnostic"
     ]
     assert len(plugin_results) == 1
     assert plugin_results[0]["status"] == "inconclusive"
