@@ -11,6 +11,7 @@ from voxrigor.plugin_worker.podman import (
     HostStagedInput,
     PodmanBackendError,
     RootlessPodmanBackend,
+    WorkerExecutionError,
 )
 from voxrigor.plugin_worker.protocol import StagedInputReference
 
@@ -225,7 +226,7 @@ def test_staged_input_hash_mismatch_fails_before_container_creation(tmp_path: Pa
         media_kind="audio",
         display_name="sample.wav",
     )
-    with pytest.raises(Exception, match="declared hash"):
+    with pytest.raises(WorkerExecutionError, match="declared hash"):
         RootlessPodmanBackend._copy_staged_inputs(
             (HostStagedInput(reference=reference, source_path=source),)
         )
@@ -245,5 +246,5 @@ def test_duplicate_staged_input_ids_are_rejected(tmp_path: Path) -> None:
         HostStagedInput(reference=reference, source_path=source),
         HostStagedInput(reference=reference, source_path=source),
     )
-    with pytest.raises(Exception, match="Duplicate staged input ID"):
+    with pytest.raises(WorkerExecutionError, match="Duplicate staged input ID"):
         RootlessPodmanBackend._copy_staged_inputs(inputs)
