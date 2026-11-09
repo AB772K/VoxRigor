@@ -300,9 +300,33 @@ def test_runtime_preflight_checks_rootless_seccomp_cgroups_and_image(
 @pytest.mark.parametrize(
     ("runtime", "expected"),
     [
-        ({"host": {"security": {"rootless": False, "seccompEnabled": True}, "cgroupVersion": "v2"}}, "not rootless"),
-        ({"host": {"security": {"rootless": True, "seccompEnabled": False}, "cgroupVersion": "v2"}}, "seccomp"),
-        ({"host": {"security": {"rootless": True, "seccompEnabled": True}, "cgroupVersion": "v1"}}, "cgroups v2"),
+        (
+            {
+                "host": {
+                    "security": {"rootless": False, "seccompEnabled": True},
+                    "cgroupVersion": "v2",
+                }
+            },
+            "not rootless",
+        ),
+        (
+            {
+                "host": {
+                    "security": {"rootless": True, "seccompEnabled": False},
+                    "cgroupVersion": "v2",
+                }
+            },
+            "seccomp",
+        ),
+        (
+            {
+                "host": {
+                    "security": {"rootless": True, "seccompEnabled": True},
+                    "cgroupVersion": "v1",
+                }
+            },
+            "cgroups v2",
+        ),
     ],
 )
 def test_runtime_preflight_fails_closed_for_weak_runtime(
