@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=77", "wheel>=0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voxrigor-demo-voice-plugin"
+version = "0.1.0"
+description = "A minimal independently installable VoxRigor plugin SDK example."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "Apache-2.0"
+dependencies = ["voxrigor==0.2.0.dev0"]
+
+[project.entry-points."voxrigor.plugins"]
+demo.voice = "demo_voice.plugin:create_plugin"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
