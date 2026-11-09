@@ -14,8 +14,8 @@ from voxrigor.plugin_worker.podman import (
     WorkerExecutionError,
     WorkerExecutionSpec,
 )
-from voxrigor.plugins import PluginPermission
 from voxrigor.plugin_worker.protocol import StagedInputReference
+from voxrigor.plugins import PluginPermission
 
 IMAGE = "registry.example.invalid/voxrigor-worker@sha256:" + "a" * 64
 
@@ -325,9 +325,6 @@ def test_staged_input_kinds_require_matching_permission_grants(
 
 
 def test_staged_input_with_matching_grant_is_permitted_by_host_policy(tmp_path: Path) -> None:
-    from voxrigor.plugins import PluginPermission
-    from voxrigor.plugin_worker.podman import WorkerExecutionSpec
-
     source = tmp_path / "sample.wav"
     source.write_bytes(b"audio")
     reference = StagedInputReference(
