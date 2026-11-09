@@ -63,7 +63,8 @@ def fit_platt_calibrator(
     slope = 0.0
     iterations = 0
 
-    for iterations in range(1, max_iterations + 1):
+    for iteration in range(1, max_iterations + 1):
+        iterations = iteration
         gradient_intercept = 0.0
         gradient_slope = regularization * slope
         hessian_ii = 1e-12
