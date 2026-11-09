@@ -850,9 +850,7 @@ def _render_html(report: dict[str, object]) -> str:
             "within each replicate. Calibration and evaluation clusters are sampled independently.</p>"
             "<table><thead><tr><th>Domain</th><th>Statistic</th><th>Point estimate</th>"
             "<th>Lower percentile</th><th>Upper percentile</th><th>Valid replicates</th>"
-            "</tr></thead><tbody>"
-            + "".join(nested_bootstrap_rows)
-            + "</tbody></table>"
+            "</tr></thead><tbody>" + "".join(nested_bootstrap_rows) + "</tbody></table>"
         )
     condition_section = ""
     if condition_rows:
