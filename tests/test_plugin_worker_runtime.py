@@ -8,10 +8,9 @@ from typing import cast
 import pytest
 
 from voxrigor.models import (
-    ProjectManifest,
     ResultStatus,
     SampleAccounting,
-    TestDescriptor,
+    Descriptor as Descriptor,
 )
 from voxrigor.plugin_worker import worker_main
 from voxrigor.plugin_worker.protocol import (
@@ -19,7 +18,7 @@ from voxrigor.plugin_worker.protocol import (
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
-    WorkerExecuteResponse,
+    StagedInputReference,
     WorkerFailure,
     WorkerHello,
     WorkerResourceLimits,
@@ -30,7 +29,7 @@ from voxrigor.plugin_worker.protocol import (
     read_worker_message,
 )
 from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata
-from voxrigor.testing import TestContext, TestOutcome, TestRegistry
+from voxrigor.testing import Context as Context, Outcome as Outcome, Registry as Registry
 
 REQUEST_ID = "123e4567-e89b-42d3-a456-426614174000"
 EXECUTE_ID = "123e4567-e89b-42d3-a456-426614174001"
@@ -331,13 +330,13 @@ def test_worker_rejects_staged_input_missing_from_container_mounts() -> None:
     request = _execute().model_copy(
         update={
             "staged_inputs": (
-                {
-                    "input_id": "input-audio-1",
-                    "sha256": "a" * 64,
-                    "size_bytes": 1,
-                    "media_kind": "audio",
-                    "display_name": "sample.wav",
-                },
+                StagedInputReference(
+                    input_id="input-audio-1",
+                    sha256="a" * 64,
+                    size_bytes=1,
+                    media_kind="audio",
+                    display_name="sample.wav",
+                ),
             )
         }
     )
@@ -376,7 +375,9 @@ def test_worker_load_plugin_imports_and_registers_inside_worker(
                 metadata = _metadata()
 
                 def register(self, context: object) -> None:
-                    cast(object, context).register(_TestImplementation())  # type: ignore[attr-defined]
+                    cast(worker_main.PluginRegistrationContext, context).register(
+                        _TestImplementation()
+                    )
 
             return Plugin
 
@@ -397,7 +398,9 @@ def test_worker_load_plugin_rejects_grants_that_do_not_match_plugin_declaration(
                 metadata = _metadata()
 
                 def register(self, context: object) -> None:
-                    context.register(_TestImplementation())
+                    cast(worker_main.PluginRegistrationContext, context).register(
+                        _TestImplementation()
+                    )
 
             return Plugin
 
