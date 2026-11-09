@@ -112,11 +112,14 @@ def verify_isolation_backend(
         ) from exc
 
     if readiness.backend_id != declared_backend_id:
-        raise IsolationBackendUnavailable("Isolation backend identity did not match its preflight result")
+        raise IsolationBackendUnavailable(
+            "Isolation backend identity did not match its preflight result"
+        )
     unknown_controls = set(readiness.enforced_controls) - REQUIRED_ISOLATION_CONTROLS
     if unknown_controls:
         raise IsolationBackendUnavailable(
-            "Isolation backend reported unknown security controls: " + ", ".join(sorted(unknown_controls))
+            "Isolation backend reported unknown security controls: "
+            + ", ".join(sorted(unknown_controls))
         )
     if not readiness.verified:
         raise IsolationBackendUnavailable(
