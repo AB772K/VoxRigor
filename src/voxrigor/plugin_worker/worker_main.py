@@ -12,9 +12,10 @@ import hashlib
 import math
 import os
 import sys
+from collections.abc import Callable
 from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, cast
 from uuid import uuid4
 
 from voxrigor import __version__
@@ -56,14 +57,34 @@ def _apply_process_limits(cpu_seconds: int, open_file_count: int) -> None:
         raise WorkerBootstrapError("This worker build requires a POSIX resource-limit API")
     import resource
 
-    resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
-    current_soft, current_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    set_rlimit = cast(
+        Callable[[int, tuple[int, int]], None] | None,
+        getattr(resource, "setrlimit", None),
+    )
+    get_rlimit = cast(
+        Callable[[int], tuple[int, int]] | None,
+        getattr(resource, "getrlimit", None),
+    )
+    rlimit_cpu = getattr(resource, "RLIMIT_CPU", None)
+    rlimit_nofile = getattr(resource, "RLIMIT_NOFILE", None)
+    rlimit_infinity = getattr(resource, "RLIM_INFINITY", None)
+    if (
+        not callable(set_rlimit)
+        or not callable(get_rlimit)
+        or not isinstance(rlimit_cpu, int)
+        or not isinstance(rlimit_nofile, int)
+        or not isinstance(rlimit_infinity, int)
+    ):
+        raise WorkerBootstrapError("This worker build requires POSIX resource-limit constants")
+
+    set_rlimit(rlimit_cpu, (cpu_seconds, cpu_seconds))
+    _, current_hard = get_rlimit(rlimit_nofile)
     selected = open_file_count
-    if current_hard != resource.RLIM_INFINITY:
+    if current_hard != rlimit_infinity:
         selected = min(selected, current_hard)
     if selected < 16:
         raise WorkerBootstrapError("The runtime cannot provide the minimum open-file limit")
-    resource.setrlimit(resource.RLIMIT_NOFILE, (selected, selected))
+    set_rlimit(rlimit_nofile, (selected, selected))
 
 
 def _entry_point_for(plugin_id: str) -> EntryPoint:

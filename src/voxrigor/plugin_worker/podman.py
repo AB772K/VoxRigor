@@ -666,35 +666,40 @@ class RootlessPodmanBackend:
             raise PodmanBackendError("The Linux host UID could not be determined")
         host_uid = get_uid()
         return (
-            "import json,os,resource\\n"
-            "status={}\\n"
-            "with open('/proc/self/status',encoding='utf-8') as stream:\\n"
-            "    for line in stream:\\n"
-            "        if ':' in line:\\n"
-            "            key,value=line.split(':',1)\\n"
-            "            status[key]=value.strip()\\n"
-            "assert status.get('NoNewPrivs')=='1'\\n"
-            "assert status.get('Seccomp')=='2'\\n"
-            f"assert os.getuid()=={_CONTAINER_UID}\\n"
-            f"assert os.getuid()!={host_uid}\\n"
-            "assert set(os.listdir('/sys/class/net'))<= {'lo'}\\n"
-            "assert resource.getrlimit(resource.RLIMIT_CPU)==("
-            f"{policy.cpu_time_seconds},{policy.cpu_time_seconds})\\n"
-            "assert resource.getrlimit(resource.RLIMIT_NOFILE)==("
-            f"{policy.open_file_count},{policy.open_file_count})\\n"
-            "pids=open('/sys/fs/cgroup/pids.max').read().strip()\\n"
-            f"assert pids=={str(policy.process_count)!r}\\n"
-            "mem=open('/sys/fs/cgroup/memory.max').read().strip()\\n"
-            f"assert mem=={str(policy.memory_bytes)!r}\\n"
-            "cpu=open('/sys/fs/cgroup/cpu.max').read().split()\\n"
-            "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1])\\n"
-            "read_only=False\\n"
-            "try:\\n"
-            "    with open('/etc/.voxrigor-read-only-probe','x'): pass\\n"
-            "except OSError:\\n"
-            "    read_only=True\\n"
-            "assert read_only\\n"
-            "print(json.dumps({'ok':True,'uid':os.getuid(),'seccomp':status['Seccomp']}))\\n"
+            "\n".join(
+                (
+                    "import json,os,resource",
+                    "status={}",
+                    "with open('/proc/self/status',encoding='utf-8') as stream:",
+                    "    for line in stream:",
+                    "        if ':' in line:",
+                    "            key,value=line.split(':',1)",
+                    "            status[key]=value.strip()",
+                    "assert status.get('NoNewPrivs')=='1'",
+                    "assert status.get('Seccomp')=='2'",
+                    f"assert os.getuid()=={_CONTAINER_UID}",
+                    f"assert os.getuid()!={host_uid}",
+                    "assert set(os.listdir('/sys/class/net'))<= {'lo'}",
+                    "assert resource.getrlimit(resource.RLIMIT_CPU)==("
+                    f"{policy.cpu_time_seconds},{policy.cpu_time_seconds})",
+                    "assert resource.getrlimit(resource.RLIMIT_NOFILE)==("
+                    f"{policy.open_file_count},{policy.open_file_count})",
+                    "pids=open('/sys/fs/cgroup/pids.max').read().strip()",
+                    f"assert pids=={str(policy.process_count)!r}",
+                    "mem=open('/sys/fs/cgroup/memory.max').read().strip()",
+                    f"assert mem=={str(policy.memory_bytes)!r}",
+                    "cpu=open('/sys/fs/cgroup/cpu.max').read().split()",
+                    "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1])",
+                    "read_only=False",
+                    "try:",
+                    "    with open('/etc/.voxrigor-read-only-probe','x'): pass",
+                    "except OSError:",
+                    "    read_only=True",
+                    "assert read_only",
+                    "print(json.dumps({'ok':True,'uid':os.getuid(),'seccomp':status['Seccomp']}))",
+                )
+            )
+            + "\n"
         )
 
     def _run_probe(self, container_id: str) -> None:

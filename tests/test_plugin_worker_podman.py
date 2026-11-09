@@ -266,8 +266,9 @@ def test_container_output_mount_is_read_only_by_default() -> None:
         worker_command=("-m", "voxrigor.plugin_worker.worker_main"),
         interactive=True,
     )
-    tmpfs_index = command.index("--tmpfs")
-    tmpfs_args = command[tmpfs_index + 1 : tmpfs_index + 3]
+    tmpfs_args = [
+        command[index + 1] for index, option in enumerate(command[:-1]) if option == "--tmpfs"
+    ]
     output_spec = next(item for item in tmpfs_args if item.startswith("/output:"))
     assert output_spec.startswith("/output:ro,")
     assert "rw" not in output_spec.split(",")
