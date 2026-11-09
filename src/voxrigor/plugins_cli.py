@@ -46,9 +46,7 @@ def list_plugins() -> None:
 
 @plugins_app.command("validate")
 def validate_plugins(
-    config_path: Annotated[
-        Path, typer.Argument(help="Explicit plugin allow-list JSON file.")
-    ],
+    config_path: Annotated[Path, typer.Argument(help="Explicit plugin allow-list JSON file.")],
 ) -> None:
     """Validate enabled plugin IDs and grants without importing plugin code."""
 
