@@ -62,6 +62,55 @@ Every referenced dataset must be an ASV score-dataset manifest with target and n
 
 The probability threshold is an explicit user-declared decision threshold; it is not selected from evaluation labels. The raw operating threshold is selected from the calibration dataset using empirical FMR, then frozen. When the calibration set is small, the target FMR is limited by its impostor trial count: a target of 0.001 cannot be empirically distinguished with a handful of nontarget trials. The report preserves the exact denominator and confidence interval to make this limitation visible.
 
+## Paired multi-system comparison
+
+Use a comparison manifest when two or more systems have produced scores for the same calibration trials and the same held-out evaluation trials. Each system references its own standard research experiment manifest; therefore each system fits its own Platt mapping and selects its own operating threshold using only its own calibration scores.
+
+Run a paired comparison with:
+
+```powershell
+voxrigor research compare .\research-comparison.json --output .\runs\research-comparisons
+```
+
+The schema is `schemas/research-comparison-0.1.schema.json`.
+
+Example comparison manifest:
+
+```json
+{
+  "schema_version": "0.1",
+  "comparison_id": "ecapa-model-family-study",
+  "description": "Compare independently calibrated speaker-verification systems on matched evaluation trials.",
+  "reference_system_id": "ecapa-baseline",
+  "systems": [
+    {
+      "system_id": "ecapa-baseline",
+      "experiment_manifest": "ecapa/experiment.json"
+    },
+    {
+      "system_id": "alternative-encoder",
+      "experiment_manifest": "alternative/experiment.json"
+    }
+  ],
+  "paired_cluster_bootstrap": {
+    "cluster_column": "speaker_id",
+    "replicates": 1000,
+    "seed": 2026,
+    "confidence_level": 0.95
+  }
+}
+```
+
+A comparison supports two to eight systems. Each referenced experiment must be a valid score-only ASV experiment and must declare the matching `system_id`. All systems must use the same target FMR, probability threshold and ordered evaluation domains. Calibration datasets must be paired on `trial_id`, label, split, condition, attack-species metadata and configured speaker/source identifiers. The same checks are performed separately for every evaluation domain. Protocol and split metadata must agree.
+
+The scores themselves are expected to differ by system. The runner does not require different model families to share the same score scale or score direction; each model is normalized, calibrated and thresholded under its own score-direction declaration. It does require trial identity and ground-truth/group metadata to match exactly. A missing/extra trial or a label/condition/group mismatch stops the comparison rather than silently comparing different samples.
+
+The report provides per-domain EER, ROC-AUC, FMR/FNMR at each model's own frozen operating threshold, Brier score and ECE; descriptive differences against the declared reference system; and dataset hashes, split/sample counts and score-producer provenance for every system/domain. Negative differences favor the compared system for EER, FMR, FNMR, Brier and ECE; positive ROC-AUC differences favor the compared system.
+
+When `paired_cluster_bootstrap` is configured, each bootstrap replicate samples clusters once and uses the same sampled cluster/trial IDs across every system. It reports percentile intervals for the compared system minus the reference system for EER, ROC-AUC and FMR/FNMR at each model's own fixed threshold. At least two clusters must contribute to each class, and at least 80% of replicates must be valid.
+
+These comparisons are paired descriptions on the supplied trials, not causal proof that one architecture is universally better. The paired bootstrap reflects evaluation-cluster variability only. It does not include model-training variability, calibration-set/threshold-selection uncertainty, hyperparameter-search uncertainty or dataset-sampling bias. Stable pseudonymous IDs must represent the same sampling units across systems. Synthetic CI fixtures demonstrate software behavior only; real model-family claims require approved, licensed, representative data and an independently specified research protocol.
+
 ## Interpretation constraints
 
 - Calibration metrics are computed only on held-out evaluation datasets; in-sample calibration fit metrics are not presented as generalization evidence.

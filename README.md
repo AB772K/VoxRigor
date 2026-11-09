@@ -12,7 +12,7 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 The latest Phase 5 lifecycle extension passed the six-job GitHub Actions matrix on Ubuntu and Windows with Python 3.11, 3.12 and 3.13 (run [42593363565](https://github.com/AB772K/VoxRigor/actions/runs/42593363565)). The validation includes Ruff lint, Ruff formatting, strict Mypy, and the complete test suite. The Linux jobs completed 201 tests at 85.58% coverage against the configured 85% gate.
 
-Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, a bounded loopback-only protocol/API security engine, and the initial score-only cross-dataset research runner, optional cluster-bootstrap uncertainty for held-out ASV evaluation, and condition-stratified ASV analysis using frozen calibration and operating thresholds.
+Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, a bounded loopback-only protocol/API security engine, and the initial score-only cross-dataset research runner, optional cluster-bootstrap uncertainty for held-out ASV evaluation, condition-stratified ASV analysis using frozen calibration and operating thresholds, and paired comparison of independently calibrated ASV systems on identical trial sets.
 
 Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation, cross-dataset generalization studies, calibration research and physical presentation-rig validation remain research tasks.
 
@@ -51,6 +51,9 @@ See [Phase 6 implementation](docs/PHASE_6_IMPLEMENTATION.md) for the manifest fo
 
 ```powershell
 voxrigor research evaluate .\research-experiment.json --output .\runs\research
+
+# Compare independently calibrated systems on identical ASV trials
+voxrigor research compare .\research-comparison.json --output .\runs\research-comparisons
 ```
 
 ## Documentation
