@@ -31,7 +31,8 @@ def _dataset(directory: Path, dataset_id: str, rows: list[tuple[str, float, str]
         )
     csv_text = "\n".join(csv_lines) + "\n"
     score_path = directory / "scores.csv"
-    score_path.write_text(csv_text, encoding="utf-8")
+    score_path.write_text(csv_text, encoding="utf-8", newline="\\n")
+    score_sha256 = hashlib.sha256(score_path.read_bytes()).hexdigest()
     manifest: dict[str, Any] = {
         "schema_version": "0.1",
         "dataset_id": dataset_id,
@@ -40,7 +41,7 @@ def _dataset(directory: Path, dataset_id: str, rows: list[tuple[str, float, str]
         "task": "asv",
         "protocol_id": "synthetic-asv-v1",
         "score_file": "scores.csv",
-        "score_file_sha256": hashlib.sha256(csv_text.encode("utf-8")).hexdigest(),
+        "score_file_sha256": score_sha256,
         "evaluation_split": "test",
         "score_direction": "higher_is_genuine",
         "group_columns": ["speaker_id", "source_id"],
