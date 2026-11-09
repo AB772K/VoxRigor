@@ -14,14 +14,20 @@ EXAMPLE_PLUGIN_ROOT = REPOSITORY_ROOT / "examples" / "plugins" / "demo-voice"
 
 
 def _run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    result = subprocess.run(
         command,
         cwd=cwd,
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
         timeout=300,
     )
+    if result.returncode != 0:
+        raise AssertionError(
+            f"Command failed with exit code {result.returncode}: {command!r}\\n"
+            f"STDOUT:\\n{result.stdout}\\nSTDERR:\\n{result.stderr}"
+        )
+    return result
 
 
 def _build_wheel(source: Path, destination: Path) -> Path:
