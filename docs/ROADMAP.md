@@ -2,7 +2,7 @@
 
 **Status:** Phase 6 — cross-dataset research and uncertainty evaluation.  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.  
-**Current state:** Phase 1–3 and the Phase 5 local protocol/lifecycle engine are integrated into main. Phase 4 digital audio-condition generation and provenance are implemented; physical presentation hardware remains open. Phase 6 includes a score-only ASV cross-dataset calibration runner and optional deterministic cluster-bootstrap intervals for held-out evaluation metrics. Approved representative datasets, multiple model-family comparisons, cluster-aware calibration/threshold uncertainty, condition-stratified studies and justified custom-model experiments remain open.
+**Current state:** Phase 1–3 and the Phase 5 local protocol/lifecycle engine are integrated into main. Phase 4 digital audio-condition generation and provenance are implemented; physical presentation hardware remains open. Phase 6 includes a score-only ASV cross-dataset calibration runner, optional deterministic cluster-bootstrap intervals for held-out evaluation metrics, and optional condition-stratified evaluation using Phase 4 labels with frozen calibration/threshold transfer. Approved representative datasets, multiple model-family comparisons, cluster-aware calibration/threshold uncertainty and justified custom-model experiments remain open.
 
 ## Phase 0 — Research, product specification and threat modeling
 

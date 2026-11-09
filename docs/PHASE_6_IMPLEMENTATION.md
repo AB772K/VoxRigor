@@ -37,6 +37,7 @@ The manifest is versioned by `schemas/research-experiment-0.1.schema.json`. Path
   "probability_threshold": 0.5,
   "group_columns": ["speaker_id", "source_id"],
   "require_group_disjointness": true,
+  "stratify_by_condition": true,
   "cluster_bootstrap": {
     "cluster_column": "speaker_id",
     "replicates": 1000,
@@ -57,6 +58,7 @@ Every referenced dataset must be an ASV score-dataset manifest with target and n
 5. Report raw EER and ROC-AUC, transferred-threshold FMR/FNMR with trial-level Wilson intervals, calibrated Brier score, log loss, expected calibration error (ECE), reliability bins and calibrated-threshold FMR/FNMR.
 6. Audit speaker/source identifiers across calibration and evaluation datasets when those columns are configured. Overlap can be a warning or an enforced failure.
 7. When `cluster_bootstrap` is configured, resample complete speaker/source clusters with replacement within each held-out evaluation dataset. Report percentile intervals for EER, ROC-AUC and FMR/FNMR at the frozen operating threshold. At least two independent clusters must contribute to each class, and at least 80% of requested replicates must be valid.
+8. When `stratify_by_condition` is enabled, group held-out records by the Phase 4 `condition` label. For each condition with both target and nontarget trials, report raw EER/ROC-AUC, the frozen-threshold FMR/FNMR and calibration metrics using the same mapping fitted on the calibration dataset. A condition missing either class is retained with sample counts and marked `not_computable`; no condition-specific threshold is selected.
 
 The probability threshold is an explicit user-declared decision threshold; it is not selected from evaluation labels. The raw operating threshold is selected from the calibration dataset using empirical FMR, then frozen. When the calibration set is small, the target FMR is limited by its impostor trial count: a target of 0.001 cannot be empirically distinguished with a handful of nontarget trials. The report preserves the exact denominator and confidence interval to make this limitation visible.
 
@@ -69,6 +71,8 @@ The probability threshold is an explicit user-declared decision threshold; it is
 - Cluster-bootstrap intervals are conditional on the already-fitted calibration mapping and frozen operating threshold. They quantify held-out evaluation-set cluster sampling variability only; they do not include development/calibration-set uncertainty or threshold-selection variability.
 - A cluster bootstrap is only meaningful when the chosen cluster identifiers represent independent sampling units. Trial IDs, random row IDs or per-trial source IDs must not be presented as speaker-level uncertainty.
 - Replicates that omit either target or nontarget class are discarded. The run fails rather than reporting an interval when fewer than 80% of requested replicates remain valid.
+- Condition-stratified metrics are descriptive held-out slices. They use the single frozen calibration mapping and operating threshold; they do not retune thresholds within conditions.
+- A condition named `unspecified` means the CSV lacked a usable condition value. It is surfaced as unspecified rather than interpreted as a clean baseline.
 - Group-disjointness checks are only meaningful if pseudonymous identifiers are stable across datasets. Independently re-keyed IDs cannot reveal overlap.
 - A score-file experiment cannot validate model preprocessing, audio channel realism or speaker population coverage beyond the supplied provenance and metadata.
 - These generic ASV results are not an official ASVspoof result and are not a production authentication-security certification.

@@ -27,12 +27,21 @@ from voxrigor.research.runner import (
 runner = CliRunner()
 
 
-def _dataset(directory: Path, dataset_id: str, rows: list[tuple[str, float, str]]) -> Path:
+def _dataset(
+    directory: Path,
+    dataset_id: str,
+    rows: list[tuple[str, float, str]],
+    *,
+    conditions: list[str] | None = None,
+) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
-    csv_lines = ["trial_id,label,score,split,speaker_id,source_id"]
+    if conditions is not None and len(conditions) != len(rows):
+        raise ValueError("conditions must contain one value per score row")
+    selected_conditions = conditions or ["unspecified"] * len(rows)
+    csv_lines = ["trial_id,label,score,split,speaker_id,source_id,condition"]
     for index, (label, score, speaker) in enumerate(rows):
         csv_lines.append(
-            f"{dataset_id}-{index},{label},{score},test,{speaker},{dataset_id}-src-{index}"
+            f"{dataset_id}-{index},{label},{score},test,{speaker},{dataset_id}-src-{index},{selected_conditions[index]}"
         )
     csv_text = "\n".join(csv_lines) + "\n"
     score_path = directory / "scores.csv"
@@ -57,7 +66,7 @@ def _dataset(directory: Path, dataset_id: str, rows: list[tuple[str, float, str]
     return manifest_path
 
 
-def _experiment(root: Path, *, overlap: bool = False) -> Path:
+def _experiment(root: Path, *, overlap: bool = False, with_conditions: bool = False) -> Path:
     calibration = _dataset(
         root / "calibration",
         "calibration-set",
@@ -71,15 +80,21 @@ def _experiment(root: Path, *, overlap: bool = False) -> Path:
         ],
     )
     shared = "cal-a" if overlap else "eval-a"
+    in_domain_rows = [
+        ("target", 0.90, "eval-b"),
+        ("target", 0.70, "eval-c"),
+        ("nontarget", 0.45, shared),
+        ("nontarget", 0.25, "eval-d"),
+    ]
+    if with_conditions:
+        in_domain_rows.append(("target", 0.65, "eval-e"))
     in_domain = _dataset(
         root / "evaluation-in-domain",
         "in-domain-set",
-        [
-            ("target", 0.90, "eval-b"),
-            ("target", 0.70, "eval-c"),
-            ("nontarget", 0.45, shared),
-            ("nontarget", 0.25, "eval-d"),
-        ],
+        in_domain_rows,
+        conditions=(
+            ["clean", "codec", "codec", "clean", "single-class"] if with_conditions else None
+        ),
     )
     cross_domain = _dataset(
         root / "evaluation-cross-domain",
@@ -90,6 +105,7 @@ def _experiment(root: Path, *, overlap: bool = False) -> Path:
             ("nontarget", 0.58, "cross-c"),
             ("nontarget", 0.38, "cross-d"),
         ],
+        conditions=["clean", "noise", "noise", "clean"] if with_conditions else None,
     )
     manifest = {
         "schema_version": "0.1",
@@ -108,6 +124,7 @@ def _experiment(root: Path, *, overlap: bool = False) -> Path:
         "probability_threshold": 0.5,
         "group_columns": ["speaker_id", "source_id"],
         "require_group_disjointness": True,
+        "stratify_by_condition": with_conditions,
     }
     path = root / "experiment.json"
     path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -177,6 +194,56 @@ def test_full_research_experiment_writes_reports_and_checks_group_disjointness(
     saved = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
     assert saved["experiment_id"] == "research-test-01"
     assert "Raw EER" in (run_dir / "report.html").read_text(encoding="utf-8")
+
+
+def test_condition_stratification_uses_frozen_threshold_and_marks_single_class(
+    tmp_path: Path,
+) -> None:
+    manifest = _experiment(tmp_path, with_conditions=True)
+    loaded = load_research_experiment(manifest)
+    report = build_research_report(loaded)
+
+    in_domain = next(
+        item for item in report["evaluation_datasets"] if item["domain_id"] == "in_domain"
+    )
+    conditions = {item["condition"]: item for item in in_domain["condition_analysis"]}
+    assert set(conditions) == {"clean", "codec", "single-class"}
+    assert conditions["clean"]["status"] == "computed"
+    assert conditions["codec"]["status"] == "computed"
+    assert conditions["single-class"]["status"] == "not_computable"
+    assert conditions["single-class"]["sample_counts"] == {
+        "total": 1,
+        "target": 1,
+        "nontarget": 0,
+    }
+
+    calibration_threshold = report["threshold_policy"][
+        "calibration_threshold_normalized_higher_is_genuine"
+    ]
+    for condition in ("clean", "codec"):
+        result = conditions[condition]
+        assert result["condition_specified"] is True
+        assert (
+            result["transferred_operating_point"]["threshold_normalized_higher_is_genuine"]
+            == calibration_threshold
+        )
+        assert set(result["calibration_metrics"]) >= {
+            "brier_score",
+            "log_loss",
+            "expected_calibration_error",
+        }
+
+    cross_domain = next(
+        item for item in report["evaluation_datasets"] if item["domain_id"] == "cross_domain"
+    )
+    cross_conditions = {item["condition"]: item for item in cross_domain["condition_analysis"]}
+    assert set(cross_conditions) == {"clean", "noise"}
+    assert all(item["status"] == "computed" for item in cross_conditions.values())
+
+    run_dir = run_research_experiment(manifest, tmp_path / "condition-runs")
+    html_report = (run_dir / "report.html").read_text(encoding="utf-8")
+    assert "Condition-stratified evaluation" in html_report
+    assert "single-class" in html_report
 
 
 def test_cluster_bootstrap_is_deterministic_and_reports_cluster_intervals(

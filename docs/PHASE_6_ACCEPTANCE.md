@@ -20,7 +20,7 @@
 - [x] Add optional deterministic cluster-bootstrap intervals for held-out EER, ROC-AUC and frozen-threshold FMR/FNMR, with class/cluster and valid-replicate safeguards.
 - [ ] Extend uncertainty to include calibration-set and threshold-selection variability through a separately specified nested or paired resampling design.
 - [ ] Add protocol-specific cost metrics only with a matching official protocol and independently validated implementation.
-- [ ] Add condition-stratified cross-dataset analysis using Phase 4 audio-condition provenance.
+- [x] Add optional condition-stratified held-out ASV analysis using Phase 4 condition labels, with frozen calibration/threshold transfer and not-computable handling for one-class conditions.
 - [ ] Add a separately specified PAD calibration/evaluation protocol; ASV logistic calibration must not be reused for PAD without methodological justification.
 - [ ] Train or fine-tune a custom model only after a falsifiable hypothesis, data licensing/consent review, leakage-resistant split and independent evaluation protocol are approved.
 
