@@ -41,7 +41,6 @@ def research_evaluate(
     typer.echo("Calibration and threshold selection used only the declared calibration dataset.")
 
 
-
 @research_app.command("compare")
 def research_compare(
     manifest_path: Annotated[
