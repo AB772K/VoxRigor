@@ -1,6 +1,6 @@
 # Phase 5 — Local Reference Application and Protocol/API Security Engine
 
-**Status:** Initial local-only protocol engine implemented on the Phase 5 branch. Cross-platform CI and full acceptance review are in progress.
+**Status:** Initial local-only protocol engine implemented and validated in the six-environment CI matrix on the Phase 5 branch. General target adapters and deeper lifecycle coverage remain future work.
 
 ## Objective
 
@@ -99,6 +99,10 @@ The first test catalogue is informed by:
 - [OWASP ASVS 5.0.0](https://asvs.owasp.org/), as a technical-control verification reference.
 
 This is a mapping for test design, not an assertion of OWASP verification or compliance.
+
+## Validation status
+
+The initial Phase 5 implementation passed CI run 42588833761 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. All six jobs passed Ruff lint, Ruff formatting, strict Mypy and the full test suite. Each Linux job completed 198 tests and 85.74% coverage against the 85% gate. The reference-fixture tests prove that the scanner distinguishes the bundled fixed and intentionally vulnerable protocol profiles; they do not establish production biometric or system security.
 
 ## Current limitations
 

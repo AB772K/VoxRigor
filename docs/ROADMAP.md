@@ -1,8 +1,8 @@
 # Development Roadmap
 
-**Status:** Living development plan — Phase 5 local protocol engine in progress  
+**Status:** Living development plan — Phase 5 local protocol engine (first slice validated)  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
-**Current state:** Phase 1, Phase 2 and the Phase 3 model-to-benchmark follow-up are merged into main. Phase 4 PR #5 is merged into the Phase 3 development branch, not main; its CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Phase 4 audio-decoder resource hardening and Phase 5 local protocol work are underway on the Phase 5 branch.
+**Current state:** Phase 1, Phase 2 and the Phase 3 model-to-benchmark follow-up are merged into main. Phase 4 PR #5 is merged into the Phase 3 development branch, not main; its CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Phase 4 audio-decoder resource hardening and the initial Phase 5 local protocol engine have passed the six-environment CI matrix on the Phase 5 branch. Phase 5 remote adapters and deeper lifecycle/recovery checks remain open.
 
 ## Phase 0 — Research, product specification and threat modeling
 
