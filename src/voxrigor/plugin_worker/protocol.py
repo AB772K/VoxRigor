@@ -70,7 +70,9 @@ class StagedInputReference(_WorkerModel):
         if (
             "/" in self.display_name
             or "\\" in self.display_name
+            or ":" in self.display_name
             or self.display_name in {".", ".."}
+            or any(ord(character) < 32 for character in self.display_name)
         ):
             raise ValueError("display_name must be a plain filename, not a path")
         return self
@@ -107,7 +109,16 @@ class WorkerDescribeResponse(_WorkerModel):
     kind: Literal["description"] = "description"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     metadata: PluginMetadata
-    tests: list[TestDescriptor] = Field(min_length=1, max_length=MAX_WORKER_TESTS)
+    tests: tuple[TestDescriptor, ...] = Field(min_length=1, max_length=MAX_WORKER_TESTS)
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_tests_array(cls, value: object) -> object:
+        if isinstance(value, dict) and isinstance(value.get("tests"), list):
+            parsed = value.copy()
+            parsed["tests"] = tuple(parsed["tests"])
+            return parsed
+        return value
 
     @model_validator(mode="after")
     def test_ids_must_be_namespaced_and_unique(self) -> WorkerDescribeResponse:
@@ -128,10 +139,19 @@ class WorkerExecuteRequest(_WorkerModel):
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
     test_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,79}$")
     project_name: str = Field(min_length=1, max_length=120)
-    staged_inputs: list[StagedInputReference] = Field(
-        default_factory=list, max_length=MAX_WORKER_INPUTS
+    staged_inputs: tuple[StagedInputReference, ...] = Field(
+        default=(), max_length=MAX_WORKER_INPUTS
     )
     limits: WorkerResourceLimits
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_staged_input_array(cls, value: object) -> object:
+        if isinstance(value, dict) and isinstance(value.get("staged_inputs"), list):
+            parsed = value.copy()
+            parsed["staged_inputs"] = tuple(parsed["staged_inputs"])
+            return parsed
+        return value
 
     @model_validator(mode="after")
     def input_ids_must_be_unique_and_test_must_be_namespaced(self) -> WorkerExecuteRequest:
@@ -165,7 +185,7 @@ class WorkerExecuteResponse(_WorkerModel):
     measurements: dict[str, MeasurementValue] = Field(
         default_factory=dict, max_length=MAX_WORKER_MEASUREMENTS
     )
-    limitations: list[str] = Field(default_factory=list, max_length=64)
+    limitations: tuple[str, ...] = Field(default=(), max_length=64)
     sample_accounting: WorkerSampleAccounting = Field(default_factory=WorkerSampleAccounting)
 
     @model_validator(mode="before")
@@ -177,6 +197,15 @@ class WorkerExecuteResponse(_WorkerModel):
                 parsed["status"] = ResultStatus(parsed["status"])
             except ValueError:
                 return value
+            return parsed
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_limitations_array(cls, value: object) -> object:
+        if isinstance(value, dict) and isinstance(value.get("limitations"), list):
+            parsed = value.copy()
+            parsed["limitations"] = tuple(parsed["limitations"])
             return parsed
         return value
 
