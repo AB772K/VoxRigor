@@ -10,7 +10,7 @@ import pytest
 from voxrigor.models import (
     ResultStatus,
     SampleAccounting,
-    Descriptor as Descriptor,
+    TestDescriptor as Descriptor,
 )
 from voxrigor.plugin_worker import worker_main
 from voxrigor.plugin_worker.protocol import (
@@ -29,7 +29,7 @@ from voxrigor.plugin_worker.protocol import (
     read_worker_message,
 )
 from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata
-from voxrigor.testing import Context as Context, Outcome as Outcome, Registry as Registry
+from voxrigor.testing import TestContext as Context, TestOutcome as Outcome, TestRegistry as Registry
 
 REQUEST_ID = "123e4567-e89b-42d3-a456-426614174000"
 EXECUTE_ID = "123e4567-e89b-42d3-a456-426614174001"
