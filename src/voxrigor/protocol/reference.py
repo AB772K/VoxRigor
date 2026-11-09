@@ -272,6 +272,15 @@ class ReferenceRequestHandler(BaseHTTPRequestHandler):
         if "?" in path or "#" in path:
             self._send(400, {"error": "query_and_fragment_not_supported"})
             return
+        if path == "/v1/logout":
+            token, session = self._session()
+            if token is None or session is None:
+                self._send(401, {"error": "authentication_required"})
+                return
+            with self.app.lock:
+                self.app.sessions.pop(token, None)
+            self._send(204)
+            return
         payload = self._read_json()
         if payload is None:
             return
@@ -296,15 +305,6 @@ class ReferenceRequestHandler(BaseHTTPRequestHandler):
                 cast(str, proof),
             )
             self._send(status, response)
-            return
-        if path == "/v1/logout":
-            token, session = self._session()
-            if token is None or session is None:
-                self._send(401, {"error": "authentication_required"})
-                return
-            with self.app.lock:
-                self.app.sessions.pop(token, None)
-            self._send(204)
             return
         self._send(404, {"error": "route_not_found"})
 
