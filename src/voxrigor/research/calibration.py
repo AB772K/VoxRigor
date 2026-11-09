@@ -87,9 +87,7 @@ def fit_platt_calibrator(
         delta_intercept = (
             gradient_intercept * hessian_ss - gradient_slope * hessian_is
         ) / determinant
-        delta_slope = (
-            gradient_slope * hessian_ii - gradient_intercept * hessian_is
-        ) / determinant
+        delta_slope = (gradient_slope * hessian_ii - gradient_intercept * hessian_is) / determinant
         intercept -= delta_intercept
         slope -= delta_slope
         if max(abs(delta_intercept), abs(delta_slope)) < 1e-8:
@@ -163,8 +161,12 @@ def evaluate_calibration(
             }
         )
 
-    false_matches = sum(probability >= probability_threshold for probability, label in pairs if label == 0)
-    false_nonmatches = sum(probability < probability_threshold for probability, label in pairs if label == 1)
+    false_matches = sum(
+        probability >= probability_threshold for probability, label in pairs if label == 0
+    )
+    false_nonmatches = sum(
+        probability < probability_threshold for probability, label in pairs if label == 1
+    )
     return {
         "probability_threshold": probability_threshold,
         "sample_counts": {"target": len(targets), "nontarget": len(nontargets)},

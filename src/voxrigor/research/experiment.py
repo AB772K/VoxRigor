@@ -37,7 +37,9 @@ class EvaluationDatasetReference(BaseModel):
             or PureWindowsPath(value).drive
             or ".." in PurePosixPath(normalized).parts
         ):
-            raise ValueError("dataset_manifest must be a relative path inside the experiment folder")
+            raise ValueError(
+                "dataset_manifest must be a relative path inside the experiment folder"
+            )
         return normalized
 
 
@@ -130,7 +132,9 @@ def load_research_experiment(path: Path) -> LoadedResearchExperiment:
         raw = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest = ResearchExperimentManifest.model_validate(raw)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError) as exc:
-        raise ResearchExperimentError("research experiment manifest is unreadable or invalid") from exc
+        raise ResearchExperimentError(
+            "research experiment manifest is unreadable or invalid"
+        ) from exc
 
     root = manifest_path.parent
     calibration_path = _resolve_child_path(root, manifest.calibration_dataset_manifest)

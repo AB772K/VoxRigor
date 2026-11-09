@@ -1,12 +1,12 @@
 # Phase 5 — Local Reference Application and Protocol/API Security Engine
 
-**Status:** Initial local-only protocol engine implemented and validated in the six-environment CI matrix on the Phase 5 branch. General target adapters and deeper lifecycle coverage remain future work.
+**Status:** The local-only protocol engine and lifecycle extension are implemented and validated in the six-environment CI matrix on the current main development line. General target adapters and deeper account-recovery integrations remain future work.
 
 ## Objective
 
 Assess security properties around a voice-authentication application's protocol and API workflow without requiring a production identity provider, customer account, cloud service, microphone or real biometric model.
 
-The first slice is a deliberately small HTTP reference service plus a bounded assessment client. The lifecycle extension additionally checks challenge-purpose binding, re-enrollment ownership and server-side session expiry. It exercises challenge state, session lifecycle, object authorization, function authorization and resource limits. The reference service uses a deterministic synthetic test assertion to stand in for a biometric verifier. It is not speaker recognition, presentation-attack detection, liveness verification or evidence of biometric accuracy.
+The implementation is a deliberately small HTTP reference service plus a bounded assessment client. The lifecycle extension additionally checks challenge-purpose binding, re-enrollment ownership and server-side session expiry. It exercises challenge state, session lifecycle, object authorization, function authorization and resource limits. The reference service uses a deterministic synthetic test assertion to stand in for a biometric verifier. It is not speaker recognition, presentation-attack detection, liveness verification or evidence of biometric accuracy.
 
 ## Safety boundary
 
@@ -48,7 +48,7 @@ voxrigor protocol demo --fixture-profile vulnerable --output .\runs\protocol-vul
 
 The demo command starts a temporary reference service on an OS-assigned loopback port, executes the checks and shuts the service down.
 
-## Initial checks
+## Checks
 
 | Check ID | Control tested | Expected fixed behavior |
 |---|---|---|
@@ -98,18 +98,11 @@ Findings use the framework result states:
 
 no_issue_observed means only that a particular check did not demonstrate the condition. It is not proof that the endpoint, service or overall voice-authentication system is secure.
 
-## Standards mapping
-
-The first test catalogue is informed by:
-- [OWASP API Security Top 10:2023](https://api-security.owasp.org/editions/2023/en/0x11-t10/), especially Broken Object Level Authorization, Broken Authentication, Unrestricted Resource Consumption and Broken Function Level Authorization.
-- [OWASP Web Security Testing Guide](https://wstg.owasp.org/latest/), especially Authentication, Authorization, Session Management and API Testing.
-- [OWASP ASVS 5.0.0](https://asvs.owasp.org/), as a technical-control verification reference.
-
-This is a mapping for test design, not an assertion of OWASP verification or compliance.
-
 ## Validation status
 
-The initial Phase 5 implementation passed CI run 42588833761 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. All six jobs passed Ruff lint, Ruff formatting, strict Mypy and the full test suite. Each Linux job completed 198 tests and 85.74% coverage against the 85% gate. The reference-fixture tests prove that the scanner distinguishes the bundled fixed and intentionally vulnerable protocol profiles; they do not establish production biometric or system security.
+The initial Phase 5 protocol implementation and the lifecycle extension both passed the six-job GitHub Actions matrix on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. The latest lifecycle branch-head run [42593363565](https://github.com/AB772K/VoxRigor/actions/runs/42593363565) passed Ruff lint, Ruff formatting, strict Mypy and the complete test suite. Linux jobs completed 201 tests at 85.58% coverage against the configured 85% gate.
+
+The reference-fixture tests prove that the scanner distinguishes the bundled fixed and intentionally vulnerable protocol profiles; they do not establish production biometric or system security.
 
 ## Current limitations
 
@@ -117,6 +110,6 @@ The initial Phase 5 implementation passed CI run 42588833761 on Ubuntu and Windo
 - All targets must be loopback IP literals; remote authorized-target testing is deferred.
 - The deterministic fixture assertion does not verify voice, speaker identity, liveness, PAD or deepfake resistance.
 - Enrollment is represented by in-memory fixture records, not real biometric templates.
-- The suite does not test password storage, MFA provider integrations, account recovery channels, OAuth/OIDC, WebAuthn, telephony or distributed session stores.
+- The suite does not test password storage, MFA provider integrations, full account recovery channels, OAuth/OIDC, WebAuthn, telephony or distributed session stores.
 - Challenge expiry testing becomes inconclusive when the target's declared expiry exceeds the operator's wait budget.
 - The fixed and vulnerable fixtures are small examples, not complete implementations of a production authentication service.

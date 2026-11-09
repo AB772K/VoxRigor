@@ -39,7 +39,9 @@ def _select_threshold_at_target_fmr(
     """Select the lowest development threshold whose empirical FMR meets the target."""
 
     normalized = [normalize_score(row.score, direction) for row in records]
-    nontarget = [normalize_score(row.score, direction) for row in records if row.label == "nontarget"]
+    nontarget = [
+        normalize_score(row.score, direction) for row in records if row.label == "nontarget"
+    ]
     if not nontarget:
         raise ResearchExperimentError("calibration data must contain nontarget trials")
     candidates = sorted(set(normalized))
@@ -151,9 +153,7 @@ def _group_overlap_report(
                 for row in dataset.records
             )
             if not values or missing:
-                message = (
-                    f"Group column {column} is absent or incomplete in dataset {dataset.manifest.dataset_id}."
-                )
+                message = f"Group column {column} is absent or incomplete in dataset {dataset.manifest.dataset_id}."
                 if loaded.manifest.require_group_disjointness:
                     raise ResearchExperimentError(message)
                 warnings.append(message)
@@ -181,7 +181,9 @@ def _group_overlap_report(
     return report
 
 
-def _validate_score_lineage(loaded: LoadedResearchExperiment, warnings: list[str]) -> dict[str, object]:
+def _validate_score_lineage(
+    loaded: LoadedResearchExperiment, warnings: list[str]
+) -> dict[str, object]:
     datasets = [loaded.calibration_dataset, *(item.dataset for item in loaded.evaluation_datasets)]
     signatures = [_score_producer_signature(dataset) for dataset in datasets]
     if all(signature is None for signature in signatures):
@@ -233,9 +235,7 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
         calibration.records, direction, loaded.manifest.target_fmr
     )
     original_threshold = (
-        raw_threshold
-        if direction is ScoreDirection.HIGHER_IS_GENUINE
-        else -raw_threshold
+        raw_threshold if direction is ScoreDirection.HIGHER_IS_GENUINE else -raw_threshold
     )
 
     evaluation_results: list[dict[str, object]] = []
@@ -343,7 +343,7 @@ def _render_html(report: dict[str, object]) -> str:
     warnings_list = cast(list[str], report["warnings"])
     warnings = "".join(f"<li>{html.escape(item)}</li>" for item in warnings_list)
     return (
-        "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">"
+        '<!doctype html><html lang="en"><meta charset="utf-8">'
         "<title>VoxRigor Research Experiment</title><body>"
         f"<h1>{html.escape(str(report['experiment_id']))}</h1>"
         f"<p>{html.escape(str(report['description']))}</p>"

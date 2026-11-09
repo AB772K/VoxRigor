@@ -26,7 +26,9 @@ def _dataset(directory: Path, dataset_id: str, rows: list[tuple[str, float, str]
     directory.mkdir(parents=True, exist_ok=True)
     csv_lines = ["trial_id,label,score,split,speaker_id,source_id"]
     for index, (label, score, speaker) in enumerate(rows):
-        csv_lines.append(f"{dataset_id}-{index},{label},{score},test,{speaker},{dataset_id}-src-{index}")
+        csv_lines.append(
+            f"{dataset_id}-{index},{label},{score},test,{speaker},{dataset_id}-src-{index}"
+        )
     csv_text = "\n".join(csv_lines) + "\n"
     score_path = directory / "scores.csv"
     score_path.write_text(csv_text, encoding="utf-8")
@@ -91,7 +93,10 @@ def _experiment(root: Path, *, overlap: bool = False) -> Path:
         "calibration_dataset_manifest": "calibration/benchmark.json",
         "evaluation_datasets": [
             {"domain_id": "in_domain", "dataset_manifest": "evaluation-in-domain/benchmark.json"},
-            {"domain_id": "cross_domain", "dataset_manifest": "evaluation-cross-domain/benchmark.json"},
+            {
+                "domain_id": "cross_domain",
+                "dataset_manifest": "evaluation-cross-domain/benchmark.json",
+            },
         ],
         "target_fmr": 0.1,
         "probability_threshold": 0.5,
