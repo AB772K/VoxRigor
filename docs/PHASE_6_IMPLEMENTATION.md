@@ -43,6 +43,12 @@ The manifest is versioned by `schemas/research-experiment-0.1.schema.json`. Path
     "replicates": 1000,
     "seed": 2026,
     "confidence_level": 0.95
+  },
+  "nested_calibration_bootstrap": {
+    "cluster_column": "speaker_id",
+    "replicates": 1000,
+    "seed": 2027,
+    "confidence_level": 0.95
   }
 }
 ```
@@ -59,6 +65,7 @@ Every referenced dataset must be an ASV score-dataset manifest with target and n
 6. Audit speaker/source identifiers across calibration and evaluation datasets when those columns are configured. Overlap can be a warning or an enforced failure.
 7. When `cluster_bootstrap` is configured, resample complete speaker/source clusters with replacement within each held-out evaluation dataset. Report percentile intervals for EER, ROC-AUC and FMR/FNMR at the frozen operating threshold. At least two independent clusters must contribute to each class, and at least 80% of requested replicates must be valid.
 8. When `stratify_by_condition` is enabled, group held-out records by the Phase 4 `condition` label. For each condition with both target and nontarget trials, report raw EER/ROC-AUC, the frozen-threshold FMR/FNMR and calibration metrics using the same mapping fitted on the calibration dataset. A condition missing either class is retained with sample counts and marked `not_computable`; no condition-specific threshold is selected.
+9. When `nested_calibration_bootstrap` is configured, resample calibration clusters and held-out evaluation clusters independently with replacement. Re-fit Platt calibration and re-select the target-FMR threshold using only each resampled calibration set, then calculate error/ranking/calibration metrics on its paired resampled evaluation set. Report intervals for the selected threshold, EER, ROC-AUC, FMR/FNMR at the re-selected threshold, Brier, log loss and ECE. The chosen cluster IDs must be non-empty, at least two clusters must contribute to each class in each partition, and calibration/evaluation cluster IDs must be disjoint. At least 80% of replicates must be valid.
 
 The probability threshold is an explicit user-declared decision threshold; it is not selected from evaluation labels. The raw operating threshold is selected from the calibration dataset using empirical FMR, then frozen. When the calibration set is small, the target FMR is limited by its impostor trial count: a target of 0.001 cannot be empirically distinguished with a handful of nontarget trials. The report preserves the exact denominator and confidence interval to make this limitation visible.
 
@@ -117,7 +124,10 @@ These comparisons are paired descriptions on the supplied trials, not causal pro
 - EER and ROC-AUC summarize ranking performance and do not replace the transferred operating point.
 - Brier score, log loss and ECE assess probability calibration, not speaker recognition accuracy.
 - Wilson intervals are trial-level and do not account for speaker/source clustering. The optional cluster bootstrap provides a separate cluster-resampled interval when stable speaker/source identifiers are available.
-- Cluster-bootstrap intervals are conditional on the already-fitted calibration mapping and frozen operating threshold. They quantify held-out evaluation-set cluster sampling variability only; they do not include development/calibration-set uncertainty or threshold-selection variability.
+- Standard cluster-bootstrap intervals are conditional on the already-fitted calibration mapping and frozen operating threshold. They quantify held-out evaluation-set cluster sampling variability only; they do not include development/calibration-set uncertainty or threshold-selection variability.
+- The optional nested calibration bootstrap independently re-samples calibration and evaluation clusters, re-fits the calibration mapping and re-selects the operating threshold in each replicate. Its intervals therefore include calibration-set/threshold-selection variability and held-out evaluation-cluster variability for the supplied partitions.
+- Nested-bootstrap calibration and evaluation cluster IDs must be disjoint for the configured sampling unit. If the same speaker/source appears in both partitions, the procedure stops rather than treating dependent observations as independent samples.
+- Nested-bootstrap intervals still do not include model-training or hyperparameter-search variability, population/sampling-frame bias, or uncertainty from acquiring a different development/evaluation dataset.
 - A cluster bootstrap is only meaningful when the chosen cluster identifiers represent independent sampling units. Trial IDs, random row IDs or per-trial source IDs must not be presented as speaker-level uncertainty.
 - Replicates that omit either target or nontarget class are discarded. The run fails rather than reporting an interval when fewer than 80% of requested replicates remain valid.
 - Condition-stratified metrics are descriptive held-out slices. They use the single frozen calibration mapping and operating threshold; they do not retune thresholds within conditions.
