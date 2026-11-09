@@ -250,3 +250,102 @@ def test_duplicate_staged_input_ids_are_rejected(tmp_path: Path) -> None:
     )
     with pytest.raises(WorkerExecutionError, match="Duplicate staged input ID"):
         RootlessPodmanBackend._copy_staged_inputs(inputs)
+
+
+def test_container_output_mount_is_read_only_by_default() -> None:
+    policy = IsolationPolicy()
+    command = _backend()._container_command(
+        action="create",
+        name="voxrigor-test-worker",
+        policy=policy,
+        image=IMAGE,
+        mounts=(),
+        entrypoint="python",
+        worker_command=("-m", "voxrigor.plugin_worker.worker_main"),
+        interactive=True,
+    )
+    tmpfs_index = command.index("--tmpfs")
+    tmpfs_args = command[tmpfs_index + 1 : tmpfs_index + 3]
+    output_spec = next(item for item in tmpfs_args if item.startswith("/output:"))
+    assert output_spec.startswith("/output:ro,")
+    assert "rw" not in output_spec.split(",")
+
+
+def test_backend_refuses_unimplemented_network_and_write_capabilities() -> None:
+    from voxrigor.plugins import PluginPermission
+    from voxrigor.plugin_worker.podman import WorkerExecutionSpec
+
+    network_spec = WorkerExecutionSpec(
+        plugin_id="demo.voice",
+        test_id="demo.voice.diagnostic",
+        project_name="Worker security",
+        granted_permissions=(PluginPermission.NETWORK_LOOPBACK,),
+    )
+    with pytest.raises(PodmanBackendError, match="network.loopback"):
+        _backend().launch(network_spec)
+
+    write_spec = WorkerExecutionSpec(
+        plugin_id="demo.voice",
+        test_id="demo.voice.diagnostic",
+        project_name="Worker security",
+        granted_permissions=(PluginPermission.FILESYSTEM_WRITE,),
+    )
+    with pytest.raises(PodmanBackendError, match="filesystem.write"):
+        _backend().launch(write_spec)
+
+
+@pytest.mark.parametrize(
+    ("media_kind", "permissions", "expected"),
+    [
+        ("audio", (), "audio.read"),
+        ("model", (), "model.load"),
+        ("dataset", (), "filesystem.read"),
+    ],
+)
+def test_staged_input_kinds_require_matching_permission_grants(
+    media_kind: str,
+    permissions: tuple[object, ...],
+    expected: str,
+) -> None:
+    from voxrigor.plugins import PluginPermission
+    from voxrigor.plugin_worker.podman import WorkerExecutionSpec
+
+    reference = StagedInputReference(
+        input_id="input-data-1",
+        sha256="a" * 64,
+        size_bytes=1,
+        media_kind=media_kind,
+        display_name="sample.bin",
+    )
+    spec = WorkerExecutionSpec(
+        plugin_id="demo.voice",
+        test_id="demo.voice.diagnostic",
+        project_name="Worker security",
+        staged_inputs=(HostStagedInput(reference=reference, source_path=Path("sample.bin")),),
+        granted_permissions=permissions,  # type: ignore[arg-type]
+    )
+    with pytest.raises(PodmanBackendError, match=expected):
+        _backend()._validate_spec_permissions(spec)
+
+
+def test_staged_input_with_matching_grant_is_permitted_by_host_policy(tmp_path: Path) -> None:
+    from voxrigor.plugins import PluginPermission
+    from voxrigor.plugin_worker.podman import WorkerExecutionSpec
+
+    source = tmp_path / "sample.wav"
+    source.write_bytes(b"audio")
+    reference = StagedInputReference(
+        input_id="input-audio-1",
+        sha256=hashlib.sha256(b"audio").hexdigest(),
+        size_bytes=5,
+        media_kind="audio",
+        display_name="sample.wav",
+    )
+    spec = WorkerExecutionSpec(
+        plugin_id="demo.voice",
+        test_id="demo.voice.diagnostic",
+        project_name="Worker security",
+        granted_permissions=(PluginPermission.AUDIO_READ,),
+        staged_inputs=(HostStagedInput(reference=reference, source_path=source),),
+    )
+    _backend()._validate_spec_permissions(spec)
