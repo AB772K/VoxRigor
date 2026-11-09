@@ -42,7 +42,7 @@ from voxrigor.plugins import (
     PluginPermission,
     PluginRegistrationContext,
 )
-from voxrigor.testing import StagedTestInput, TestOutcome, TestRegistry, TestContext
+from voxrigor.testing import StagedTestInput, TestContext, TestOutcome, TestRegistry
 
 
 class WorkerBootstrapError(RuntimeError):
