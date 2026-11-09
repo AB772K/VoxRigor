@@ -7,18 +7,16 @@ from typing import cast
 
 import pytest
 
-from voxrigor.models import (
-    ResultStatus,
-    SampleAccounting,
-    TestDescriptor as Descriptor,
-)
+from voxrigor.models import ResultStatus
+from voxrigor.models import SampleAccounting
+from voxrigor.models import TestDescriptor as Descriptor
 from voxrigor.plugin_worker import worker_main
 from voxrigor.plugin_worker.protocol import (
+    StagedInputReference,
     WORKER_PROTOCOL_VERSION,
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
-    StagedInputReference,
     WorkerFailure,
     WorkerHello,
     WorkerResourceLimits,
