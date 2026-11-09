@@ -10,8 +10,9 @@ import tempfile
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from itertools import combinations
-from math import nextafter, inf
+from math import inf, nextafter
 from pathlib import Path
+from typing import cast
 from uuid import uuid4
 
 from voxrigor import __version__
@@ -322,22 +323,25 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 def _render_html(report: dict[str, object]) -> str:
-    rows = []
-    for item in report["evaluation_datasets"]:
-        result = item
-        metrics = result["raw_score_metrics"]
-        calibration = result["calibration_metrics"]
+    rows: list[str] = []
+    evaluation_datasets = cast(list[dict[str, object]], report["evaluation_datasets"])
+    for result in evaluation_datasets:
+        dataset = cast(dict[str, object], result["dataset"])
+        metrics = cast(dict[str, object], result["raw_score_metrics"])
+        eer = cast(dict[str, object], metrics["eer"])
+        calibration = cast(dict[str, object], result["calibration_metrics"])
         rows.append(
             "<tr>"
             f"<td>{html.escape(str(result['domain_id']))}</td>"
-            f"<td>{html.escape(str(result['dataset']['dataset']['dataset_id']))}</td>"
-            f"<td>{float(metrics['eer']['value']):.6f}</td>"
+            f"<td>{html.escape(str(dataset['dataset_id']))}</td>"
+            f"<td>{float(eer['value']):.6f}</td>"
             f"<td>{float(metrics['roc_auc']):.6f}</td>"
             f"<td>{float(calibration['brier_score']):.6f}</td>"
             f"<td>{float(calibration['expected_calibration_error']):.6f}</td>"
             "</tr>"
         )
-    warnings = "".join(f"<li>{html.escape(str(item))}</li>" for item in report["warnings"])
+    warnings_list = cast(list[str], report["warnings"])
+    warnings = "".join(f"<li>{html.escape(item)}</li>" for item in warnings_list)
     return (
         "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">"
         "<title>VoxRigor Research Experiment</title><body>"
