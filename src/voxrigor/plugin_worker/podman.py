@@ -587,7 +587,9 @@ class RootlessPodmanBackend:
             mount_type = str(mount.get("Type", "")).lower()
             destination = str(mount.get("Destination", ""))
             if mount_type == "volume":
-                raise PodmanBackendError("Anonymous or named volumes are not permitted for plugin workers")
+                raise PodmanBackendError(
+                    "Anonymous or named volumes are not permitted for plugin workers"
+                )
             if mount_type == "bind":
                 if destination in expected_bind_destinations:
                     if mount.get("RW") is not False:
