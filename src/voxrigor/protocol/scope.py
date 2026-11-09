@@ -72,9 +72,11 @@ def load_scope_manifest(path: Path) -> ProtocolScope:
         raise ScopeManifestError("Protocol scope is missing, unreadable or invalid") from exc
 
 
-def write_scope_example(path: Path, target_url: str) -> Path:
-    """Write a local-only scope example without overwriting an existing file."""
+def write_scope_example(path: Path, target_url: str, *, authorized: bool) -> Path:
+    """Write a local-only scope example after an explicit authorization acknowledgement."""
 
+    if authorized is not True:
+        raise ScopeManifestError("Explicit --i-authorize-local-target acknowledgement is required")
     scope = ProtocolScope(target_url=target_url, authorized=True)
     destination = Path(path).expanduser()
     destination.parent.mkdir(parents=True, exist_ok=True)

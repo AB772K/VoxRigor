@@ -31,7 +31,7 @@ voxrigor protocol serve --fixture-profile fixed --port 8765 --challenge-ttl-seco
 Create a local scope file:
 
 ```powershell
-voxrigor protocol init-scope --target-url http://127.0.0.1:8765 --output .\protocol-scope.json
+voxrigor protocol init-scope --target-url http://127.0.0.1:8765 --i-authorize-local-target --output .\protocol-scope.json
 ```
 
 Run the bounded checks:

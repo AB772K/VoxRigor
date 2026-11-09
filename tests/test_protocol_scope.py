@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from voxrigor.protocol.errors import ScopeManifestError
 from voxrigor.protocol.scope import ProtocolScope, load_scope_manifest, write_scope_example
 
 
@@ -50,12 +51,12 @@ def test_scope_enforces_small_request_and_timeout_budgets() -> None:
 
 
 def test_scope_example_round_trips_and_does_not_overwrite(tmp_path: Path) -> None:
-    path = write_scope_example(tmp_path / "scope.json", "http://127.0.0.1:8765")
+    path = write_scope_example(tmp_path / "scope.json", "http://127.0.0.1:8765", authorized=True)
     scope = load_scope_manifest(path)
     assert scope.target_url == "http://127.0.0.1:8765"
     assert scope.authorized is True
     with pytest.raises(FileExistsError):
-        write_scope_example(path, "http://127.0.0.1:8765")
+        write_scope_example(path, "http://127.0.0.1:8765", authorized=True)
 
 
 def test_scope_loader_rejects_unknown_fields(tmp_path: Path) -> None:
@@ -73,3 +74,14 @@ def test_scope_loader_rejects_unknown_fields(tmp_path: Path) -> None:
     )
     with pytest.raises(Exception, match="invalid"):
         load_scope_manifest(path)
+
+
+
+def test_scope_example_requires_explicit_authorization_acknowledgement(tmp_path: Path) -> None:
+    with pytest.raises(ScopeManifestError, match="acknowledgement"):
+        write_scope_example(
+            tmp_path / "scope.json",
+            "http://127.0.0.1:8765",
+            authorized=False,
+        )
+    assert not (tmp_path / "scope.json").exists()

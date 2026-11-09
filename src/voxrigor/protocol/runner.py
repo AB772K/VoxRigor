@@ -204,8 +204,9 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
         # Do not exceed the operator's explicit time budget waiting for expiry.
         expiry_challenge, expiry_id, expiry_nonce = _challenge(client, "charlie")
         ttl_value = expiry_challenge.payload.get("expires_in")
-        if isinstance(ttl_value, (int, float)) and 0 <= float(ttl_value) <= scope.max_test_wait_seconds:
-            time.sleep(float(ttl_value) + 0.05)
+        wait_seconds = float(ttl_value) + 0.05 if isinstance(ttl_value, (int, float)) else None
+        if wait_seconds is not None and 0 <= wait_seconds <= scope.max_test_wait_seconds:
+            time.sleep(wait_seconds)
             expired = _verify(client, expiry_id, "charlie", expiry_nonce)
             if expired.status_code == 200:
                 expiry_status = CheckStatus.VULNERABLE

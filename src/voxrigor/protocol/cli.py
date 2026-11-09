@@ -35,11 +35,22 @@ def protocol_init_scope(
     output: Annotated[
         Path, typer.Option("--output", help="New scope JSON file; existing files are not overwritten.")
     ] = Path("protocol-scope.json"),
+    acknowledge_authorization: Annotated[
+        bool,
+        typer.Option(
+            "--i-authorize-local-target",
+            help="Confirm that you own or have explicit permission to test this local target.",
+        ),
+    ] = False,
 ) -> None:
     """Create an explicit local-only protocol scope manifest."""
 
     try:
-        created = write_scope_example(output, target_url)
+        created = write_scope_example(
+            output,
+            target_url,
+            authorized=acknowledge_authorization,
+        )
     except (ProtocolError, OSError, ValueError) as exc:
         _handle_error(exc)
     typer.secho(f"Local scope created: {created}", fg=typer.colors.GREEN)
