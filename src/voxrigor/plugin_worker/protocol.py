@@ -231,7 +231,6 @@ class WorkerShutdownResponse(_WorkerModel):
     kind: Literal["shutdown_ack"] = "shutdown_ack"
 
 
-
 WorkerMessage: TypeAlias = Annotated[
     WorkerHello
     | WorkerDescribeRequest
