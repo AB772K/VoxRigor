@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+
+# A base image is mandatory and must be pinned by immutable digest:
+#   --build-arg PYTHON_BASE_IMAGE=docker.io/library/python:3.12-slim@sha256:<digest>
+ARG PYTHON_BASE_IMAGE
+FROM ${PYTHON_BASE_IMAGE}
+
+# Space-separated installed distribution names, not arbitrary shell commands.
+ARG VOXRIGOR_DISTRIBUTIONS="voxrigor"
+
+# The build context must include wheelhouse/ with the core package, each
+# explicitly enabled plugin wheel, and every transitive runtime dependency.
+# No package index or network lookup is permitted during image construction.
+COPY wheelhouse/ /opt/voxrigor-wheelhouse/
+
+RUN set -eu; \
+    set -- ${VOXRIGOR_DISTRIBUTIONS}; \
+    python -m pip install \
+        --no-cache-dir \
+        --no-index \
+        --find-links=/opt/voxrigor-wheelhouse \
+        "$@"; \
+    rm -rf /opt/voxrigor-wheelhouse
+
+ENV HOME=/tmp \
+    PATH=/usr/local/bin:/usr/bin:/bin \
+    PYTHONNOUSERSITE=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /tmp
+USER 10001:10001
+
+# PodmanBackend overrides the entry point explicitly after validating the
+# container configuration. This default also keeps manual test runs obvious.
+ENTRYPOINT ["python", "-m", "voxrigor.plugin_worker.worker_main"]

@@ -7,6 +7,7 @@ import logging
 import platform
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Protocol
 from uuid import UUID, uuid4
 
@@ -29,11 +30,28 @@ LOGGER = logging.getLogger("voxrigor")
 
 
 @dataclass(frozen=True)
+class StagedTestInput:
+    """One host-approved input mounted read-only inside an isolated worker."""
+
+    input_id: str
+    path: Path
+    display_name: str
+    media_kind: str
+    sha256: str
+    size_bytes: int
+
+
+@dataclass(frozen=True)
 class TestContext:
-    """Minimal context passed to a test implementation."""
+    """Minimal context passed to a test implementation.
+
+    staged_inputs is populated only by an isolated worker. Paths in this
+    sequence are worker-container paths, never host filesystem paths.
+    """
 
     run_id: UUID
     project: ProjectManifest
+    staged_inputs: tuple[StagedTestInput, ...] = ()
 
 
 @dataclass(frozen=True)

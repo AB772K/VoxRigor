@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Annotated, BinaryIO, Literal, TypeAlias
+from typing import IO, Annotated, BinaryIO, Literal, TypeAlias
 
 from pydantic import (
     BaseModel,
@@ -20,7 +20,7 @@ from pydantic import (
 )
 
 from voxrigor.models import ResultStatus, TestDescriptor
-from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata
+from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata, PluginPermission
 
 WORKER_PROTOCOL_VERSION = "0.1"
 MAX_WORKER_FRAME_BYTES = 1_048_576
@@ -101,6 +101,19 @@ class WorkerDescribeRequest(_WorkerModel):
     kind: Literal["describe"] = "describe"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
+    granted_permissions: tuple[PluginPermission, ...] = Field(default=(), max_length=16)
+    limits: WorkerResourceLimits
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_granted_permissions(cls, value: object) -> object:
+        if isinstance(value, dict) and isinstance(value.get("granted_permissions"), list):
+            parsed = value.copy()
+            parsed["granted_permissions"] = tuple(
+                PluginPermission(item) for item in parsed["granted_permissions"]
+            )
+            return parsed
+        return value
 
 
 class WorkerDescribeResponse(_WorkerModel):
@@ -363,7 +376,7 @@ def read_worker_message(
 
 
 def write_worker_message(
-    stream: BinaryIO,
+    stream: IO[bytes],
     message: WorkerMessage,
     *,
     max_bytes: int = MAX_WORKER_FRAME_BYTES,
