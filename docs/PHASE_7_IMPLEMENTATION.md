@@ -95,3 +95,13 @@ The plugin API is currently experimental at `0.1`; its version is independent of
 ## Isolated plugin worker — design only
 
 A platform-specific worker architecture has been documented in [Isolated Plugin Worker Design](PLUGIN_WORKER_ISOLATION_DESIGN.md). It covers process isolation, bounded JSON IPC, staged-file capabilities, Linux rootless OCI and Windows AppContainer candidate backends, resource controls, fail-closed behavior and adversarial acceptance tests. **This design is not implemented.** The current `--plugin-config` loader still executes third-party code in-process with the current user's OS permissions; it is not a sandbox.
+
+## Isolated plugin worker — protocol foundation implemented; OS isolation remains open
+
+The first worker-infrastructure slice is implemented as protocol and preflight contracts only:
+
+- `src/voxrigor/plugin_worker/protocol.py` defines strict versioned JSONL messages and a bounded codec (1 MiB frames, LF-only framing, duplicate-key rejection, strict UTF-8/JSON, no Python object serialization, opaque staged-input IDs and namespaced test IDs).
+- `src/voxrigor/plugin_worker/isolation.py` defines finite policy/readiness models and a fail-closed backend preflight contract. It refuses a missing/unverified backend, identity mismatch, unsupported access or missing controls.
+- `tests/test_plugin_worker_protocol.py` exercises malformed/oversized IPC, invalid paths/namespaces/results, version mismatches and backend-preflight failure cases across the six-job OS/Python matrix.
+
+**No production isolation backend or worker launcher exists yet.** The fake backend tests verify only the host-side interface contract; they do not prove that Linux namespaces/seccomp/cgroups or Windows AppContainer/Job Objects are actually enforced. The current `--plugin-config` path still imports and executes plugin code inside the host process with the current user's OS permissions. Do not treat this protocol foundation as a sandbox.

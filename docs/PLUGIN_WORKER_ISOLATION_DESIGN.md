@@ -1,6 +1,6 @@
 # Phase 7 — Isolated Plugin Worker Design
 
-**Status:** architecture decision draft; implementation is not present. The current `voxrigor run --plugin-config ...` path imports and executes plugin code in the VoxRigor process. It is explicitly not a sandbox.
+**Status:** the bounded IPC protocol and fail-closed isolation-preflight contract are implemented. No worker launcher or production OS isolation backend exists yet. The current `voxrigor run --plugin-config ...` path still imports and executes plugin code in the VoxRigor process. It is explicitly not a sandbox.
 
 ## 1. Security decision
 
@@ -83,6 +83,20 @@ Minimum message families:
 JSON is data only. Never use `pickle`, `dill`, `cloudpickle`, Python object serialization, arbitrary import paths supplied by the plugin, or executable expressions in IPC. Bound both request and response sizes; cap log output and truncate/redact it before storing.
 
 Worker responses are untrusted claims. The host re-validates result models, IDs, units, measurement types, artifact paths, file sizes and hashes before incorporating them into a report. A plugin cannot self-assert that a security check passed unless the host independently validates the evidence.
+
+## 4A. Implemented protocol foundation (not a worker)
+
+The repository now contains a versioned, bounded protocol foundation in `src/voxrigor/plugin_worker/protocol.py`. It currently defines the message types `hello`, `describe`, `description`, `execute`, `result`, `failure`, `cancel`, `cancelled`, `shutdown` and `shutdown_ack`, with strict literal discriminators and a version handshake tied to the host's supported plugin API.
+
+The codec uses LF-terminated UTF-8 JSON frames with a 1 MiB maximum. It rejects malformed UTF-8, duplicate object keys, non-standard JSON constants, CRLF/truncated/oversized frames, unknown message kinds and unexpected fields. The Pydantic models enforce resource-limit ranges, namespaced test identifiers, opaque staged-input IDs, content hashes, safe display names, bounded scalar measurements and immutable sequence fields after parsing. It does not use pickle or Python object serialization.
+
+The initial message schema deliberately carries opaque staged-input references rather than host filesystem paths. It does not yet implement artifact transfer, a host-side artifact broker, a worker bootstrap or an execution supervisor.
+
+A fail-closed backend contract exists in `src/voxrigor/plugin_worker/isolation.py`. It refuses a missing backend, unsupported network/microphone/general-host-filesystem requests, mismatched backend identity, malformed/unverified readiness reports and missing required controls. **There is no production backend registered.** The test suite uses a fake backend only to verify the contract; it does not prove that any OS isolation control is active.
+
+`tests/test_plugin_worker_protocol.py` covers codec round trips, version mismatches, duplicate JSON keys, invalid UTF-8, non-standard constants, framing errors, path rejection, plugin namespace validation, result payload validation and fail-closed preflight behavior.
+
+**This is foundation code only.** It does not launch a plugin, move imports out of the host, enforce OS capabilities, create Linux containers/AppContainers, apply real quotas, kill worker process trees or clean real worker mounts. The existing plugin CLI path remains in-process and must be used only with plugins trusted as host code.
 
 ## 5. Capability model and data brokering
 
