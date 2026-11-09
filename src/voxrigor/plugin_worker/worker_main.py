@@ -68,9 +68,7 @@ def _apply_process_limits(cpu_seconds: int, open_file_count: int) -> None:
 
 def _entry_point_for(plugin_id: str) -> EntryPoint:
     matches = [
-        item
-        for item in entry_points(group=PLUGIN_ENTRY_POINT_GROUP)
-        if item.name == plugin_id
+        item for item in entry_points(group=PLUGIN_ENTRY_POINT_GROUP) if item.name == plugin_id
     ]
     if len(matches) != 1:
         raise WorkerBootstrapError("Expected exactly one installed entry point for this plugin ID")
@@ -118,13 +116,17 @@ def _staged_test_inputs(request: WorkerExecuteRequest) -> tuple[StagedTestInput,
             raise WorkerBootstrapError("A declared staged input is not available as a regular file")
         stat = path.stat()
         if stat.st_size != reference.size_bytes:
-            raise WorkerBootstrapError("A staged input size differs from its host-verified metadata")
+            raise WorkerBootstrapError(
+                "A staged input size differs from its host-verified metadata"
+            )
         digest = hashlib.sha256()
         with path.open("rb") as stream:
             for block in iter(lambda: stream.read(1024 * 1024), b""):
                 digest.update(block)
         if digest.hexdigest() != reference.sha256:
-            raise WorkerBootstrapError("A staged input hash differs from its host-verified metadata")
+            raise WorkerBootstrapError(
+                "A staged input hash differs from its host-verified metadata"
+            )
         staged.append(
             StagedTestInput(
                 input_id=reference.input_id,
