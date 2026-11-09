@@ -115,38 +115,49 @@ class _WorkerSession:
 
         if self.process is not None:
             raise WorkerExecutionError("Worker session has already been started")
-        command = self.backend._container_command(
-            action="create",
-            name=self.container_name,
-            policy=self.spec.policy,
-            image=self.backend.worker_image,
-            mounts=self.staged_mounts,
-            entrypoint="python",
-            worker_command=("-m", "voxrigor.plugin_worker.worker_main"),
-            interactive=True,
-        )
-        container_id = self.backend._run_checked(
-            command,
-            timeout=30,
-            operation="create isolated plugin worker",
-        ).strip()
-        if not container_id:
-            raise WorkerExecutionError("Podman returned no container ID")
-        self.backend._verify_container(
-            container_id,
-            self.spec.policy,
-            expected_binds=tuple(str(path) for _, path in self.staged_mounts),
-        )
-        attach = subprocess.Popen(
-            [self.backend.binary, "start", "--attach", "--interactive", container_id],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            bufsize=0,
-            start_new_session=True,
-        )
-        self.process = attach
-        self._start_reader_threads()
+        container_id: str | None = None
+        try:
+            command = self.backend._container_command(
+                action="create",
+                name=self.container_name,
+                policy=self.spec.policy,
+                image=self.backend.worker_image,
+                mounts=self.staged_mounts,
+                entrypoint="python",
+                worker_command=("-m", "voxrigor.plugin_worker.worker_main"),
+                interactive=True,
+            )
+            raw_id = self.backend._run_checked(
+                command,
+                timeout=30,
+                operation="create isolated plugin worker",
+            )
+            container_id = raw_id.strip()
+            if not container_id:
+                raise WorkerExecutionError("Podman returned no container ID")
+            expected_binds = tuple(
+                (str(path), f"/inputs/{reference.input_id}")
+                for reference, path in self.staged_mounts
+            )
+            self.backend._verify_container(
+                container_id,
+                self.spec.policy,
+                expected_binds=expected_binds,
+            )
+            attach = subprocess.Popen(
+                [self.backend.binary, "start", "--attach", "--interactive", container_id],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=0,
+                start_new_session=True,
+            )
+            self.process = attach
+            self._start_reader_threads()
+        except BaseException:
+            self.backend._remove_container(container_id or self.container_name)
+            self.staged_directory.cleanup()
+            raise
 
     def _start_reader_threads(self) -> None:
         process = self.process
@@ -467,17 +478,19 @@ class RootlessPodmanBackend:
         checks: dict[str, tuple[object, object]] = {
             "read-only root": (host.get("ReadonlyRootfs"), True),
             "network isolation": (host.get("NetworkMode"), "none"),
-            "PID namespace": (host.get("PidMode"), "private"),
-            "IPC namespace": (host.get("IpcMode"), "private"),
+            "PID namespace": (host.get("PidMode") or "private", "private"),
+            "IPC namespace": (host.get("IpcMode") or "private", "private"),
             "memory limit": (host.get("Memory"), policy.memory_bytes),
             "process-count limit": (host.get("PidsLimit"), policy.process_count),
             "CPU quota": (host.get("NanoCpus"), 1_000_000_000),
-            "user namespace": (host.get("UsernsMode"), "auto"),
             "container identity": (config.get("User"), f"{_CONTAINER_UID}:{_CONTAINER_GID}"),
         }
         for label, (actual, expected) in checks.items():
             if actual != expected:
                 raise PodmanBackendError(f"Podman did not apply the required {label}")
+        user_namespace = host.get("UsernsMode")
+        if not isinstance(user_namespace, str) or not user_namespace.startswith("auto"):
+            raise PodmanBackendError("Podman did not allocate an isolated automatic user namespace")
 
         capabilities = host.get("CapDrop")
         if not isinstance(capabilities, list) or not any(
@@ -536,12 +549,42 @@ class RootlessPodmanBackend:
         binds = host.get("Binds") or []
         if not isinstance(binds, list):
             raise PodmanBackendError("Podman returned an invalid bind-mount list")
-        actual_sources: list[str] = []
+        actual_binds: set[tuple[str, str]] = set()
         for bind in binds:
-            source = str(bind).split(":", 1)[0]
-            actual_sources.append(source)
-        if set(actual_sources) != set(expected_binds):
+            parts = str(bind).split(":")
+            if len(parts) < 3:
+                raise PodmanBackendError("Podman returned an invalid bind-mount declaration")
+            options = {part.lower() for part in ",".join(parts[2:]).split(",")}
+            if "ro" not in options or "rw" in options:
+                raise PodmanBackendError("Every staged-input bind mount must be read-only")
+            actual_binds.add((parts[0], parts[1]))
+        if actual_binds != set(expected_binds):
             raise PodmanBackendError("Worker bind mounts differ from the explicitly staged inputs")
+
+        mounts = document.get("Mounts") or []
+        if not isinstance(mounts, list):
+            raise PodmanBackendError("Podman returned an invalid effective-mount list")
+        allowed_host_config_mounts = {
+            "/etc/hosts",
+            "/etc/hostname",
+            "/etc/resolv.conf",
+        }
+        expected_bind_destinations = {destination for _, destination in expected_binds}
+        for mount in mounts:
+            if not isinstance(mount, dict):
+                raise PodmanBackendError("Podman returned an invalid effective-mount entry")
+            mount_type = str(mount.get("Type", "")).lower()
+            destination = str(mount.get("Destination", ""))
+            if mount_type == "volume":
+                raise PodmanBackendError("Anonymous or named volumes are not permitted for plugin workers")
+            if mount_type == "bind":
+                if destination in expected_bind_destinations:
+                    if mount.get("RW") is not False:
+                        raise PodmanBackendError("Staged inputs must be mounted read-only")
+                elif destination not in allowed_host_config_mounts:
+                    raise PodmanBackendError(
+                        "Podman added an unapproved host bind mount to the plugin worker"
+                    )
 
         if host.get("VolumesFrom") not in (None, []):
             raise PodmanBackendError("Worker must not inherit mounts from another container")
@@ -551,7 +594,7 @@ class RootlessPodmanBackend:
         policy: IsolationPolicy,
         *,
         command: list[str],
-        expected_binds: tuple[str, ...] = (),
+        expected_binds: tuple[tuple[str, str], ...] = (),
     ) -> str:
         raw_id = self._run_checked(command, timeout=30, operation="create isolation probe container")
         container_id = raw_id.strip()
