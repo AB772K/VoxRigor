@@ -19,6 +19,7 @@ from voxrigor.research.experiment import (
 )
 from voxrigor.research.runner import (
     _cluster_bootstrap_uncertainty,
+    _nested_calibration_bootstrap_uncertainty,
     _select_threshold_at_target_fmr,
     build_research_report,
     run_research_experiment,
@@ -127,6 +128,98 @@ def _experiment(root: Path, *, overlap: bool = False, with_conditions: bool = Fa
         "stratify_by_condition": with_conditions,
     }
     path = root / "experiment.json"
+    path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    assert calibration.is_file() and in_domain.is_file() and cross_domain.is_file()
+    return path
+
+
+def _large_nested_bootstrap_experiment(root: Path) -> Path:
+    def make_rows(
+        *,
+        dataset_prefix: str,
+        target_start: float,
+        target_step: float,
+        nontarget_start: float,
+        nontarget_step: float,
+    ) -> list[tuple[str, float, str]]:
+        rows = [
+            (
+                "target",
+                target_start + index * target_step,
+                f"{dataset_prefix}-target-{index:02d}",
+            )
+            for index in range(20)
+        ]
+        rows.extend(
+            (
+                "nontarget",
+                nontarget_start + index * nontarget_step,
+                f"{dataset_prefix}-nontarget-{index:02d}",
+            )
+            for index in range(20)
+        )
+        return rows
+
+    calibration = _dataset(
+        root / "calibration",
+        "nested-calibration-set",
+        make_rows(
+            dataset_prefix="cal",
+            target_start=0.74,
+            target_step=0.01,
+            nontarget_start=0.12,
+            nontarget_step=0.014,
+        ),
+    )
+    in_domain = _dataset(
+        root / "evaluation-in-domain",
+        "nested-in-domain-set",
+        make_rows(
+            dataset_prefix="eval-in",
+            target_start=0.68,
+            target_step=0.012,
+            nontarget_start=0.10,
+            nontarget_step=0.015,
+        ),
+    )
+    cross_domain = _dataset(
+        root / "evaluation-cross-domain",
+        "nested-cross-domain-set",
+        make_rows(
+            dataset_prefix="eval-cross",
+            target_start=0.62,
+            target_step=0.013,
+            nontarget_start=0.11,
+            nontarget_step=0.014,
+        ),
+    )
+    manifest = {
+        "schema_version": "0.1",
+        "experiment_id": "nested-bootstrap-test",
+        "description": "Synthetic two-stage calibration and evaluation bootstrap test.",
+        "system_id": "synthetic-nested-system",
+        "calibration_dataset_manifest": "calibration/benchmark.json",
+        "evaluation_datasets": [
+            {
+                "domain_id": "in_domain",
+                "dataset_manifest": "evaluation-in-domain/benchmark.json",
+            },
+            {
+                "domain_id": "cross_domain",
+                "dataset_manifest": "evaluation-cross-domain/benchmark.json",
+            },
+        ],
+        "target_fmr": 0.1,
+        "probability_threshold": 0.5,
+        "group_columns": ["speaker_id"],
+        "nested_calibration_bootstrap": {
+            "cluster_column": "speaker_id",
+            "replicates": 100,
+            "seed": 2027,
+            "confidence_level": 0.95,
+        },
+    }
+    path = root / "nested-experiment.json"
     path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     assert calibration.is_file() and in_domain.is_file() and cross_domain.is_file()
     return path
@@ -244,6 +337,96 @@ def test_condition_stratification_uses_frozen_threshold_and_marks_single_class(
     html_report = (run_dir / "report.html").read_text(encoding="utf-8")
     assert "Condition-stratified evaluation" in html_report
     assert "single-class" in html_report
+
+
+def test_nested_bootstrap_refits_calibration_and_threshold_deterministically(
+    tmp_path: Path,
+) -> None:
+    manifest = _large_nested_bootstrap_experiment(tmp_path)
+    loaded = load_research_experiment(manifest)
+    first = build_research_report(loaded)
+    second = build_research_report(loaded)
+
+    first_results = first["evaluation_datasets"]
+    second_results = second["evaluation_datasets"]
+    assert len(first_results) == len(second_results) == 2
+    for first_item, second_item in zip(first_results, second_results, strict=True):
+        bootstrap = first_item["nested_calibration_bootstrap_uncertainty"]
+        repeated = second_item["nested_calibration_bootstrap_uncertainty"]
+        assert bootstrap == repeated
+        assert bootstrap["method"].startswith("two-stage nonparametric cluster bootstrap")
+        assert bootstrap["calibration_cluster_count"] == 40
+        assert bootstrap["evaluation_cluster_count"] == 40
+        assert bootstrap["calibration_clusters_by_class"] == {
+            "target": 20,
+            "nontarget": 20,
+        }
+        assert bootstrap["evaluation_clusters_by_class"] == {
+            "target": 20,
+            "nontarget": 20,
+        }
+        assert bootstrap["replicates_requested"] == 100
+        assert bootstrap["replicates_valid"] >= 80
+        assert bootstrap["replicates_invalid"] <= 20
+        threshold = bootstrap["threshold_selection"]
+        lower, upper = threshold["normalized_higher_is_genuine"]["percentile_interval"]
+        assert 0 <= lower <= upper <= 1
+        assert threshold["normalized_higher_is_genuine"]["point_estimate"] == first[
+            "threshold_policy"
+        ]["calibration_threshold_normalized_higher_is_genuine"]
+
+        assert set(bootstrap["metrics"]) == {
+            "eer",
+            "roc_auc",
+            "fmr_at_resampled_threshold",
+            "fnmr_at_resampled_threshold",
+            "brier_score",
+            "log_loss",
+            "expected_calibration_error",
+        }
+        for metric in bootstrap["metrics"].values():
+            lower, upper = metric["percentile_interval"]
+            assert lower <= upper
+            assert metric["valid_replicates"] == bootstrap["replicates_valid"]
+
+
+def test_nested_bootstrap_rejects_overlapping_calibration_and_evaluation_clusters() -> None:
+    calibration_records = (
+        ScoreTrial("c1", "target", 0.9, "test", "clean", None, "shared", "c1"),
+        ScoreTrial("c2", "target", 0.8, "test", "clean", None, "c-target-2", "c2"),
+        ScoreTrial("c3", "nontarget", 0.2, "test", "clean", None, "c-nontarget-1", "c3"),
+        ScoreTrial("c4", "nontarget", 0.1, "test", "clean", None, "c-nontarget-2", "c4"),
+    )
+    evaluation_records = (
+        ScoreTrial("e1", "target", 0.85, "test", "clean", None, "shared", "e1"),
+        ScoreTrial("e2", "target", 0.75, "test", "clean", None, "e-target-2", "e2"),
+        ScoreTrial("e3", "nontarget", 0.25, "test", "clean", None, "e-nontarget-1", "e3"),
+        ScoreTrial("e4", "nontarget", 0.15, "test", "clean", None, "e-nontarget-2", "e4"),
+    )
+    with pytest.raises(ResearchExperimentError, match="identifiers between calibration and evaluation"):
+        _nested_calibration_bootstrap_uncertainty(
+            calibration_records,
+            evaluation_records,
+            ScoreDirection.HIGHER_IS_GENUINE,
+            target_fmr=0.1,
+            probability_threshold=0.5,
+            config=ClusterBootstrapConfig(
+                cluster_column="speaker_id",
+                replicates=100,
+                seed=2027,
+            ),
+            point_metrics={"eer": {"value": 0.0}, "roc_auc": 1.0},
+            point_operating_point={
+                "threshold_normalized_higher_is_genuine": 0.5,
+                "fmr": {"rate": 0.0},
+                "fnmr": {"rate": 0.0},
+            },
+            point_calibration_metrics={
+                "brier_score": 0.0,
+                "log_loss": 0.0,
+                "expected_calibration_error": 0.0,
+            },
+        )
 
 
 def test_cluster_bootstrap_is_deterministic_and_reports_cluster_intervals(
