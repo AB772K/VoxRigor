@@ -241,13 +241,19 @@ def test_condition_stratification_uses_frozen_threshold_and_marks_single_class(
             "expected_calibration_error",
         }
 
-    assert "condition_analysis" not in next(
+    cross_domain = next(
         item for item in report["evaluation_datasets"] if item["domain_id"] == "cross_domain"
-    ) or len(
-        next(
-            item for item in report["evaluation_datasets"] if item["domain_id"] == "cross_domain"
-        )["condition_analysis"]
-    ) == 2
+    )
+    cross_conditions = {
+        item["condition"]: item for item in cross_domain["condition_analysis"]
+    }
+    assert set(cross_conditions) == {"clean", "noise"}
+    assert all(item["status"] == "computed" for item in cross_conditions.values())
+
+    run_dir = run_research_experiment(manifest, tmp_path / "condition-runs")
+    html_report = (run_dir / "report.html").read_text(encoding="utf-8")
+    assert "Condition-stratified evaluation" in html_report
+    assert "single-class" in html_report
 
 
 def test_cluster_bootstrap_is_deterministic_and_reports_cluster_intervals(
