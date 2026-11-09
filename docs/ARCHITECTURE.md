@@ -141,14 +141,16 @@ Phase 1 implements `version`, `init`, `validate`, `tests`, `run` and `report`. T
 
 ## 9. Plugin trust model
 
-Python plugins execute code. Entry-point discovery is not isolation. For the first versions:
+Python plugins execute code. Entry-point discovery is not isolation. For the current experimental 0.1 SDK:
 
 - load only explicitly installed/enabled plugins;
 - show plugin name, version, publisher/package and declared permissions before use;
 - do not auto-install dependencies;
-- document that plugins run with the user's process permissions;
+- document that the current loader imports and executes plugins with the user's process permissions;
 - require an adapter contract test suite;
-- consider out-of-process execution for later versions, but do not call it a sandbox until the isolation boundary is implemented and independently tested.
+- do not call the in-process loader or an ordinary subprocess a sandbox.
+
+A platform-specific isolated-worker architecture is documented in [PLUGIN_WORKER_ISOLATION_DESIGN.md](PLUGIN_WORKER_ISOLATION_DESIGN.md). It is a design only. No worker backend, OS-enforced capability broker or resource enforcement is implemented. Do not claim isolation or permission enforcement until each platform backend passes the adversarial acceptance suite in that design.
 
 ## 10. Technology selection (provisional)
 

@@ -19,8 +19,8 @@
 - [x] Add an independently installable example plugin package and test it from a clean wheel install.
 - [x] Define experimental/stable plugin API versioning and deprecation rules; add a contract test proving exact API-version acceptance and rejection.
 - [ ] Add signed plugin/distribution provenance verification if it is required by the project threat model.
-- [ ] Design a separately isolated plugin worker before claiming permission enforcement or sandboxing.
-- [ ] Add optional worker lifecycle, resource limits and failure-recovery integration only after the isolation boundary is designed.
+- [x] Document a separately isolated plugin-worker design covering the host/worker trust boundary, IPC, capability brokering, Linux/Windows backend requirements, resource limits, fail-closed behavior and adversarial acceptance tests.
+- [ ] Implement and adversarially validate the isolated worker lifecycle, platform backends, resource limits, capability brokering and failure recovery. The design document is not an implementation or a sandbox claim.
 - [x] Validate the example plugin wheel build/install/discovery/execution path on all six supported OS/Python CI combinations.
 
 Passing contract tests does not make untrusted plugins safe. No sandbox or capability enforcement is included in this version.

@@ -90,3 +90,8 @@ Passing these tests validates the SDK contract and registry behavior only. It do
 ## SDK versioning and deprecation
 
 The plugin API is currently experimental at `0.1`; its version is independent of the VoxRigor package version. The loader requires an exact API-version match and does not silently accept unknown versions. The repository's compatibility, migration and deprecation rules are documented in [Plugin SDK Versioning and Compatibility Policy](PLUGIN_SDK_COMPATIBILITY.md). That policy distinguishes experimental `0.x` behavior from compatibility promises that will apply only after a separately approved stable `1.0` plugin API gate.
+
+
+## Isolated plugin worker — design only
+
+A platform-specific worker architecture has been documented in [Isolated Plugin Worker Design](PLUGIN_WORKER_ISOLATION_DESIGN.md). It covers process isolation, bounded JSON IPC, staged-file capabilities, Linux rootless OCI and Windows AppContainer candidate backends, resource controls, fail-closed behavior and adversarial acceptance tests. **This design is not implemented.** The current `--plugin-config` loader still executes third-party code in-process with the current user's OS permissions; it is not a sandbox.
