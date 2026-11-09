@@ -551,17 +551,13 @@ def _render_html(report: dict[str, object]) -> str:
             f"<td>{cast(float, calibration['expected_calibration_error']):.6f}</td>"
             "</tr>"
         )
-        for condition in cast(
-            list[dict[str, object]], result.get("condition_analysis", [])
-        ):
+        for condition in cast(list[dict[str, object]], result.get("condition_analysis", [])):
             sample_counts = cast(dict[str, int], condition["sample_counts"])
             status = str(condition["status"])
             if status == "computed":
                 condition_metrics = cast(dict[str, object], condition["raw_score_metrics"])
                 condition_eer = cast(dict[str, object], condition_metrics["eer"])
-                operating = cast(
-                    dict[str, object], condition["transferred_operating_point"]
-                )
+                operating = cast(dict[str, object], condition["transferred_operating_point"])
                 fmr = cast(dict[str, object], operating["fmr"])
                 fnmr = cast(dict[str, object], operating["fnmr"])
                 eer_text = f"{cast(float, condition_eer['value']):.6f}"
