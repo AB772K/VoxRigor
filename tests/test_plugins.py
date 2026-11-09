@@ -14,6 +14,7 @@ from typer.testing import CliRunner
 from voxrigor.cli import app
 from voxrigor.models import ProjectManifest, ResultStatus, TestDescriptor
 from voxrigor.plugins import (
+    PLUGIN_API_VERSION,
     PLUGIN_ENTRY_POINT_GROUP,
     EnabledPluginConfig,
     PluginConfig,
@@ -124,6 +125,21 @@ def _schema() -> dict[str, Any]:
     schema = json.loads((SCHEMA_DIR / "plugin-config-0.1.schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
     return schema
+
+
+def test_plugin_api_version_is_explicit_and_rejects_unsupported_versions() -> None:
+    assert PLUGIN_API_VERSION == "0.1"
+    assert ExamplePlugin("demo.voice").metadata.api_version == PLUGIN_API_VERSION
+
+    with pytest.raises(ValueError):
+        PluginMetadata(
+            plugin_id="demo.voice",
+            name="Example plugin",
+            version="0.1.0",
+            api_version="0.2",
+            publisher="tests",
+            description="Unsupported API versions must not be silently accepted.",
+        )
 
 
 def test_plugin_config_schema_and_pydantic_contract_agree() -> None:
