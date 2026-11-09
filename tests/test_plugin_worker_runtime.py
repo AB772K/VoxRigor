@@ -7,13 +7,12 @@ from typing import cast
 
 import pytest
 
-from voxrigor.models import ResultStatus
-from voxrigor.models import SampleAccounting
+from voxrigor.models import ResultStatus, SampleAccounting
 from voxrigor.models import TestDescriptor as Descriptor
 from voxrigor.plugin_worker import worker_main
 from voxrigor.plugin_worker.protocol import (
-    StagedInputReference,
     WORKER_PROTOCOL_VERSION,
+    StagedInputReference,
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
@@ -56,8 +55,8 @@ def _metadata() -> PluginMetadata:
     )
 
 
-def _descriptor() -> TestDescriptor:
-    return TestDescriptor(
+def _descriptor() -> Descriptor:
+    return Descriptor(
         test_id="demo.voice.diagnostic",
         version="0.1.0",
         name="Worker diagnostic",
@@ -69,25 +68,25 @@ def _descriptor() -> TestDescriptor:
 class _TestImplementation:
     descriptor = _descriptor()
 
-    def __init__(self, outcome: TestOutcome | None = None, error: Exception | None = None) -> None:
-        self.outcome = outcome or TestOutcome(
+    def __init__(self, outcome: Outcome | None = None, error: Exception | None = None) -> None:
+        self.outcome = outcome or Outcome(
             status=ResultStatus.NO_ISSUE_OBSERVED,
             measurements={"passed": True, "score": 0.75},
             limitations=("Worker test fixture only.",),
             sample_accounting=SampleAccounting(),
         )
         self.error = error
-        self.context: TestContext | None = None
+        self.context: Context | None = None
 
-    def execute(self, context: TestContext) -> TestOutcome:
+    def execute(self, context: Context) -> Outcome:
         self.context = context
         if self.error is not None:
             raise self.error
         return self.outcome
 
 
-def _registry(test: _TestImplementation | None = None) -> TestRegistry:
-    registry = TestRegistry()
+def _registry(test: _TestImplementation | None = None) -> Registry:
+    registry = Registry()
     registry.register(test or _TestImplementation())
     return registry
 
@@ -119,7 +118,7 @@ def _serve(
     monkeypatch: pytest.MonkeyPatch,
     messages: list[bytes],
     metadata: PluginMetadata | None = None,
-    registry: TestRegistry | None = None,
+    registry: Registry | None = None,
 ) -> tuple[int, list[object]]:
     input_stream = io.BytesIO(b"".join(messages))
     output_stream = io.BytesIO()
@@ -210,7 +209,7 @@ def test_worker_serve_sanitizes_plugin_load_failure(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(sys, "stdout", SimpleNamespace(buffer=output_stream))
     monkeypatch.setattr(worker_main, "_apply_process_limits", lambda *_args: None)
 
-    def fail_load(*_args: object) -> tuple[PluginMetadata, TestRegistry]:
+    def fail_load(*_args: object) -> tuple[PluginMetadata, Registry]:
         raise RuntimeError("private path and secret should never be sent")
 
     monkeypatch.setattr(worker_main, "_load_plugin", fail_load)
@@ -292,7 +291,7 @@ def test_worker_serve_rejects_unreconciled_sample_accounting(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     implementation = _TestImplementation(
-        outcome=TestOutcome(
+        outcome=Outcome(
             status=ResultStatus.INCONCLUSIVE,
             measurements={},
             sample_accounting=SampleAccounting(input=2, evaluated=1, excluded=0),
