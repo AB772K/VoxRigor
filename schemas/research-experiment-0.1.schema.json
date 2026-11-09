@@ -40,6 +40,17 @@
       "uniqueItems": true,
       "items": { "enum": ["speaker_id", "source_id"] }
     },
-    "require_group_disjointness": { "type": "boolean", "default": false }
+    "require_group_disjointness": { "type": "boolean", "default": false },
+    "cluster_bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cluster_column"],
+      "properties": {
+        "cluster_column": { "enum": ["speaker_id", "source_id"] },
+        "replicates": { "type": "integer", "minimum": 100, "maximum": 5000, "default": 1000 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295, "default": 2026 },
+        "confidence_level": { "type": "number", "exclusiveMinimum": 0.5, "exclusiveMaximum": 1, "default": 0.95 }
+      }
+    }
   }
 }

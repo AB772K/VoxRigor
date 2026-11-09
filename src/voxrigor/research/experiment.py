@@ -43,6 +43,17 @@ class EvaluationDatasetReference(BaseModel):
         return normalized
 
 
+class ClusterBootstrapConfig(BaseModel):
+    """Reproducible cluster resampling settings for held-out evaluation uncertainty."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cluster_column: Literal["speaker_id", "source_id"]
+    replicates: int = Field(default=1000, ge=100, le=5000)
+    seed: int = Field(default=2026, ge=0, le=4294967295)
+    confidence_level: float = Field(default=0.95, gt=0.5, lt=1, allow_inf_nan=False)
+
+
 class ResearchExperimentManifest(BaseModel):
     """Experiment design that separates calibration data from evaluation data."""
 
@@ -58,6 +69,7 @@ class ResearchExperimentManifest(BaseModel):
     probability_threshold: float = Field(default=0.5, ge=0, le=1, allow_inf_nan=False)
     group_columns: list[Literal["speaker_id", "source_id"]] = Field(default_factory=list)
     require_group_disjointness: bool = False
+    cluster_bootstrap: ClusterBootstrapConfig | None = None
 
     @field_validator("calibration_dataset_manifest")
     @classmethod
