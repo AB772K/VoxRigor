@@ -16,6 +16,7 @@ from voxrigor.plugin_worker.protocol import (
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
+    WorkerExecuteResponse,
     WorkerFailure,
     WorkerHello,
     WorkerResourceLimits,
@@ -26,7 +27,9 @@ from voxrigor.plugin_worker.protocol import (
     read_worker_message,
 )
 from voxrigor.plugins import PLUGIN_API_VERSION, PluginMetadata
-from voxrigor.testing import TestContext as Context, TestOutcome as Outcome, TestRegistry as Registry
+from voxrigor.testing import TestContext as Context
+from voxrigor.testing import TestOutcome as Outcome
+from voxrigor.testing import TestRegistry as Registry
 
 REQUEST_ID = "123e4567-e89b-42d3-a456-426614174000"
 EXECUTE_ID = "123e4567-e89b-42d3-a456-426614174001"
