@@ -7,6 +7,7 @@ from typing import Annotated
 
 import typer
 
+from voxrigor.research.comparison import ResearchComparisonError, run_research_comparison
 from voxrigor.research.experiment import ResearchExperimentError
 from voxrigor.research.runner import run_research_experiment
 
@@ -38,3 +39,26 @@ def research_evaluate(
     typer.echo(f"Report: {run_dir / 'report.html'}")
     typer.echo(f"Machine-readable results: {run_dir / 'report.json'}")
     typer.echo("Calibration and threshold selection used only the declared calibration dataset.")
+
+
+
+@research_app.command("compare")
+def research_compare(
+    manifest_path: Annotated[
+        Path, typer.Argument(help="Versioned paired research-comparison JSON manifest.")
+    ],
+    output: Annotated[
+        Path, typer.Option("--output", help="Directory for comparison reports.")
+    ] = Path("runs/research-comparisons"),
+) -> None:
+    """Compare independently calibrated systems on identical held-out ASV trials."""
+
+    try:
+        run_dir = run_research_comparison(manifest_path, output)
+    except (ResearchComparisonError, ResearchExperimentError, OSError, ValueError) as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    typer.secho("Paired research comparison completed.", fg=typer.colors.GREEN)
+    typer.echo(f"Report: {run_dir / 'report.html'}")
+    typer.echo(f"Machine-readable results: {run_dir / 'report.json'}")
+    typer.echo("Each system used its own calibration dataset and frozen operating threshold.")
