@@ -38,6 +38,7 @@ from voxrigor.plugin_worker.protocol import (
     WorkerFailure,
     WorkerHello,
     WorkerResourceLimits,
+    WorkerSampleAccounting,
     WorkerShutdownRequest,
     WorkerShutdownResponse,
     encode_worker_frame,
@@ -182,7 +183,7 @@ class _FakeSession:
                     test_id=message.test_id,
                     status=ResultStatus.NO_ISSUE_OBSERVED,
                     measurements={"passed": True},
-                    sample_accounting=podman_module.WorkerSampleAccounting(),
+                    sample_accounting=WorkerSampleAccounting(),
                 )
             self.responses.append(response)
         elif isinstance(message, WorkerShutdownRequest):
@@ -420,11 +421,12 @@ def test_preflight_removes_probe_container_even_when_probe_fails(
     assert removed == ["probe-id"]
 
 
-def test_copy_staged_inputs_rejects_symlinks_and_size_mismatches(tmp_path: Path) -> None:
+def test_copy_staged_inputs_rejects_symlinks_and_size_mismatches(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     source = tmp_path / "sample.wav"
     source.write_bytes(b"abc")
-    link = tmp_path / "linked.wav"
-    link.symlink_to(source)
     reference = StagedInputReference(
         input_id="input-audio-1",
         sha256=hashlib.sha256(b"abc").hexdigest(),
@@ -432,10 +434,17 @@ def test_copy_staged_inputs_rejects_symlinks_and_size_mismatches(tmp_path: Path)
         media_kind="audio",
         display_name="sample.wav",
     )
+    original_is_symlink = Path.is_symlink
+
+    def fake_symlink_check(path: Path) -> bool:
+        return path == source.absolute() or original_is_symlink(path)
+
+    monkeypatch.setattr(Path, "is_symlink", fake_symlink_check)
     with pytest.raises(WorkerExecutionError, match="Symlinked"):
         RootlessPodmanBackend._copy_staged_inputs(
-            (HostStagedInput(reference=reference, source_path=link),)
+            (HostStagedInput(reference=reference, source_path=source),)
         )
+    monkeypatch.setattr(Path, "is_symlink", original_is_symlink)
 
     wrong_size = reference.model_copy(update={"size_bytes": 4})
     with pytest.raises(WorkerExecutionError, match="size"):
