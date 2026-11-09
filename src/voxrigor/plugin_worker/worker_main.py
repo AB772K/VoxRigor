@@ -18,10 +18,10 @@ from typing import NoReturn
 from uuid import uuid4
 
 from voxrigor import __version__
-from voxrigor.models import ProjectManifest, ResultStatus
+from voxrigor.models import ProjectManifest
 from voxrigor.plugin_worker.protocol import (
-    WorkerCancelRequest,
     WorkerCancelled,
+    WorkerCancelRequest,
     WorkerDescribeRequest,
     WorkerDescribeResponse,
     WorkerExecuteRequest,
@@ -29,9 +29,9 @@ from voxrigor.plugin_worker.protocol import (
     WorkerFailure,
     WorkerHello,
     WorkerProtocolError,
+    WorkerSampleAccounting,
     WorkerShutdownRequest,
     WorkerShutdownResponse,
-    WorkerSampleAccounting,
     read_worker_message,
     write_worker_message,
 )
