@@ -16,7 +16,7 @@
 - [x] Tests cover negative scope cases, fixed/vulnerable fixture behavior, request budgets and report redaction.
 - [x] Ruff, formatting, strict Mypy, tests and the configured coverage gate pass on Ubuntu/Windows and Python 3.11–3.13.
 
-## Lifecycle extension — implementation added; branch CI pending
+## Lifecycle extension — validated
 
 - [x] Challenge records include a server-side purpose and mismatched-purpose verification is rejected by the fixed fixture.
 - [x] The reference fixture supports an enrollment re-enrollment operation with owner/admin authorization and a monotonically increasing fixture version.
@@ -35,6 +35,6 @@
 - [ ] Integrate optional audio/model verification only through an explicit test adapter and controlled fixtures.
 - [ ] Consider remote authorized targets only after a separate scope, allowlist, redirect/DNS-rebinding, consent and safety review.
 
-The initial Phase 5 slice passed CI run 42588833761 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. The lifecycle extension is being validated in a new branch-head CI run; do not treat its gates as passed until that run completes.
+The initial Phase 5 slice passed CI run 42588833761. The lifecycle extension passed CI run 42592810707 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. All six jobs passed lint, formatting, strict Mypy and tests. Each Linux job completed 201 tests with 85.58% coverage (85% minimum).
 
 A successful local fixture run does not demonstrate that a production voice-authentication system is secure. A deterministic fixture assertion is not a biometric verifier.

@@ -1,6 +1,6 @@
 # Phase 5 — Local Reference Application and Protocol/API Security Engine
 
-**Status:** Initial local-only protocol engine implemented and validated in the six-environment CI matrix on the Phase 5 branch. General target adapters and deeper lifecycle coverage remain future work.
+**Status:** Initial local-only protocol engine and lifecycle extension validated in the six-environment CI matrix. General target adapters, complete fallback paths and account-recovery workflows remain future work.
 
 ## Objective
 
@@ -109,7 +109,7 @@ This is a mapping for test design, not an assertion of OWASP verification or com
 
 ## Validation status
 
-The initial Phase 5 implementation passed CI run 42588833761 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. All six jobs passed Ruff lint, Ruff formatting, strict Mypy and the full test suite. Each Linux job completed 198 tests and 85.74% coverage against the 85% gate. The reference-fixture tests prove that the scanner distinguishes the bundled fixed and intentionally vulnerable protocol profiles; they do not establish production biometric or system security.
+The initial Phase 5 implementation passed CI run 42588833761. The lifecycle extension passed CI run 42592810707 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. All six jobs passed Ruff lint, Ruff formatting, strict Mypy and the full test suite. Each Linux job completed 201 tests and 85.58% coverage against the 85% gate. The new regression tests cover challenge-purpose binding, enrollment re-enrollment ownership/versioning and session expiry in fixed and intentionally vulnerable fixtures. These results validate the local protocol fixture; they do not establish production biometric or system security.
 
 ## Current limitations
 

@@ -8,7 +8,7 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 ## Project status
 
-**Current development:** Phase 5 — local protocol and API security engine (development preview, lifecycle extension under validation). Phase 3 model integration work is merged into main. Phase 4 and Phase 5 are carried on the Phase 3 development branch; the Phase 4/5 development line is not yet integrated into main.
+**Current development:** Phase 5 — local protocol and API security engine (development preview; lifecycle extension passed six-environment CI). Phase 3 model integration work is merged into main. Phase 4 and Phase 5 are carried on the Phase 3 development branch; the Phase 4/5 development line is not yet integrated into main.
 
 Phase 4 added deterministic local audio-condition generation and provenance verification. Its initial CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Physical replay hardware and approved-dataset accuracy studies remain open.
 
