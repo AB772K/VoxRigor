@@ -8,11 +8,11 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 ## Project status
 
-**Current development:** Phase 6 — research and custom-AI experiment infrastructure. Phase 1–3 implementation and Phase 5 local protocol/lifecycle work are integrated into `main`. Phase 4 audio-condition generation is implemented and validated on the development line; the digital-condition generator and provenance chain are available in the current codebase, while physical presentation hardware remains unimplemented.
+**Current development:** Phase 7 — experimental plugin SDK and integrations. Phase 1–3 implementation and Phase 5 local protocol/lifecycle work are integrated into `main`. Phase 4 audio-condition generation is implemented and validated on the development line; the digital-condition generator and provenance chain are available in the current codebase, while physical presentation hardware remains unimplemented.
 
 The latest Phase 5 lifecycle extension passed the six-job GitHub Actions matrix on Ubuntu and Windows with Python 3.11, 3.12 and 3.13 (run [42593363565](https://github.com/AB772K/VoxRigor/actions/runs/42593363565)). The validation includes Ruff lint, Ruff formatting, strict Mypy, and the complete test suite. The Linux jobs completed 201 tests at 85.58% coverage against the configured 85% gate.
 
-Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, a bounded loopback-only protocol/API security engine, and the initial score-only cross-dataset research runner, optional cluster-bootstrap uncertainty for held-out ASV evaluation, condition-stratified ASV analysis using frozen calibration and operating thresholds, paired comparison of independently calibrated ASV systems on identical trial sets, and optional nested cluster-bootstrap uncertainty that re-fits calibration and re-selects thresholds.
+Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, a bounded loopback-only protocol/API security engine, and the initial score-only cross-dataset research runner, optional cluster-bootstrap uncertainty for held-out ASV evaluation, condition-stratified ASV analysis using frozen calibration and operating thresholds, paired comparison of independently calibrated ASV systems on identical trial sets, optional nested cluster-bootstrap uncertainty that re-fits calibration and re-selects thresholds, and an experimental opt-in third-party plugin contract with metadata-only discovery and explicit allow-list loading.
 
 Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation, cross-dataset generalization studies, calibration research and physical presentation-rig validation remain research tasks.
 
@@ -41,9 +41,24 @@ python -m pip install -e ".[audio]"
 
 ## Discover models
 
-```powershell
+~~~powershell
 voxrigor models list
-```
+~~~
+
+## Third-party plugins (experimental)
+
+~~~powershell
+# Metadata-only discovery; does not import plugin code
+voxrigor plugins list
+
+# Validate an explicit allow-list; does not import plugin code
+voxrigor plugins validate .\\voxrigor.plugins.json
+
+# Load only plugins named in the allow-list when running tests
+voxrigor run --project .\\voxrigor.json --plugin-config .\\voxrigor.plugins.json
+~~~
+
+**Plugin security boundary:** loading a Python plugin executes third-party code in-process with the current user's OS permissions. Permission labels are declarations only; this version does not sandbox plugins or enforce filesystem/network capabilities. Enable only packages whose source and publisher you trust. See the Phase 7 plugin SDK documentation for the contract and limitations.
 
 ## Run a research experiment
 
@@ -74,6 +89,8 @@ voxrigor research compare .\research-comparison.json --output .\runs\research-co
 - [Phase 5 acceptance gates](docs/PHASE_5_ACCEPTANCE.md)
 - [Phase 6 research experiments](docs/PHASE_6_IMPLEMENTATION.md)
 - [Phase 6 acceptance gates](docs/PHASE_6_ACCEPTANCE.md)
+- [Phase 7 plugin SDK](docs/PHASE_7_IMPLEMENTATION.md)
+- [Phase 7 acceptance gates](docs/PHASE_7_ACCEPTANCE.md)
 - [Development roadmap](docs/ROADMAP.md)
 
 ## Mission
