@@ -371,9 +371,10 @@ def test_nested_bootstrap_refits_calibration_and_threshold_deterministically(
         threshold = bootstrap["threshold_selection"]
         lower, upper = threshold["normalized_higher_is_genuine"]["percentile_interval"]
         assert 0 <= lower <= upper <= 1
-        assert threshold["normalized_higher_is_genuine"]["point_estimate"] == first[
-            "threshold_policy"
-        ]["calibration_threshold_normalized_higher_is_genuine"]
+        assert (
+            threshold["normalized_higher_is_genuine"]["point_estimate"]
+            == first["threshold_policy"]["calibration_threshold_normalized_higher_is_genuine"]
+        )
 
         assert set(bootstrap["metrics"]) == {
             "eer",
@@ -403,7 +404,9 @@ def test_nested_bootstrap_rejects_overlapping_calibration_and_evaluation_cluster
         ScoreTrial("e3", "nontarget", 0.25, "test", "clean", None, "e-nontarget-1", "e3"),
         ScoreTrial("e4", "nontarget", 0.15, "test", "clean", None, "e-nontarget-2", "e4"),
     )
-    with pytest.raises(ResearchExperimentError, match="identifiers between calibration and evaluation"):
+    with pytest.raises(
+        ResearchExperimentError, match="identifiers between calibration and evaluation"
+    ):
         _nested_calibration_bootstrap_uncertainty(
             calibration_records,
             evaluation_records,
