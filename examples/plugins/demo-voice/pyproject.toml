@@ -12,7 +12,7 @@ license = "Apache-2.0"
 dependencies = ["voxrigor==0.2.0.dev0"]
 
 [project.entry-points."voxrigor.plugins"]
-demo.voice = "demo_voice.plugin:create_plugin"
+"demo.voice" = "demo_voice.plugin:create_plugin"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
