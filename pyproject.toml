@@ -60,6 +60,8 @@ dev = [
   "numpy>=1.26,<2.4",
   "scipy>=1.11,<2",
   "soundfile>=0.12.1,<1",
+  "setuptools>=77",
+  "wheel>=0.43",
 ]
 
 [project.scripts]

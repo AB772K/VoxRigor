@@ -44,11 +44,13 @@ Validation checks entry-point names and configuration metadata only. It does not
 
 ## Plugin packaging contract
 
+A complete, independently installable example package is maintained at `examples/plugins/demo-voice`. It includes a standalone `pyproject.toml`, source module, package README and a real `voxrigor.plugins` entry point. The integration test builds the VoxRigor core wheel and this example wheel, installs both into a fresh virtual environment, confirms metadata-only discovery/validation, checks that plugins remain disabled by default, and runs the example test through the installed `voxrigor` console command. CI exercises that clean-wheel path on Windows and Ubuntu with Python 3.11–3.13.
+
 A third-party package declares an entry point in its own pyproject.toml:
 
 ~~~toml
 [project.entry-points."voxrigor.plugins"]
-demo.voice = "demo_voice.plugin:create_plugin"
+"demo.voice" = "demo_voice.plugin:create_plugin"
 ~~~
 
 A plugin factory returns an object with PluginMetadata and register(context). The plugin ID in metadata must match the entry-point and allow-list ID. The plugin can register only test IDs beginning with its own plugin ID followed by a period. Duplicate IDs, missing methods, invalid descriptors, API-version mismatches and permission mismatches are rejected.
@@ -81,6 +83,6 @@ Omitting --plugin-config leaves third-party plugins disabled. The loader stages 
 
 ## Validation
 
-CI uses synthetic plugin fixtures to exercise metadata discovery and allow-list validation without code import; explicit loading and namespaced test registration; API, metadata and permission mismatches; invalid plugin registrations; duplicate IDs and all-or-nothing registry updates; and CLI listing, validation and explicit run-time loading.
+CI uses synthetic plugin fixtures to exercise metadata discovery and allow-list validation without code import; explicit loading and namespaced test registration; API, metadata and permission mismatches; invalid plugin registrations; duplicate IDs and all-or-nothing registry updates; and CLI listing, validation and explicit run-time loading. A separate integration test builds and installs the example plugin as a wheel in a fresh virtual environment and runs it through the public CLI.
 
 Passing these tests validates the SDK contract and registry behavior only. It does not certify third-party plugins, isolate their code or prove their security. The first slice does not include containerized workers, permission enforcement, plugin signing or cryptographic publisher verification.
