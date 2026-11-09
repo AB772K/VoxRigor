@@ -66,9 +66,7 @@ def _dataset(
     return manifest_path
 
 
-def _experiment(
-    root: Path, *, overlap: bool = False, with_conditions: bool = False
-) -> Path:
+def _experiment(root: Path, *, overlap: bool = False, with_conditions: bool = False) -> Path:
     calibration = _dataset(
         root / "calibration",
         "calibration-set",
@@ -95,9 +93,7 @@ def _experiment(
         "in-domain-set",
         in_domain_rows,
         conditions=(
-            ["clean", "codec", "codec", "clean", "single-class"]
-            if with_conditions
-            else None
+            ["clean", "codec", "codec", "clean", "single-class"] if with_conditions else None
         ),
     )
     cross_domain = _dataset(
@@ -210,9 +206,7 @@ def test_condition_stratification_uses_frozen_threshold_and_marks_single_class(
     in_domain = next(
         item for item in report["evaluation_datasets"] if item["domain_id"] == "in_domain"
     )
-    conditions = {
-        item["condition"]: item for item in in_domain["condition_analysis"]
-    }
+    conditions = {item["condition"]: item for item in in_domain["condition_analysis"]}
     assert set(conditions) == {"clean", "codec", "single-class"}
     assert conditions["clean"]["status"] == "computed"
     assert conditions["codec"]["status"] == "computed"
@@ -230,9 +224,7 @@ def test_condition_stratification_uses_frozen_threshold_and_marks_single_class(
         result = conditions[condition]
         assert result["condition_specified"] is True
         assert (
-            result["transferred_operating_point"][
-                "threshold_normalized_higher_is_genuine"
-            ]
+            result["transferred_operating_point"]["threshold_normalized_higher_is_genuine"]
             == calibration_threshold
         )
         assert set(result["calibration_metrics"]) >= {
@@ -244,9 +236,7 @@ def test_condition_stratification_uses_frozen_threshold_and_marks_single_class(
     cross_domain = next(
         item for item in report["evaluation_datasets"] if item["domain_id"] == "cross_domain"
     )
-    cross_conditions = {
-        item["condition"]: item for item in cross_domain["condition_analysis"]
-    }
+    cross_conditions = {item["condition"]: item for item in cross_domain["condition_analysis"]}
     assert set(cross_conditions) == {"clean", "noise"}
     assert all(item["status"] == "computed" for item in cross_conditions.values())
 
