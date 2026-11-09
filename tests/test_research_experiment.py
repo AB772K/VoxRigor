@@ -8,6 +8,8 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
+from voxrigor.benchmarking.dataset import ScoreTrial
+from voxrigor.benchmarking.models import ScoreDirection
 from voxrigor.cli import app
 from voxrigor.research.calibration import evaluate_calibration, fit_platt_calibrator
 from voxrigor.research.experiment import ResearchExperimentError, load_research_experiment
@@ -16,8 +18,6 @@ from voxrigor.research.runner import (
     build_research_report,
     run_research_experiment,
 )
-from voxrigor.benchmarking.dataset import ScoreTrial
-from voxrigor.benchmarking.models import ScoreDirection
 
 runner = CliRunner()
 
