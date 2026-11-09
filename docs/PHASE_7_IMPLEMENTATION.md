@@ -86,3 +86,7 @@ Omitting --plugin-config leaves third-party plugins disabled. The loader stages 
 CI uses synthetic plugin fixtures to exercise metadata discovery and allow-list validation without code import; explicit loading and namespaced test registration; API, metadata and permission mismatches; invalid plugin registrations; duplicate IDs and all-or-nothing registry updates; and CLI listing, validation and explicit run-time loading. A separate integration test builds and installs the example plugin as a wheel in a fresh virtual environment and runs it through the public CLI.
 
 Passing these tests validates the SDK contract and registry behavior only. It does not certify third-party plugins, isolate their code or prove their security. The first slice does not include containerized workers, permission enforcement, plugin signing or cryptographic publisher verification.
+
+## SDK versioning and deprecation
+
+The plugin API is currently experimental at `0.1`; its version is independent of the VoxRigor package version. The loader requires an exact API-version match and does not silently accept unknown versions. The repository's compatibility, migration and deprecation rules are documented in [Plugin SDK Versioning and Compatibility Policy](PLUGIN_SDK_COMPATIBILITY.md). That policy distinguishes experimental `0.x` behavior from compatibility promises that will apply only after a separately approved stable `1.0` plugin API gate.
