@@ -593,7 +593,10 @@ class RootlessPodmanBackend:
     def _probe_script(self, policy: IsolationPolicy) -> str:
         """Probe kernel-visible controls from inside the configured container."""
 
-        host_uid = os.getuid()
+        get_uid = getattr(os, "getuid", None)
+        if not callable(get_uid):
+            raise PodmanBackendError("The Linux host UID could not be determined")
+        host_uid = get_uid()
         return (
             "import json,os,resource\\n"
             "status={}\\n"
