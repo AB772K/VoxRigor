@@ -49,7 +49,9 @@ class ComparisonSystemReference(BaseModel):
             or PureWindowsPath(value).drive
             or ".." in PurePosixPath(normalized).parts
         ):
-            raise ValueError("experiment_manifest must be a relative path inside the comparison folder")
+            raise ValueError(
+                "experiment_manifest must be a relative path inside the comparison folder"
+            )
         return normalized
 
 
@@ -113,9 +115,13 @@ def _resolve_child(root: Path, relative_path: str) -> Path:
     try:
         candidate.relative_to(resolved_root)
     except ValueError as exc:
-        raise ResearchComparisonError("comparison paths must remain inside the comparison folder") from exc
+        raise ResearchComparisonError(
+            "comparison paths must remain inside the comparison folder"
+        ) from exc
     if not candidate.is_file():
-        raise ResearchComparisonError(f"declared experiment manifest does not exist: {relative_path}")
+        raise ResearchComparisonError(
+            f"declared experiment manifest does not exist: {relative_path}"
+        )
     return candidate
 
 
@@ -207,7 +213,9 @@ def load_research_comparison(path: Path) -> LoadedResearchComparison:
         if experiment.manifest.probability_threshold != first.manifest.probability_threshold:
             raise ResearchComparisonError("all systems must declare the same probability_threshold")
         if [item.domain_id for item in experiment.evaluation_datasets] != first_domains:
-            raise ResearchComparisonError("all systems must declare the same ordered evaluation domains")
+            raise ResearchComparisonError(
+                "all systems must declare the same ordered evaluation domains"
+            )
         calibration = experiment.calibration_dataset
         if calibration.manifest.protocol_id != first_calibration.manifest.protocol_id:
             raise ResearchComparisonError("calibration protocol_id differs between systems")
@@ -219,8 +227,7 @@ def load_research_comparison(path: Path) -> LoadedResearchComparison:
         _validate_paired_datasets(calibration_datasets, description="calibration datasets")
         for domain_index, domain_id in enumerate(first_domains):
             paired = [
-                item.experiment.evaluation_datasets[domain_index].dataset
-                for item in loaded_systems
+                item.experiment.evaluation_datasets[domain_index].dataset for item in loaded_systems
             ]
             _validate_paired_datasets(paired, description=f"evaluation domain {domain_id}")
     except ResearchComparisonError:
@@ -233,9 +240,7 @@ def load_research_comparison(path: Path) -> LoadedResearchComparison:
     )
 
 
-def _system_point_metrics(
-    report: dict[str, object], domain_id: str
-) -> dict[str, object]:
+def _system_point_metrics(report: dict[str, object], domain_id: str) -> dict[str, object]:
     evaluations = cast(list[dict[str, object]], report["evaluation_datasets"])
     item = next(entry for entry in evaluations if entry["domain_id"] == domain_id)
     raw_metrics = cast(dict[str, object], item["raw_score_metrics"])
@@ -282,7 +287,9 @@ def _paired_cluster_bootstrap_deltas(
             cluster_id
             for cluster_id, trial_ids in clusters.items()
             if any(
-                next(record for record in reference_dataset.records if record.trial_id == trial_id).label
+                next(
+                    record for record in reference_dataset.records if record.trial_id == trial_id
+                ).label
                 == label
                 for trial_id in trial_ids
             )
@@ -317,15 +324,12 @@ def _paired_cluster_bootstrap_deltas(
         try:
             for system_id in datasets_by_system:
                 sampled = [
-                    records_by_system[system_id][trial_id]
-                    for trial_id in selected_trial_ids
+                    records_by_system[system_id][trial_id] for trial_id in selected_trial_ids
                 ]
                 raw_metrics, _, _ = evaluate_scores(
                     sampled, BenchmarkTask.ASV, directions[system_id], threshold=None
                 )
-                operating = _operating_rates(
-                    sampled, directions[system_id], thresholds[system_id]
-                )
+                operating = _operating_rates(sampled, directions[system_id], thresholds[system_id])
                 eer = cast(dict[str, object], raw_metrics["eer"])
                 fmr = cast(dict[str, object], operating["fmr"])
                 fnmr = cast(dict[str, object], operating["fnmr"])
@@ -369,9 +373,7 @@ def _paired_cluster_bootstrap_deltas(
         "method": "paired nonparametric cluster bootstrap; same sampled clusters/trials for every system",
         "cluster_column": config.cluster_column,
         "cluster_count": len(cluster_ids),
-        "clusters_by_class": {
-            label: len(ids) for label, ids in clusters_by_label.items()
-        },
+        "clusters_by_class": {label: len(ids) for label, ids in clusters_by_label.items()},
         "replicates_requested": config.replicates,
         "replicates_valid": valid,
         "replicates_invalid": invalid,
@@ -406,13 +408,10 @@ def build_research_comparison_report(
     """Build model-specific research reports and paired performance differences."""
 
     system_reports = {
-        system.system_id: build_research_report(system.experiment)
-        for system in loaded.systems
+        system.system_id: build_research_report(system.experiment) for system in loaded.systems
     }
     reference_id = loaded.manifest.reference_system_id
-    domain_ids = [
-        item.domain_id for item in loaded.systems[0].experiment.evaluation_datasets
-    ]
+    domain_ids = [item.domain_id for item in loaded.systems[0].experiment.evaluation_datasets]
     systems: list[dict[str, object]] = []
     for system in loaded.systems:
         report = system_reports[system.system_id]
@@ -481,7 +480,8 @@ def build_research_comparison_report(
                 system_id: {
                     metric: value
                     for metric, value in delta.items()
-                    if metric in ("eer", "roc_auc", "fmr_at_model_threshold", "fnmr_at_model_threshold")
+                    if metric
+                    in ("eer", "roc_auc", "fmr_at_model_threshold", "fnmr_at_model_threshold")
                 }
                 for system_id, delta in metric_deltas.items()
             }
