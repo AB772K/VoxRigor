@@ -272,7 +272,7 @@ def _readiness(
         backend_id=backend_id,
         runtime_version="test-runtime-1",
         verified=verified,
-        enforced_controls=list(controls or sorted(REQUIRED_ISOLATION_CONTROLS)),
+        enforced_controls=controls or tuple(sorted(REQUIRED_ISOLATION_CONTROLS)),
     )
 
 
