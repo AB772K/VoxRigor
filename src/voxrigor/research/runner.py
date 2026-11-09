@@ -351,6 +351,235 @@ def _cluster_bootstrap_uncertainty(
     }
 
 
+def _nested_calibration_bootstrap_uncertainty(
+    calibration_records: tuple[ScoreTrial, ...],
+    evaluation_records: tuple[ScoreTrial, ...],
+    direction: ScoreDirection,
+    target_fmr: float,
+    probability_threshold: float,
+    config: ClusterBootstrapConfig,
+    point_metrics: dict[str, object],
+    point_operating_point: dict[str, object],
+    point_calibration_metrics: dict[str, object],
+) -> dict[str, object]:
+    """Resample calibration and evaluation clusters independently and re-fit each replicate."""
+
+    def build_clusters(
+        records: tuple[ScoreTrial, ...], dataset_role: str
+    ) -> dict[str, list[ScoreTrial]]:
+        clusters: dict[str, list[ScoreTrial]] = {}
+        for record in records:
+            cluster_id = getattr(record, config.cluster_column)
+            if not isinstance(cluster_id, str) or not cluster_id.strip():
+                raise ResearchExperimentError(
+                    f"nested bootstrap requires a non-empty {config.cluster_column} "
+                    f"value in the {dataset_role} dataset"
+                )
+            clusters.setdefault(cluster_id, []).append(record)
+        if len(clusters) < 2:
+            raise ResearchExperimentError(
+                f"nested bootstrap requires at least two distinct clusters in the {dataset_role} dataset"
+            )
+        clusters_by_label = {
+            label: {
+                cluster_id
+                for cluster_id, cluster_records in clusters.items()
+                if any(record.label == label for record in cluster_records)
+            }
+            for label in ("target", "nontarget")
+        }
+        insufficient = [
+            label for label, values in clusters_by_label.items() if len(values) < 2
+        ]
+        if insufficient:
+            raise ResearchExperimentError(
+                f"nested bootstrap requires at least two distinct clusters containing each class "
+                f"in the {dataset_role} dataset: " + ", ".join(insufficient)
+            )
+        return clusters
+
+    calibration_clusters = build_clusters(calibration_records, "calibration")
+    evaluation_clusters = build_clusters(evaluation_records, "evaluation")
+    overlap = set(calibration_clusters) & set(evaluation_clusters)
+    if overlap:
+        raise ResearchExperimentError(
+            f"nested bootstrap requires disjoint {config.cluster_column} identifiers "
+            "between calibration and evaluation datasets"
+        )
+
+    calibration_cluster_ids = sorted(calibration_clusters)
+    evaluation_cluster_ids = sorted(evaluation_clusters)
+    calibration_clusters_by_label = {
+        label: sum(
+            any(record.label == label for record in records)
+            for records in calibration_clusters.values()
+        )
+        for label in ("target", "nontarget")
+    }
+    evaluation_clusters_by_label = {
+        label: sum(
+            any(record.label == label for record in records)
+            for records in evaluation_clusters.values()
+        )
+        for label in ("target", "nontarget")
+    }
+
+    metric_names = (
+        "eer",
+        "roc_auc",
+        "fmr_at_resampled_threshold",
+        "fnmr_at_resampled_threshold",
+        "brier_score",
+        "log_loss",
+        "expected_calibration_error",
+    )
+    bootstrap_values: dict[str, list[float]] = {name: [] for name in metric_names}
+    threshold_values: list[float] = []
+    invalid_replicates = 0
+    generator = random.Random(config.seed)
+
+    for _ in range(config.replicates):
+        sampled_calibration = [
+            record
+            for cluster_id in generator.choices(
+                calibration_cluster_ids, k=len(calibration_cluster_ids)
+            )
+            for record in calibration_clusters[cluster_id]
+        ]
+        sampled_evaluation = [
+            record
+            for cluster_id in generator.choices(
+                evaluation_cluster_ids, k=len(evaluation_cluster_ids)
+            )
+            for record in evaluation_clusters[cluster_id]
+        ]
+        try:
+            calibrator = fit_platt_calibrator(sampled_calibration, direction)
+            threshold = _select_threshold_at_target_fmr(
+                sampled_calibration, direction, target_fmr
+            )
+            raw_metrics, _, _ = evaluate_scores(
+                sampled_evaluation, BenchmarkTask.ASV, direction, threshold=None
+            )
+            operating = _operating_rates(sampled_evaluation, direction, threshold)
+            calibration_metrics = evaluate_calibration(
+                sampled_evaluation,
+                calibrator,
+                direction,
+                probability_threshold=probability_threshold,
+            )
+        except (MetricError, ResearchExperimentError, ValueError):
+            invalid_replicates += 1
+            continue
+
+        eer = cast(dict[str, object], raw_metrics["eer"])
+        fmr = cast(dict[str, object], operating["fmr"])
+        fnmr = cast(dict[str, object], operating["fnmr"])
+        bootstrap_values["eer"].append(cast(float, eer["value"]))
+        bootstrap_values["roc_auc"].append(cast(float, raw_metrics["roc_auc"]))
+        bootstrap_values["fmr_at_resampled_threshold"].append(cast(float, fmr["rate"]))
+        bootstrap_values["fnmr_at_resampled_threshold"].append(cast(float, fnmr["rate"]))
+        bootstrap_values["brier_score"].append(
+            cast(float, calibration_metrics["brier_score"])
+        )
+        bootstrap_values["log_loss"].append(
+            cast(float, calibration_metrics["log_loss"])
+        )
+        bootstrap_values["expected_calibration_error"].append(
+            cast(float, calibration_metrics["expected_calibration_error"])
+        )
+        threshold_values.append(threshold)
+
+    valid_replicates = len(threshold_values)
+    minimum_valid = ceil(config.replicates * 0.8)
+    if valid_replicates < minimum_valid:
+        raise ResearchExperimentError(
+            f"nested bootstrap produced {valid_replicates}/{config.replicates} valid replicates; "
+            f"at least {minimum_valid} are required (80%)"
+        )
+
+    tail_probability = (1.0 - config.confidence_level) / 2.0
+    point_eer = cast(float, cast(dict[str, object], point_metrics["eer"])["value"])
+    point_auc = cast(float, point_metrics["roc_auc"])
+    point_fmr = cast(
+        float, cast(dict[str, object], point_operating_point["fmr"])["rate"]
+    )
+    point_fnmr = cast(
+        float, cast(dict[str, object], point_operating_point["fnmr"])["rate"]
+    )
+    point_threshold = cast(
+        float, point_operating_point["threshold_normalized_higher_is_genuine"]
+    )
+    point_estimates = {
+        "eer": point_eer,
+        "roc_auc": point_auc,
+        "fmr_at_resampled_threshold": point_fmr,
+        "fnmr_at_resampled_threshold": point_fnmr,
+        "brier_score": cast(float, point_calibration_metrics["brier_score"]),
+        "log_loss": cast(float, point_calibration_metrics["log_loss"]),
+        "expected_calibration_error": cast(
+            float, point_calibration_metrics["expected_calibration_error"]
+        ),
+    }
+
+    def interval(name: str) -> dict[str, object]:
+        values = bootstrap_values[name]
+        return {
+            "point_estimate": point_estimates[name],
+            "percentile_interval": [
+                _percentile(values, tail_probability),
+                _percentile(values, 1.0 - tail_probability),
+            ],
+            "valid_replicates": len(values),
+        }
+
+    threshold_lower = _percentile(threshold_values, tail_probability)
+    threshold_upper = _percentile(threshold_values, 1.0 - tail_probability)
+    if direction is ScoreDirection.HIGHER_IS_GENUINE:
+        original_threshold_interval = [threshold_lower, threshold_upper]
+        original_point_threshold = point_threshold
+    else:
+        original_threshold_interval = [-threshold_upper, -threshold_lower]
+        original_point_threshold = -point_threshold
+
+    return {
+        "method": (
+            "two-stage nonparametric cluster bootstrap; calibration and evaluation "
+            "clusters sampled independently, with calibration re-fit in each replicate"
+        ),
+        "cluster_column": config.cluster_column,
+        "calibration_cluster_count": len(calibration_cluster_ids),
+        "calibration_clusters_by_class": calibration_clusters_by_label,
+        "evaluation_cluster_count": len(evaluation_cluster_ids),
+        "evaluation_clusters_by_class": evaluation_clusters_by_label,
+        "replicates_requested": config.replicates,
+        "replicates_valid": valid_replicates,
+        "replicates_invalid": invalid_replicates,
+        "seed": config.seed,
+        "confidence_level": config.confidence_level,
+        "minimum_valid_fraction": 0.8,
+        "threshold_selection": {
+            "method": "re-selected at the target empirical FMR from each resampled calibration set",
+            "normalized_higher_is_genuine": {
+                "point_estimate": point_threshold,
+                "percentile_interval": [threshold_lower, threshold_upper],
+            },
+            "original_score_scale": {
+                "point_estimate": original_point_threshold,
+                "percentile_interval": original_threshold_interval,
+            },
+        },
+        "metrics": {name: interval(name) for name in metric_names},
+        "estimand_note": (
+            "Intervals include calibration-map and threshold-selection variability plus "
+            "held-out evaluation-cluster sampling variability. Calibration and evaluation "
+            "clusters are sampled independently and must be disjoint for the configured "
+            "cluster unit. The procedure does not include model-training, hyperparameter-search, "
+            "dataset-acquisition or broader population-sampling uncertainty."
+        ),
+    }
+
+
 def _condition_stratification_report(
     records: tuple[ScoreTrial, ...],
     direction: ScoreDirection,
@@ -440,17 +669,18 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
             dataset.records, BenchmarkTask.ASV, direction, threshold=None
         )
         transferred_operating_point = _operating_rates(dataset.records, direction, raw_threshold)
+        calibration_metrics = evaluate_calibration(
+            dataset.records,
+            calibrator,
+            direction,
+            probability_threshold=loaded.manifest.probability_threshold,
+        )
         evaluation_result: dict[str, object] = {
             "domain_id": item.domain_id,
             "dataset": _dataset_summary(dataset),
             "raw_score_metrics": raw_metrics,
             "transferred_operating_point": transferred_operating_point,
-            "calibration_metrics": evaluate_calibration(
-                dataset.records,
-                calibrator,
-                direction,
-                probability_threshold=loaded.manifest.probability_threshold,
-            ),
+            "calibration_metrics": calibration_metrics,
         }
         if loaded.manifest.cluster_bootstrap is not None:
             evaluation_result["cluster_bootstrap_uncertainty"] = _cluster_bootstrap_uncertainty(
@@ -460,6 +690,20 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
                 loaded.manifest.cluster_bootstrap,
                 raw_metrics,
                 transferred_operating_point,
+            )
+        if loaded.manifest.nested_calibration_bootstrap is not None:
+            evaluation_result["nested_calibration_bootstrap_uncertainty"] = (
+                _nested_calibration_bootstrap_uncertainty(
+                    calibration.records,
+                    dataset.records,
+                    direction,
+                    loaded.manifest.target_fmr,
+                    loaded.manifest.probability_threshold,
+                    loaded.manifest.nested_calibration_bootstrap,
+                    raw_metrics,
+                    transferred_operating_point,
+                    calibration_metrics,
+                )
             )
         if loaded.manifest.stratify_by_condition:
             evaluation_result["condition_analysis"] = _condition_stratification_report(
