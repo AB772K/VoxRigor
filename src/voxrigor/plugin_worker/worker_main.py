@@ -18,7 +18,7 @@ from typing import NoReturn
 from uuid import uuid4
 
 from voxrigor import __version__
-from voxrigor.models import ProjectManifest, ResultStatus, TestDescriptor
+from voxrigor.models import ProjectManifest, ResultStatus
 from voxrigor.plugin_worker.protocol import (
     WorkerCancelRequest,
     WorkerCancelled,
@@ -28,7 +28,6 @@ from voxrigor.plugin_worker.protocol import (
     WorkerExecuteResponse,
     WorkerFailure,
     WorkerHello,
-    WorkerMessage,
     WorkerProtocolError,
     WorkerShutdownRequest,
     WorkerShutdownResponse,
@@ -42,9 +41,8 @@ from voxrigor.plugins import (
     PluginMetadata,
     PluginPermission,
     PluginRegistrationContext,
-    VoxRigorExternalPlugin,
 )
-from voxrigor.testing import StagedTestInput, TestOutcome, TestPlugin, TestRegistry, TestContext
+from voxrigor.testing import StagedTestInput, TestOutcome, TestRegistry, TestContext
 
 
 class WorkerBootstrapError(RuntimeError):
