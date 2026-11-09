@@ -16,17 +16,25 @@
 - [x] Tests cover negative scope cases, fixed/vulnerable fixture behavior, request budgets and report redaction.
 - [x] Ruff, formatting, strict Mypy, tests and the configured coverage gate pass on Ubuntu/Windows and Python 3.11–3.13.
 
+## Lifecycle extension — implementation added; branch CI pending
+
+- [x] Challenge records include a server-side purpose and mismatched-purpose verification is rejected by the fixed fixture.
+- [x] The reference fixture supports an enrollment re-enrollment operation with owner/admin authorization and a monotonically increasing fixture version.
+- [x] Session expiry is independently tested; the vulnerable profile deliberately retains expired sessions for detection validation.
+- [x] Challenge and session expiry use monotonic time in the reference fixture; runner waiting remains bounded by scope configuration.
+
 ## Research and integration gates — still open
 
 - [ ] Define a versioned target-adapter contract for other local reference services.
 - [ ] Add a user-configurable API schema without allowing scope expansion or arbitrary request injection.
 - [ ] Add account creation/cleanup lifecycle and documented rollback for target state changes.
-- [ ] Add tests for enrollment/re-enrollment ownership, challenge purpose binding, session expiry, fallback paths and recovery workflows.
+- [x] Add tests for enrollment/re-enrollment ownership, challenge purpose binding and session expiry.
+- [ ] Add tests for application fallback paths and complete account-recovery workflows; the current reference fixture only models purpose-bound recovery challenges, not a full recovery channel.
 - [ ] Add server-side request forgery and redirect-to-out-of-scope negative tests for future adapters.
 - [ ] Define safe rate-limit profiles that avoid triggering lockouts or expensive real biometric processing.
 - [ ] Integrate optional audio/model verification only through an explicit test adapter and controlled fixtures.
 - [ ] Consider remote authorized targets only after a separate scope, allowlist, redirect/DNS-rebinding, consent and safety review.
 
-The implemented Phase 5 slice passed CI run 42588833761 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. All six jobs passed lint, formatting, strict Mypy and tests. Each Linux job completed 198 tests and 85.74% coverage (85% minimum).
+The initial Phase 5 slice passed CI run 42588833761 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. The lifecycle extension is being validated in a new branch-head CI run; do not treat its gates as passed until that run completes.
 
 A successful local fixture run does not demonstrate that a production voice-authentication system is secure. A deterministic fixture assertion is not a biometric verifier.
