@@ -216,8 +216,7 @@ def test_run_checked_returns_stdout_and_rejects_nonzero_exit(
         lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout="ok\n", stderr=""),
     )
     assert (
-        backend._run_checked(["podman", "version"], timeout=3, operation="read version")
-        == "ok\n"
+        backend._run_checked(["podman", "version"], timeout=3, operation="read version") == "ok\n"
     )
 
     monkeypatch.setattr(
@@ -440,7 +439,9 @@ def test_preflight_runs_the_container_probe_and_always_removes_it(
     monkeypatch.setattr(backend, "_runtime_preflight", lambda: {})
     monkeypatch.setattr(backend, "_create_and_inspect", lambda *_args, **_kwargs: "probe-id")
     monkeypatch.setattr(backend, "_run_probe", lambda _container: None)
-    monkeypatch.setattr(backend, "_remove_container", lambda container_id: removed.append(container_id))
+    monkeypatch.setattr(
+        backend, "_remove_container", lambda container_id: removed.append(container_id)
+    )
 
     readiness = backend.preflight(IsolationPolicy())
 
@@ -462,7 +463,9 @@ def test_preflight_removes_probe_container_even_when_probe_fails(
         "_run_probe",
         lambda _container: (_ for _ in ()).throw(PodmanBackendError("probe refused")),
     )
-    monkeypatch.setattr(backend, "_remove_container", lambda container_id: removed.append(container_id))
+    monkeypatch.setattr(
+        backend, "_remove_container", lambda container_id: removed.append(container_id)
+    )
 
     with pytest.raises(PodmanBackendError, match="probe refused"):
         backend.preflight(IsolationPolicy())
