@@ -16,7 +16,8 @@
 ## Research gates — still open
 
 - [ ] Evaluate approved, representative datasets and publish reproducible experiment cards.
-- [ ] Compare calibration and operating-point transfer across more than one speaker-verification model family.
+- [x] Add paired multi-system comparison for 2–8 independently calibrated ASV systems with exact trial/label/split/condition/group alignment and optional paired cluster-bootstrap deltas.
+- [ ] Compare calibration and operating-point transfer empirically across multiple speaker-verification model families using approved representative datasets; the comparison tool alone is not an empirical result.
 - [x] Add optional deterministic cluster-bootstrap intervals for held-out EER, ROC-AUC and frozen-threshold FMR/FNMR, with class/cluster and valid-replicate safeguards.
 - [ ] Extend uncertainty to include calibration-set and threshold-selection variability through a separately specified nested or paired resampling design.
 - [ ] Add protocol-specific cost metrics only with a matching official protocol and independently validated implementation.
