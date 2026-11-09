@@ -31,7 +31,7 @@ def _dataset(directory: Path, dataset_id: str, rows: list[tuple[str, float, str]
         )
     csv_text = "\n".join(csv_lines) + "\n"
     score_path = directory / "scores.csv"
-    score_path.write_text(csv_text, encoding="utf-8", newline="\\n")
+    score_path.write_text(csv_text, encoding="utf-8", newline="\n")
     score_sha256 = hashlib.sha256(score_path.read_bytes()).hexdigest()
     manifest: dict[str, Any] = {
         "schema_version": "0.1",
