@@ -84,9 +84,9 @@ class ScopedHttpClient:
             )
         if route not in _ALLOWED_ROUTES:
             raise ProtocolError("Requested route is not in the protocol test allowlist")
-        self._requests_made += 1
-        if self._requests_made > self._scope.request_budget:
+        if self._requests_made >= self._scope.request_budget:
             raise ProtocolError("Protocol request budget was exhausted")
+        self._requests_made += 1
 
         body: bytes | None = None
         headers = {"Accept": "application/json", "User-Agent": "VoxRigor-LocalProtocol/0.1"}

@@ -71,6 +71,9 @@ def protocol_serve(
     challenge_ttl_seconds: Annotated[
         float, typer.Option("--challenge-ttl-seconds", min=0.1, max=120.0)
     ] = 3.0,
+    session_ttl_seconds: Annotated[
+        float, typer.Option("--session-ttl-seconds", min=0.1, max=120.0)
+    ] = 60.0,
 ) -> None:
     """Start the in-memory reference application on 127.0.0.1 only."""
 
@@ -79,6 +82,7 @@ def protocol_serve(
             profile=profile,
             port=port,
             challenge_ttl_seconds=challenge_ttl_seconds,
+            session_ttl_seconds=session_ttl_seconds,
         )
     except ValueError as exc:
         _handle_error(exc)
@@ -137,7 +141,12 @@ def protocol_demo(
     """Start an ephemeral loopback fixture, run checks, and stop the fixture."""
 
     try:
-        server = create_reference_server(profile=profile, port=0, challenge_ttl_seconds=0.2)
+        server = create_reference_server(
+            profile=profile,
+            port=0,
+            challenge_ttl_seconds=0.2,
+            session_ttl_seconds=0.2,
+        )
     except ValueError as exc:
         _handle_error(exc)
     thread = threading.Thread(
