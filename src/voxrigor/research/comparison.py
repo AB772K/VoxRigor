@@ -18,11 +18,15 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from voxrigor import __version__
-from voxrigor.benchmarking.dataset import ScoreDataset, ScoreTrial, load_score_dataset
-from voxrigor.benchmarking.errors import BenchmarkError, MetricError
+from voxrigor.benchmarking.dataset import ScoreDataset, ScoreTrial
+from voxrigor.benchmarking.errors import MetricError
 from voxrigor.benchmarking.metrics import evaluate_scores
 from voxrigor.benchmarking.models import BenchmarkTask, ScoreDirection
-from voxrigor.research.experiment import LoadedResearchExperiment, ResearchExperimentError, load_research_experiment
+from voxrigor.research.experiment import (
+    LoadedResearchExperiment,
+    ResearchExperimentError,
+    load_research_experiment,
+)
 from voxrigor.research.runner import _operating_rates, build_research_report
 
 
