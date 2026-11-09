@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxrigor.example/schemas/research-comparison-0.1.schema.json",
+  "title": "VoxRigor Paired Research Comparison Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "comparison_id",
+    "description",
+    "reference_system_id",
+    "systems"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "comparison_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,79}$"
+    },
+    "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "reference_system_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+    },
+    "systems": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["system_id", "experiment_manifest"],
+        "properties": {
+          "system_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{1,79}$"
+          },
+          "experiment_manifest": { "type": "string", "minLength": 1, "maxLength": 500 }
+        }
+      }
+    },
+    "paired_cluster_bootstrap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cluster_column"],
+      "properties": {
+        "cluster_column": { "enum": ["speaker_id", "source_id"] },
+        "replicates": { "type": "integer", "minimum": 100, "maximum": 5000, "default": 1000 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295, "default": 2026 },
+        "confidence_level": { "type": "number", "exclusiveMinimum": 0.5, "exclusiveMaximum": 1, "default": 0.95 }
+      }
+    }
+  }
+}
