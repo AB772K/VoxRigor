@@ -4,17 +4,19 @@
 
 VoxRigor is an independent open-source security research project intended to help fellow researchers, biometric engineers and developers evaluate the security and robustness of voice authentication systems.
 
-The project brings together reproducible biometric benchmarking, optional model integrations, presentation-attack evaluation, audio robustness testing and—on the roadmap—authentication protocol and API security assessment.
+The project brings together reproducible biometric benchmarking, optional model integrations, presentation-attack evaluation, audio robustness testing and authentication protocol/API security assessment.
 
 ## Project status
 
-**Current development:** Phase 5 — local protocol and API security engine (development preview; lifecycle extension passed six-environment CI). Phase 3 model integration work is merged into main. Phase 4 and Phase 5 are carried on the Phase 3 development branch; the Phase 4/5 development line is not yet integrated into main.
+**Current development:** Phase 6 — research and custom-AI experiment infrastructure. Phase 1–3 implementation and Phase 5 local protocol/lifecycle work are integrated into `main`. Phase 4 audio-condition generation is implemented and validated on the development line; the digital-condition generator and provenance chain are available in the current codebase, while physical presentation hardware remains unimplemented.
 
-Phase 4 added deterministic local audio-condition generation and provenance verification. Its initial CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Physical replay hardware and approved-dataset accuracy studies remain open.
+The latest Phase 5 lifecycle extension passed the six-job GitHub Actions matrix on Ubuntu and Windows with Python 3.11, 3.12 and 3.13 (run [42593363565](https://github.com/AB772K/VoxRigor/actions/runs/42593363565)). The validation includes Ruff lint, Ruff formatting, strict Mypy, and the complete test suite. The Linux jobs completed 201 tests at 85.58% coverage against the configured 85% gate.
 
-Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, and deterministic local audio-condition generation.
+Implemented capabilities include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, deterministic local audio-condition generation, and a bounded loopback-only protocol/API security engine with fixed and intentionally vulnerable reference profiles.
 
-Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation and physical presentation rig testing remain open research tasks.
+Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation, cross-dataset generalization studies, calibration research and physical presentation-rig validation remain research tasks.
+
+The Phase 5 reference protocol service uses a deterministic synthetic assertion; it does not implement speaker recognition, PAD or liveness detection. Its results validate the scanner against controlled fixtures and must not be interpreted as production-system security evidence.
 
 ## Installation
 
@@ -59,6 +61,7 @@ voxrigor models list
 - [Phase 4 acceptance gates](docs/PHASE_4_ACCEPTANCE.md)
 - [Phase 5 protocol and API engine](docs/PHASE_5_IMPLEMENTATION.md)
 - [Phase 5 acceptance gates](docs/PHASE_5_ACCEPTANCE.md)
+- [Development roadmap](docs/ROADMAP.md)
 
 ## Mission
 
