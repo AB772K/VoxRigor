@@ -14,6 +14,8 @@ from voxrigor.biometrics.errors import AudioInputError, OptionalDependencyError
 DEFAULT_MAX_DURATION_SECONDS = 120.0
 SUPPORTED_MIN_SAMPLE_RATE = 8_000
 SUPPORTED_MAX_SAMPLE_RATE = 192_000
+MAX_AUDIO_CHANNELS = 8
+MAX_DECODED_AUDIO_BYTES = 128 * 1024 * 1024
 AASIST_SAMPLE_RATE_HZ = 16_000
 AASIST_L_WINDOW_SAMPLES = 64_600
 
@@ -66,6 +68,15 @@ def load_audio_file(
         info = sf.info(str(source))
         if info.frames <= 0 or info.channels <= 0:
             raise AudioInputError("Audio file contains no frames or channels")
+        if info.channels > MAX_AUDIO_CHANNELS:
+            raise AudioInputError(
+                f"Audio channel count exceeds the configured {MAX_AUDIO_CHANNELS}-channel limit"
+            )
+        decoded_bytes = int(info.frames) * int(info.channels) * np.dtype("float32").itemsize
+        if decoded_bytes > MAX_DECODED_AUDIO_BYTES:
+            raise AudioInputError(
+                "Decoded audio buffer exceeds the configured 128 MiB memory limit"
+            )
         if not SUPPORTED_MIN_SAMPLE_RATE <= int(info.samplerate) <= SUPPORTED_MAX_SAMPLE_RATE:
             raise AudioInputError("Audio sample rate is outside the supported 8–192 kHz range")
         duration = info.frames / float(info.samplerate)

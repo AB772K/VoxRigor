@@ -11,8 +11,9 @@
 - [x] Transform order, input/output sample hashes, seeds, rates, durations and amplitudes are recorded.
 - [x] FLOAT WAV exports preserve over-range values; no hidden clipping or normalization occurs.
 - [x] Input path traversal and symlink escapes are rejected.
+- [x] Audio decoding rejects excessive channel counts and estimated decoded buffers above 128 MiB before allocation.
 - [x] Generated trial IDs are unique and condition labels are retained for per-condition reports.
-- [x] Output size, trial expansion, input duration and IR duration have explicit hard limits.
+- [x] Output size, trial expansion, input duration, decoded audio buffer size/channel count and IR duration have explicit hard limits.
 - [x] Condition-provenance SHA-256 is copied into score-producer metadata and verified by Phase 2.
 - [x] No source audio paths, raw audio, or embeddings are written to condition provenance.
 - [x] Ruff, formatting, strict Mypy, tests and the 85% coverage gate pass on all six CI combinations.
@@ -26,6 +27,6 @@
 - [ ] Demonstrate that physical replay and digital injection are separate labels and result categories.
 - [ ] Validate that generated conditions do not leak source identity across train/development/evaluation splits.
 
-The implemented-slice automated gates passed in CI run 42413468715 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. The suite completed 172 tests and 86.65% coverage on each Linux Python job; the Windows matrix also passed.
+The implemented-slice automated gates passed in CI run 42413468715 on Ubuntu and Windows with Python 3.11, 3.12 and 3.13. A subsequent Phase 4 hardening commit adds pre-allocation channel-count and decoded-buffer limits; its CI validation is recorded in the current branch run.
 
 A passing transformation unit test is not evidence of biometric accuracy, PAD effectiveness or real-world channel realism.
