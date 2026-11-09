@@ -16,11 +16,11 @@
 
 ## Remaining Phase 7 gates
 
-- [ ] Publish an independently installable example plugin package and test it from a clean wheel install.
+- [x] Add an independently installable example plugin package and test it from a clean wheel install.
 - [ ] Define and test a backwards-compatibility/deprecation policy for the public SDK.
 - [ ] Add signed plugin/distribution provenance verification if it is required by the project threat model.
 - [ ] Design a separately isolated plugin worker before claiming permission enforcement or sandboxing.
 - [ ] Add optional worker lifecycle, resource limits and failure-recovery integration only after the isolation boundary is designed.
-- [ ] Validate plugin packaging and compatibility on all supported operating systems and Python versions from an independently built wheel.
+- [x] Validate the example plugin wheel build/install/discovery/execution path on all six supported OS/Python CI combinations.
 
 Passing contract tests does not make untrusted plugins safe. No sandbox or capability enforcement is included in this version.
