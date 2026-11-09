@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Annotated, BinaryIO, Literal, TypeAlias
+from typing import Annotated, BinaryIO, IO, Literal, TypeAlias
 
 from pydantic import (
     BaseModel,
@@ -376,7 +376,7 @@ def read_worker_message(
 
 
 def write_worker_message(
-    stream: BinaryIO,
+    stream: IO[bytes],
     message: WorkerMessage,
     *,
     max_bytes: int = MAX_WORKER_FRAME_BYTES,
