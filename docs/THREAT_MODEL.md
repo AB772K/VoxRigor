@@ -70,8 +70,12 @@ VoxRigor must protect the operator's environment and the confidentiality/integri
 
 ### Local target mode
 
-- Target address must resolve to an explicit loopback or isolated lab target by default.
-- Test accounts and synthetic fixtures are required.
+- The Phase 5 protocol client accepts only an explicit loopback IP literal and port; DNS names and remote targets are unsupported.
+- HTTP proxy discovery and redirects are disabled in the Phase 5 client.
+- Fixed route and method allowlists, request budgets, body-size limits, response-size limits and bounded timeouts are enforced.
+- Test accounts and synthetic fixtures are required; the bundled reference service stores them in memory and binds only to 127.0.0.1.
+- The intentionally vulnerable fixture is for isolated local validation only and must never be exposed to a network interface.
+- Reports must omit request/response bodies, Authorization headers, bearer tokens and fixture proofs.
 - Test suite must state which state changes it may perform.
 
 ### Remote authorized mode (later release)

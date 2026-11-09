@@ -1,8 +1,8 @@
 # Development Roadmap
 
-**Status:** Living development plan — Phase 4 implementation in progress  
+**Status:** Living development plan — Phase 5 local protocol engine in progress  
 **Planning basis:** milestone and acceptance-gate driven; calendar estimates intentionally omitted.
-**Current state:** Phase 1 and Phase 2 are merged into main. Phase 3 baseline adapters and the reproducible model-to-benchmark follow-up have passed automated CI and real-checkpoint smoke tests; the follow-up is awaiting owner review in PR #4. Phase 4's initial deterministic audio-condition generator has passed its six-environment CI matrix on its own branch. Physical presentation hardware integration and approved-dataset evaluation remain open.
+**Current state:** Phase 1, Phase 2 and the Phase 3 model-to-benchmark follow-up are merged into main. Phase 4 PR #5 is merged into the Phase 3 development branch, not main; its CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Phase 4 audio-decoder resource hardening and Phase 5 local protocol work are underway on the Phase 5 branch.
 
 ## Phase 0 — Research, product specification and threat modeling
 

@@ -8,9 +8,9 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 ## Project status
 
-**Current development:** Phase 4 — controlled audio-condition generation (development preview). Phase 3 model integrations and the model-to-benchmark pipeline have passed automated and real-checkpoint runtime validation; PR #4 is awaiting review.
+**Current development:** Phase 5 — local protocol and API security engine (development preview). Phase 3 model integration work is merged into main. Phase 4 is merged into the Phase 3 development branch and is being carried forward with Phase 5; the Phase 4 branch has not yet been integrated into main.
 
-Phase 4 first-slice status: controlled audio-condition generation has passed the six-environment CI matrix (Ubuntu and Windows, Python 3.11–3.13). Physical replay hardware and approved-dataset accuracy studies are not part of this implementation.
+Phase 4 added deterministic local audio-condition generation and provenance verification. Its initial CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Physical replay hardware and approved-dataset accuracy studies remain open.
 
 Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, and deterministic local audio-condition generation.
 
@@ -57,6 +57,8 @@ voxrigor models list
 - [Phase 3 acceptance gates](docs/PHASE_3_ACCEPTANCE.md)
 - [Phase 4 audio-condition implementation](docs/PHASE_4_IMPLEMENTATION.md)
 - [Phase 4 acceptance gates](docs/PHASE_4_ACCEPTANCE.md)
+- [Phase 5 protocol and API engine](docs/PHASE_5_IMPLEMENTATION.md)
+- [Phase 5 acceptance gates](docs/PHASE_5_ACCEPTANCE.md)
 
 ## Mission
 
