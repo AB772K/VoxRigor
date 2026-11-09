@@ -6,16 +6,16 @@ recognition, presentation-attack detection, voice liveness or any biometric accu
 
 from __future__ import annotations
 
-from collections import deque
-from dataclasses import dataclass, field
-
 import hashlib
 import hmac
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import secrets
 import threading
 import time
+
+from collections import deque
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Literal, cast
 
 
