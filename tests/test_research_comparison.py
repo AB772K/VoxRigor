@@ -231,6 +231,11 @@ def test_paired_comparison_reports_system_deltas_and_deterministic_bootstrap(
         "cross_domain",
     ]
     in_domain = first["evaluation_domains"][0]
+    assert set(in_domain["datasets_by_system"]) == {"model-a", "model-b"}
+    for dataset in in_domain["datasets_by_system"].values():
+        assert dataset["score_file_sha256"]
+        assert dataset["manifest_sha256"]
+        assert dataset["sample_counts"]["evaluated_rows"] == 8
     assert in_domain["systems"]["model-a"]["eer"] < in_domain["systems"]["model-b"]["eer"]
     assert in_domain["differences_vs_reference"]["model-b"]["eer"] > 0
     bootstrap = in_domain["paired_cluster_bootstrap"]
