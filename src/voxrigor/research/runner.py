@@ -534,6 +534,7 @@ def _atomic_write(path: Path, content: str) -> None:
 
 def _render_html(report: dict[str, object]) -> str:
     rows: list[str] = []
+    condition_rows: list[str] = []
     evaluation_datasets = cast(list[dict[str, object]], report["evaluation_datasets"])
     for result in evaluation_datasets:
         dataset = cast(dict[str, object], result["dataset"])
@@ -550,8 +551,51 @@ def _render_html(report: dict[str, object]) -> str:
             f"<td>{cast(float, calibration['expected_calibration_error']):.6f}</td>"
             "</tr>"
         )
+        for condition in cast(
+            list[dict[str, object]], result.get("condition_analysis", [])
+        ):
+            sample_counts = cast(dict[str, int], condition["sample_counts"])
+            status = str(condition["status"])
+            if status == "computed":
+                condition_metrics = cast(dict[str, object], condition["raw_score_metrics"])
+                condition_eer = cast(dict[str, object], condition_metrics["eer"])
+                operating = cast(
+                    dict[str, object], condition["transferred_operating_point"]
+                )
+                fmr = cast(dict[str, object], operating["fmr"])
+                fnmr = cast(dict[str, object], operating["fnmr"])
+                eer_text = f"{cast(float, condition_eer['value']):.6f}"
+                fmr_text = f"{cast(float, fmr['rate']):.6f}"
+                fnmr_text = f"{cast(float, fnmr['rate']):.6f}"
+            else:
+                eer_text = fmr_text = fnmr_text = "Not computable"
+            condition_rows.append(
+                "<tr>"
+                f"<td>{html.escape(str(result['domain_id']))}</td>"
+                f"<td>{html.escape(str(condition['condition']))}</td>"
+                f"<td>{sample_counts['total']}</td>"
+                f"<td>{sample_counts['target']}</td>"
+                f"<td>{sample_counts['nontarget']}</td>"
+                f"<td>{html.escape(status)}</td>"
+                f"<td>{eer_text}</td>"
+                f"<td>{fmr_text}</td>"
+                f"<td>{fnmr_text}</td>"
+                "</tr>"
+            )
     warnings_list = cast(list[str], report["warnings"])
     warnings = "".join(f"<li>{html.escape(item)}</li>" for item in warnings_list)
+    condition_section = ""
+    if condition_rows:
+        condition_section = (
+            "<h2>Condition-stratified evaluation</h2>"
+            "<p>Each condition uses the calibration-fitted mapping and frozen operating threshold. "
+            "Conditions missing either class are marked not computable.</p>"
+            "<table><thead><tr><th>Domain</th><th>Condition</th><th>Total</th>"
+            "<th>Target</th><th>Nontarget</th><th>Status</th><th>EER</th>"
+            "<th>FMR</th><th>FNMR</th></tr></thead><tbody>"
+            + "".join(condition_rows)
+            + "</tbody></table>"
+        )
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8">'
         "<title>VoxRigor Research Experiment</title><body>"
@@ -561,7 +605,9 @@ def _render_html(report: dict[str, object]) -> str:
         "<table><thead><tr><th>Domain</th><th>Dataset</th><th>Raw EER</th>"
         "<th>Raw ROC-AUC</th><th>Brier</th><th>ECE</th></tr></thead><tbody>"
         + "".join(rows)
-        + "</tbody></table><h2>Warnings and limitations</h2><ul>"
+        + "</tbody></table>"
+        + condition_section
+        + "<h2>Warnings and limitations</h2><ul>"
         + warnings
         + "</ul></body></html>\n"
     )
