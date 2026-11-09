@@ -26,6 +26,8 @@ from voxrigor.biometrics.cli import models_app
 from voxrigor.biometrics.conditions_cli import audio_app
 from voxrigor.errors import ManifestError, ProjectExistsError, ReportError, TestNotFoundError
 from voxrigor.manifest import DEFAULT_MANIFEST, create_manifest, load_manifest
+from voxrigor.plugins import load_enabled_plugins
+from voxrigor.plugins_cli import plugins_app
 from voxrigor.protocol.cli import protocol_app
 from voxrigor.reporting import load_report, write_report
 from voxrigor.research.cli import research_app
@@ -52,6 +54,7 @@ app.add_typer(models_app, name="models")
 app.add_typer(audio_app, name="audio")
 app.add_typer(protocol_app, name="protocol")
 app.add_typer(research_app, name="research")
+app.add_typer(plugins_app, name="plugins")
 
 
 def _handle_error(error: Exception) -> NoReturn:
@@ -115,15 +118,31 @@ def validate(
 
 
 @app.command("tests")
-def list_tests() -> None:
-    """List built-in tests available in this installation."""
+def list_tests(
+    plugin_config: Annotated[
+        Path | None,
+        typer.Option(
+            "--plugin-config",
+            help="Explicit allow-list for third-party plugins; loading executes their code in-process.",
+        ),
+    ] = None,
+) -> None:
+    """List built-in tests and, optionally, tests from explicitly enabled plugins."""
 
-    descriptors = build_default_registry().list()
+    registry = build_default_registry()
+    try:
+        if plugin_config is not None:
+            load_enabled_plugins(plugin_config, registry)
+    except ValueError as exc:
+        _handle_error(exc)
+    descriptors = registry.list()
     for descriptor in descriptors:
         typer.echo(f"{descriptor.test_id} [{descriptor.version}] — {descriptor.name}")
         typer.echo(f"  Category: {descriptor.category}")
         typer.echo(f"  {descriptor.description}")
     typer.echo(f"Total: {len(descriptors)} test(s)")
+    if plugin_config is not None:
+        typer.echo("Third-party plugin code was imported in-process; no sandbox is provided.")
 
 
 @app.command()
@@ -142,12 +161,22 @@ def run(
         int | None,
         typer.Option("--seed", min=0, help="Optional experiment seed recorded in provenance."),
     ] = None,
+    plugin_config: Annotated[
+        Path | None,
+        typer.Option(
+            "--plugin-config",
+            help="Explicit allow-list for third-party plugins; loading executes their code in-process.",
+        ),
+    ] = None,
 ) -> None:
-    """Execute selected built-in diagnostic tests and save a local report."""
+    """Execute built-in tests and explicitly enabled plugins, then save a local report."""
 
     try:
         manifest = load_manifest(manifest_path)
-        report = TestRunner(build_default_registry()).run(
+        registry = build_default_registry()
+        if plugin_config is not None:
+            load_enabled_plugins(plugin_config, registry)
+        report = TestRunner(registry).run(
             manifest=manifest,
             test_ids=test_id,
             random_seed=seed,
@@ -160,6 +189,9 @@ def run(
     typer.echo(f"Results: {report.summary.total}")
     typer.echo(f"Inconclusive: {report.summary.inconclusive}")
     typer.echo(f"Report: {run_dir / 'report.html'}")
+    if plugin_config is not None:
+        typer.echo("Third-party plugin code ran in-process with the current user's OS permissions.")
+        typer.echo("Plugin permission labels are declarations only; no sandbox is provided.")
     typer.echo("Note: the built-in runtime test is diagnostic only, not a security assessment.")
 
 
