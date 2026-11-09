@@ -327,9 +327,7 @@ def _cluster_bootstrap_uncertainty(
         "method": "nonparametric cluster bootstrap; complete clusters sampled with replacement",
         "cluster_column": config.cluster_column,
         "cluster_count": len(cluster_ids),
-        "clusters_by_class": {
-            label: len(values) for label, values in clusters_by_label.items()
-        },
+        "clusters_by_class": {label: len(values) for label, values in clusters_by_label.items()},
         "replicates_requested": config.replicates,
         "replicates_valid": valid_replicates,
         "replicates_invalid": invalid_replicates,
@@ -382,9 +380,7 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
         raw_metrics, _, _ = evaluate_scores(
             dataset.records, BenchmarkTask.ASV, direction, threshold=None
         )
-        transferred_operating_point = _operating_rates(
-            dataset.records, direction, raw_threshold
-        )
+        transferred_operating_point = _operating_rates(dataset.records, direction, raw_threshold)
         evaluation_result: dict[str, object] = {
             "domain_id": item.domain_id,
             "dataset": _dataset_summary(dataset),
@@ -398,15 +394,13 @@ def build_research_report(loaded: LoadedResearchExperiment) -> dict[str, object]
             ),
         }
         if loaded.manifest.cluster_bootstrap is not None:
-            evaluation_result["cluster_bootstrap_uncertainty"] = (
-                _cluster_bootstrap_uncertainty(
-                    dataset.records,
-                    direction,
-                    raw_threshold,
-                    loaded.manifest.cluster_bootstrap,
-                    raw_metrics,
-                    transferred_operating_point,
-                )
+            evaluation_result["cluster_bootstrap_uncertainty"] = _cluster_bootstrap_uncertainty(
+                dataset.records,
+                direction,
+                raw_threshold,
+                loaded.manifest.cluster_bootstrap,
+                raw_metrics,
+                transferred_operating_point,
             )
         evaluation_results.append(evaluation_result)
 
