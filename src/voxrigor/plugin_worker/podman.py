@@ -9,6 +9,7 @@ kernel-visible process limits before it reports readiness.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -26,10 +27,10 @@ from typing import BinaryIO
 from uuid import uuid4
 
 from voxrigor.plugin_worker.isolation import (
+    REQUIRED_ISOLATION_CONTROLS,
     IsolationBackendUnavailable,
     IsolationPolicy,
     IsolationReadiness,
-    REQUIRED_ISOLATION_CONTROLS,
     verify_isolation_backend,
 )
 from voxrigor.plugin_worker.protocol import (
@@ -256,18 +257,14 @@ class _WorkerSession:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 process.kill()
-                try:
+                with contextlib.suppress(subprocess.TimeoutExpired):
                     process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
         self._kill_container()
         if process is not None:
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
-                    try:
+                    with contextlib.suppress(OSError):
                         stream.close()
-                    except OSError:
-                        pass
         for thread in self._reader_threads:
             thread.join(timeout=1)
         self.staged_directory.cleanup()
@@ -578,7 +575,7 @@ class RootlessPodmanBackend:
             raise
 
     def _remove_container(self, container_id: str) -> None:
-        try:
+        with contextlib.suppress(OSError, subprocess.TimeoutExpired):
             subprocess.run(
                 [self.binary, "rm", "--force", "--volumes", container_id],
                 stdin=subprocess.DEVNULL,
@@ -587,8 +584,6 @@ class RootlessPodmanBackend:
                 check=False,
                 timeout=10,
             )
-        except (OSError, subprocess.TimeoutExpired):
-            pass
 
     def _probe_script(self, policy: IsolationPolicy) -> str:
         """Probe kernel-visible controls from inside the configured container."""
