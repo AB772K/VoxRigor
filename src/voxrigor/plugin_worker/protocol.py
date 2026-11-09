@@ -8,14 +8,12 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import BinaryIO
-from typing import Annotated, TypeAlias, Union
+from typing import Annotated, BinaryIO, Literal, TypeAlias, Union
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    FiniteFloat,
     TypeAdapter,
     ValidationError,
     model_validator,
@@ -77,16 +75,24 @@ class StagedInputReference(_WorkerModel):
 class WorkerHello(_WorkerModel):
     """First worker-to-host frame; proves protocol/API versions, not isolation."""
 
-    kind: LiteralHello = "hello"
+    kind: Literal["hello"] = "hello"
     protocol_version: str = Field(pattern=r"^\d+\.\d+$")
     worker_version: str = Field(min_length=1, max_length=64)
     plugin_api_version: str = Field(pattern=r"^\d+\.\d+$")
+
+    @model_validator(mode="after")
+    def versions_must_match_host_contract(self) -> WorkerHello:
+        if self.protocol_version != WORKER_PROTOCOL_VERSION:
+            raise ValueError("worker protocol version is not supported by this host")
+        if self.plugin_api_version != PLUGIN_API_VERSION:
+            raise ValueError("worker plugin API version is not supported by this host")
+        return self
 
 
 class WorkerDescribeRequest(_WorkerModel):
     """Host request for plugin metadata and its registered test descriptors."""
 
-    kind: LiteralDescribeRequest = "describe"
+    kind: Literal["describe"] = "describe"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
 
@@ -94,7 +100,7 @@ class WorkerDescribeRequest(_WorkerModel):
 class WorkerDescribeResponse(_WorkerModel):
     """Worker response containing validated metadata and test descriptors."""
 
-    kind: LiteralDescribeResponse = "description"
+    kind: Literal["description"] = "description"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     metadata: PluginMetadata
     tests: tuple[TestDescriptor, ...] = Field(min_length=1, max_length=MAX_WORKER_TESTS)
@@ -113,7 +119,7 @@ class WorkerDescribeResponse(_WorkerModel):
 class WorkerExecuteRequest(_WorkerModel):
     """Host request to execute one test using only staged-input references."""
 
-    kind: LiteralExecuteRequest = "execute"
+    kind: Literal["execute"] = "execute"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
     test_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,79}$")
@@ -145,7 +151,7 @@ class WorkerSampleAccounting(_WorkerModel):
 class WorkerExecuteResponse(_WorkerModel):
     """Constrained worker result; all values are untrusted until host validation."""
 
-    kind: LiteralExecuteResponse = "result"
+    kind: Literal["result"] = "result"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     plugin_id: str = Field(pattern=_PLUGIN_ID_PATTERN)
     test_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,79}$")
@@ -153,6 +159,18 @@ class WorkerExecuteResponse(_WorkerModel):
     measurements: dict[str, MeasurementValue] = Field(default_factory=dict, max_length=MAX_WORKER_MEASUREMENTS)
     limitations: tuple[str, ...] = Field(default=(), max_length=64)
     sample_accounting: WorkerSampleAccounting = Field(default_factory=WorkerSampleAccounting)
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_status_string(cls, value: object) -> object:
+        if isinstance(value, dict) and isinstance(value.get("status"), str):
+            parsed = value.copy()
+            try:
+                parsed["status"] = ResultStatus(parsed["status"])
+            except ValueError:
+                return value
+            return parsed
+        return value
 
     @model_validator(mode="after")
     def result_values_must_be_bounded(self) -> WorkerExecuteResponse:
@@ -173,7 +191,7 @@ class WorkerExecuteResponse(_WorkerModel):
 class WorkerFailure(_WorkerModel):
     """Sanitized worker failure. Tracebacks and local paths are not part of IPC."""
 
-    kind: LiteralFailure = "failure"
+    kind: Literal["failure"] = "failure"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
     code: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,47}$")
     message: str = Field(min_length=1, max_length=500)
@@ -182,39 +200,28 @@ class WorkerFailure(_WorkerModel):
 class WorkerCancelRequest(_WorkerModel):
     """Host cancellation request for the active execution request."""
 
-    kind: LiteralCancelRequest = "cancel"
+    kind: Literal["cancel"] = "cancel"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
 
 
 class WorkerCancelled(_WorkerModel):
     """Worker acknowledgement of cooperative cancellation."""
 
-    kind: LiteralCancelled = "cancelled"
+    kind: Literal["cancelled"] = "cancelled"
     request_id: str = Field(pattern=_REQUEST_ID_PATTERN)
 
 
 class WorkerShutdownRequest(_WorkerModel):
     """Host request to close the worker after the current operation."""
 
-    kind: LiteralShutdownRequest = "shutdown"
+    kind: Literal["shutdown"] = "shutdown"
 
 
 class WorkerShutdownResponse(_WorkerModel):
     """Worker acknowledgement that it is ready to exit."""
 
-    kind: LiteralShutdownResponse = "shutdown_ack"
+    kind: Literal["shutdown_ack"] = "shutdown_ack"
 
-
-LiteralHello: TypeAlias = str
-LiteralDescribeRequest: TypeAlias = str
-LiteralDescribeResponse: TypeAlias = str
-LiteralExecuteRequest: TypeAlias = str
-LiteralExecuteResponse: TypeAlias = str
-LiteralFailure: TypeAlias = str
-LiteralCancelRequest: TypeAlias = str
-LiteralCancelled: TypeAlias = str
-LiteralShutdownRequest: TypeAlias = str
-LiteralShutdownResponse: TypeAlias = str
 
 
 WorkerMessage: TypeAlias = Annotated[
