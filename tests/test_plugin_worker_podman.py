@@ -12,7 +12,9 @@ from voxrigor.plugin_worker.podman import (
     PodmanBackendError,
     RootlessPodmanBackend,
     WorkerExecutionError,
+    WorkerExecutionSpec,
 )
+from voxrigor.plugins import PluginPermission
 from voxrigor.plugin_worker.protocol import StagedInputReference
 
 IMAGE = "registry.example.invalid/voxrigor-worker@sha256:" + "a" * 64
@@ -272,9 +274,6 @@ def test_container_output_mount_is_read_only_by_default() -> None:
 
 
 def test_backend_refuses_unimplemented_network_and_write_capabilities() -> None:
-    from voxrigor.plugins import PluginPermission
-    from voxrigor.plugin_worker.podman import WorkerExecutionSpec
-
     network_spec = WorkerExecutionSpec(
         plugin_id="demo.voice",
         test_id="demo.voice.diagnostic",
@@ -304,12 +303,9 @@ def test_backend_refuses_unimplemented_network_and_write_capabilities() -> None:
 )
 def test_staged_input_kinds_require_matching_permission_grants(
     media_kind: str,
-    permissions: tuple[object, ...],
+    permissions: tuple[PluginPermission, ...],
     expected: str,
 ) -> None:
-    from voxrigor.plugins import PluginPermission
-    from voxrigor.plugin_worker.podman import WorkerExecutionSpec
-
     reference = StagedInputReference(
         input_id="input-data-1",
         sha256="a" * 64,
@@ -322,7 +318,7 @@ def test_staged_input_kinds_require_matching_permission_grants(
         test_id="demo.voice.diagnostic",
         project_name="Worker security",
         staged_inputs=(HostStagedInput(reference=reference, source_path=Path("sample.bin")),),
-        granted_permissions=permissions,  # type: ignore[arg-type]
+        granted_permissions=permissions,
     )
     with pytest.raises(PodmanBackendError, match=expected):
         _backend()._validate_spec_permissions(spec)
