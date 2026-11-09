@@ -389,9 +389,13 @@ class RootlessPodmanBackend:
         interactive: bool,
     ) -> list[str]:
         if policy.output_bytes < 4096:
-            raise PodmanBackendError("Rootless Podman requires at least 4096 bytes of bounded output tmpfs")
+            raise PodmanBackendError(
+                "Rootless Podman requires at least 4096 bytes of bounded output tmpfs"
+            )
         if policy.network_enabled or policy.microphone_enabled or policy.host_filesystem_enabled:
-            raise PodmanBackendError("Initial rootless worker backend denies network, microphone and host filesystem")
+            raise PodmanBackendError(
+                "Initial rootless worker backend denies network, microphone and host filesystem"
+            )
         uid = str(_CONTAINER_UID)
         gid = str(_CONTAINER_GID)
         temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
@@ -400,8 +404,7 @@ class RootlessPodmanBackend:
             f"mode=0700,uid={uid},gid={gid}"
         )
         temporary_mount = (
-            f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},"
-            f"mode=0700,uid={uid},gid={gid}"
+            f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=0700,uid={uid},gid={gid}"
         )
         command = [
             self.binary,
@@ -515,8 +518,14 @@ class RootlessPodmanBackend:
             "PYTHONDONTWRITEBYTECODE=1",
             "container=podman",
         }
-        if not isinstance(environment, list) or not set(environment).issubset(allowed_environment) or not allowed_environment - {"container=podman"} <= set(environment):
-            raise PodmanBackendError("Worker environment is not limited to the explicit safe allow-list")
+        if (
+            not isinstance(environment, list)
+            or not set(environment).issubset(allowed_environment)
+            or not allowed_environment - {"container=podman"} <= set(environment)
+        ):
+            raise PodmanBackendError(
+                "Worker environment is not limited to the explicit safe allow-list"
+            )
 
         ulimits = host.get("Ulimits")
         if not isinstance(ulimits, list):
@@ -544,7 +553,9 @@ class RootlessPodmanBackend:
         if f"size={policy.output_bytes}" not in output_settings:
             raise PodmanBackendError("Podman did not apply the per-worker output quota")
         if "/tmp" not in tmpfs:
-            raise PodmanBackendError("Podman did not create an ephemeral bounded temporary directory")
+            raise PodmanBackendError(
+                "Podman did not create an ephemeral bounded temporary directory"
+            )
 
         binds = host.get("Binds") or []
         if not isinstance(binds, list):
@@ -617,7 +628,9 @@ class RootlessPodmanBackend:
         command: list[str],
         expected_binds: tuple[tuple[str, str], ...] = (),
     ) -> str:
-        raw_id = self._run_checked(command, timeout=30, operation="create isolation probe container")
+        raw_id = self._run_checked(
+            command, timeout=30, operation="create isolation probe container"
+        )
         container_id = raw_id.strip()
         if not container_id:
             raise PodmanBackendError("Podman returned an empty container ID")
@@ -704,7 +717,9 @@ class RootlessPodmanBackend:
         try:
             result = json.loads(completed.stdout.strip().splitlines()[-1])
         except (json.JSONDecodeError, IndexError) as exc:
-            raise PodmanBackendError("Rootless Podman security probe returned invalid output") from exc
+            raise PodmanBackendError(
+                "Rootless Podman security probe returned invalid output"
+            ) from exc
         if not isinstance(result, dict) or result.get("ok") is not True:
             raise PodmanBackendError("Rootless Podman security probe did not verify the boundary")
 
@@ -712,7 +727,9 @@ class RootlessPodmanBackend:
         """Actively verify rootless runtime, inspect a constrained container and probe it."""
 
         if policy.network_enabled or policy.microphone_enabled or policy.host_filesystem_enabled:
-            raise PodmanBackendError("Initial worker policy denies network, microphone and host filesystem")
+            raise PodmanBackendError(
+                "Initial worker policy denies network, microphone and host filesystem"
+            )
         self._runtime_preflight()
         name = f"voxrigor-preflight-{uuid4().hex[:16]}"
         command = self._container_command(
@@ -773,7 +790,9 @@ class RootlessPodmanBackend:
                         target_stream.write(block)
                         copied += len(block)
                 if copied != reference.size_bytes or digest.hexdigest() != reference.sha256:
-                    raise WorkerExecutionError("Staged input did not match its declared hash and size")
+                    raise WorkerExecutionError(
+                        "Staged input did not match its declared hash and size"
+                    )
                 os.chmod(destination, 0o444)
                 mounts.append((reference, destination))
             os.chmod(root, 0o555)
@@ -785,8 +804,14 @@ class RootlessPodmanBackend:
     def launch(self, spec: WorkerExecutionSpec) -> _WorkerSession:
         """Prepare host-staged inputs and return a not-yet-started worker session."""
 
-        if spec.policy.network_enabled or spec.policy.microphone_enabled or spec.policy.host_filesystem_enabled:
-            raise PodmanBackendError("Initial worker policy denies network, microphone and host filesystem")
+        if (
+            spec.policy.network_enabled
+            or spec.policy.microphone_enabled
+            or spec.policy.host_filesystem_enabled
+        ):
+            raise PodmanBackendError(
+                "Initial worker policy denies network, microphone and host filesystem"
+            )
         staged_directory, staged_mounts = self._copy_staged_inputs(spec.staged_inputs)
         name = f"voxrigor-plugin-{uuid4().hex[:20]}"
         return _WorkerSession(self, name, spec, staged_directory, staged_mounts)
@@ -841,7 +866,10 @@ def execute_isolated_plugin_test(
             )
         if not isinstance(description, WorkerDescribeResponse):
             raise WorkerExecutionError("Worker returned an unexpected description response")
-        if description.request_id != describe_id or description.metadata.plugin_id != spec.plugin_id:
+        if (
+            description.request_id != describe_id
+            or description.metadata.plugin_id != spec.plugin_id
+        ):
             raise WorkerExecutionError("Worker description response did not match the request")
         if description.metadata.api_version != hello.plugin_api_version:
             raise WorkerExecutionError("Worker and plugin API versions did not match")
@@ -860,9 +888,7 @@ def execute_isolated_plugin_test(
         )
         result = session.receive(remaining())
         if isinstance(result, WorkerFailure):
-            raise WorkerExecutionError(
-                f"Worker test failed ({result.code}): {result.message}"
-            )
+            raise WorkerExecutionError(f"Worker test failed ({result.code}): {result.message}")
         if not isinstance(result, WorkerExecuteResponse):
             raise WorkerExecutionError("Worker returned an unexpected test result")
         if (
@@ -870,7 +896,9 @@ def execute_isolated_plugin_test(
             or result.plugin_id != spec.plugin_id
             or result.test_id != spec.test_id
         ):
-            raise WorkerExecutionError("Worker result identifiers did not match the execution request")
+            raise WorkerExecutionError(
+                "Worker result identifiers did not match the execution request"
+            )
         if not result.sample_accounting.is_reconciled():
             raise WorkerExecutionError("Worker result sample accounting does not reconcile")
 
