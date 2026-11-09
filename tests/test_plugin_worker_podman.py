@@ -42,7 +42,7 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
             ],
             "Tmpfs": {
                 "/tmp": "rw,noexec,nosuid,nodev,size=16777216",
-                "/output": f"rw,noexec,nosuid,nodev,size={policy.output_bytes}",
+                "/output": f"ro,noexec,nosuid,nodev,size={policy.output_bytes}",
             },
             "Binds": [],
             "VolumesFrom": [],
