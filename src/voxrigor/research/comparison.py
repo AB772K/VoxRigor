@@ -179,12 +179,9 @@ def load_research_comparison(path: Path) -> LoadedResearchComparison:
         manifest = ResearchComparisonManifest.model_validate(raw)
     except ValidationError as exc:
         details = "; ".join(
-            f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}"
-            for item in exc.errors()
+            f"{'.'.join(str(part) for part in item['loc'])}: {item['msg']}" for item in exc.errors()
         )
-        raise ResearchComparisonError(
-            f"comparison manifest validation failed: {details}"
-        ) from exc
+        raise ResearchComparisonError(f"comparison manifest validation failed: {details}") from exc
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ResearchComparisonError("comparison manifest is unreadable or invalid") from exc
 
