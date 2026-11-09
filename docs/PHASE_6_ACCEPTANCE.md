@@ -17,7 +17,8 @@
 
 - [ ] Evaluate approved, representative datasets and publish reproducible experiment cards.
 - [ ] Compare calibration and operating-point transfer across more than one speaker-verification model family.
-- [ ] Add speaker-clustered bootstrap confidence intervals or another justified cluster-aware uncertainty method.
+- [x] Add optional deterministic cluster-bootstrap intervals for held-out EER, ROC-AUC and frozen-threshold FMR/FNMR, with class/cluster and valid-replicate safeguards.
+- [ ] Extend uncertainty to include calibration-set and threshold-selection variability through a separately specified nested or paired resampling design.
 - [ ] Add protocol-specific cost metrics only with a matching official protocol and independently validated implementation.
 - [ ] Add condition-stratified cross-dataset analysis using Phase 4 audio-condition provenance.
 - [ ] Add a separately specified PAD calibration/evaluation protocol; ASV logistic calibration must not be reused for PAD without methodological justification.
