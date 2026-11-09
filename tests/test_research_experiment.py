@@ -12,8 +12,13 @@ from voxrigor.benchmarking.dataset import ScoreTrial
 from voxrigor.benchmarking.models import ScoreDirection
 from voxrigor.cli import app
 from voxrigor.research.calibration import evaluate_calibration, fit_platt_calibrator
-from voxrigor.research.experiment import ResearchExperimentError, load_research_experiment
+from voxrigor.research.experiment import (
+    ClusterBootstrapConfig,
+    ResearchExperimentError,
+    load_research_experiment,
+)
 from voxrigor.research.runner import (
+    _cluster_bootstrap_uncertainty,
     _select_threshold_at_target_fmr,
     build_research_report,
     run_research_experiment,
@@ -172,6 +177,89 @@ def test_full_research_experiment_writes_reports_and_checks_group_disjointness(
     saved = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
     assert saved["experiment_id"] == "research-test-01"
     assert "Raw EER" in (run_dir / "report.html").read_text(encoding="utf-8")
+
+
+def test_cluster_bootstrap_is_deterministic_and_reports_cluster_intervals(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _experiment(tmp_path)
+    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    raw["cluster_bootstrap"] = {
+        "cluster_column": "speaker_id",
+        "replicates": 300,
+        "seed": 1776,
+        "confidence_level": 0.95,
+    }
+    manifest_path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+
+    loaded = load_research_experiment(manifest_path)
+    first = build_research_report(loaded)
+    second = build_research_report(loaded)
+    first_results = first["evaluation_datasets"]
+    second_results = second["evaluation_datasets"]
+    assert len(first_results) == len(second_results) == 2
+
+    for first_item, second_item in zip(first_results, second_results, strict=True):
+        first_bootstrap = first_item["cluster_bootstrap_uncertainty"]
+        second_bootstrap = second_item["cluster_bootstrap_uncertainty"]
+        assert first_bootstrap == second_bootstrap
+        assert first_bootstrap["replicates_requested"] == 300
+        assert first_bootstrap["replicates_valid"] >= 240
+        assert first_bootstrap["cluster_column"] == "speaker_id"
+        assert set(first_bootstrap["metrics"]) == {
+            "eer",
+            "roc_auc",
+            "fmr_at_frozen_threshold",
+            "fnmr_at_frozen_threshold",
+        }
+        for metric in first_bootstrap["metrics"].values():
+            lower, upper = metric["percentile_interval"]
+            assert 0 <= lower <= upper <= 1
+
+
+def test_cluster_bootstrap_rejects_insufficient_class_clusters() -> None:
+    records = (
+        ScoreTrial("t1", "target", 0.9, "test", "clean", None, "target-cluster", "r1"),
+        ScoreTrial("t2", "target", 0.8, "test", "clean", None, "target-cluster", "r2"),
+        ScoreTrial("n1", "nontarget", 0.2, "test", "clean", None, "nontarget-cluster", "r3"),
+        ScoreTrial("n2", "nontarget", 0.1, "test", "clean", None, "nontarget-cluster", "r4"),
+    )
+    with pytest.raises(ResearchExperimentError, match="two distinct clusters"):
+        _cluster_bootstrap_uncertainty(
+            records,
+            ScoreDirection.HIGHER_IS_GENUINE,
+            threshold=0.5,
+            config=ClusterBootstrapConfig(cluster_column="speaker_id", replicates=100),
+            point_metrics={"eer": {"value": 0.0}, "roc_auc": 1.0},
+            point_operating_point={"fmr": {"rate": 0.0}, "fnmr": {"rate": 0.0}},
+        )
+
+
+def test_cluster_bootstrap_rejects_missing_cluster_identifiers() -> None:
+    records = (
+        ScoreTrial("t1", "target", 0.9, "test", "clean", None, "s1", "r1"),
+        ScoreTrial("t2", "target", 0.8, "test", "clean", None, None, "r2"),
+        ScoreTrial("n1", "nontarget", 0.2, "test", "clean", None, "s3", "r3"),
+        ScoreTrial("n2", "nontarget", 0.1, "test", "clean", None, "s4", "r4"),
+    )
+    with pytest.raises(ResearchExperimentError, match="non-empty speaker_id"):
+        _cluster_bootstrap_uncertainty(
+            records,
+            ScoreDirection.HIGHER_IS_GENUINE,
+            threshold=0.5,
+            config=ClusterBootstrapConfig(cluster_column="speaker_id", replicates=100),
+            point_metrics={"eer": {"value": 0.0}, "roc_auc": 1.0},
+            point_operating_point={"fmr": {"rate": 0.0}, "fnmr": {"rate": 0.0}},
+        )
+
+
+def test_cluster_bootstrap_manifest_rejects_invalid_replicate_count(tmp_path: Path) -> None:
+    manifest_path = _experiment(tmp_path)
+    raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+    raw["cluster_bootstrap"] = {"cluster_column": "speaker_id", "replicates": 99}
+    manifest_path.write_text(json.dumps(raw, indent=2), encoding="utf-8")
+    with pytest.raises(ResearchExperimentError, match="invalid"):
+        load_research_experiment(manifest_path)
 
 
 def test_group_overlap_is_rejected_when_disjointness_is_required(tmp_path: Path) -> None:
