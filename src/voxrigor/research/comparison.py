@@ -483,12 +483,10 @@ def build_research_comparison_report(
         domain_result: dict[str, object] = {
             "domain_id": domain_id,
             "datasets_by_system": {
-                system_id: _comparison_dataset_summary(
-                    system.experiment.evaluation_datasets[domain_index].dataset
+                item.system_id: _comparison_dataset_summary(
+                    item.experiment.evaluation_datasets[domain_index].dataset
                 )
-                for system_id, system in (
-                    (item.system_id, item) for item in loaded.systems
-                )
+                for item in loaded.systems
             },
             "trial_alignment": "exact trial_id, label, split, condition and group alignment validated",
             "systems": metrics_by_system,
