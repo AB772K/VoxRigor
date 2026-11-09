@@ -8,11 +8,13 @@ The project brings together reproducible biometric benchmarking, optional model 
 
 ## Project status
 
-**Current development:** Phase 3 — optional biometric model adapters (development preview).
+**Current development:** Phase 5 — local protocol and API security engine (development preview). Phase 3 model integration work is merged into main. Phase 4 and Phase 5 are carried on the Phase 3 development branch; the Phase 4/5 development line is not yet integrated into main.
 
-Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, and optional ECAPA-TDNN and AASIST-L model adapters.
+Phase 4 added deterministic local audio-condition generation and provenance verification. Its initial CI matrix passed on Ubuntu and Windows with Python 3.11–3.13. Physical replay hardware and approved-dataset accuracy studies remain open.
 
-Real pretrained-checkpoint inference validation is still pending. Consult the phase documentation before relying on the adapters in research or production.
+Implemented capabilities currently include offline evaluation of precomputed ASV/PAD scores, dataset integrity checks, benchmark reporting, optional ECAPA-TDNN and AASIST-L model adapters, and deterministic local audio-condition generation.
+
+Both pinned pretrained model checkpoints passed runtime smoke tests using generated non-human audio. This validates checkpoint loading and adapter execution, not biometric accuracy. Approved-dataset evaluation and physical presentation rig testing remain open research tasks.
 
 ## Installation
 
@@ -30,6 +32,9 @@ python -m pip install -e ".[speaker]"
 
 # AASIST-L ONNX anti-spoofing
 python -m pip install -e ".[pad-onnx]"
+
+# Audio condition generation (resampling, seeded noise, mu-law, reverberation)
+python -m pip install -e ".[audio]"
 ```
 
 ## Discover models
@@ -50,6 +55,10 @@ voxrigor models list
 - [Audio-trial manifest and model-to-benchmark workflow](docs/AUDIO_TRIAL_MANIFEST.md)
 - [Third-party model notices](docs/THIRD_PARTY_MODELS.md)
 - [Phase 3 acceptance gates](docs/PHASE_3_ACCEPTANCE.md)
+- [Phase 4 audio-condition implementation](docs/PHASE_4_IMPLEMENTATION.md)
+- [Phase 4 acceptance gates](docs/PHASE_4_ACCEPTANCE.md)
+- [Phase 5 protocol and API engine](docs/PHASE_5_IMPLEMENTATION.md)
+- [Phase 5 acceptance gates](docs/PHASE_5_ACCEPTANCE.md)
 
 ## Mission
 

@@ -105,3 +105,45 @@ The score-producer record identifies the model revision, backend, raw score sema
 ### Real model smoke tests
 
 After the Phase 3 branch is integrated, repository maintainers can open Actions → Optional real-model smoke tests → Run workflow and select ECAPA, AASIST-L or both. The workflow downloads pinned model artifacts and tests runtime execution using generated non-biometric audio. It is not an accuracy benchmark.
+
+
+## Phase 4: generate controlled audio conditions
+
+Install the optional audio dependencies and generate a reproducible clean-plus-conditions dataset:
+
+```powershell
+python -m pip install -e ".[audio]"
+voxrigor audio conditions generate --manifest .\condition-experiment.json --output-dir .\runs\conditions\experiment-01
+```
+
+Use the generated `audio-trials.json` as input to `voxrigor models score-trials`, then run the Phase 2 benchmark evaluator. Condition labels are retained so the report can compare clean and transformed trials.
+
+Supported initial conditions are resampling, seeded Gaussian noise, 8 kHz μ-law companding, and reverberation using a local impulse response. A clean baseline is mandatory. Digital transformations are not physical replay tests. See [PHASE_4_IMPLEMENTATION.md](PHASE_4_IMPLEMENTATION.md) and [PHASE_4_ACCEPTANCE.md](PHASE_4_ACCEPTANCE.md).
+
+
+## Phase 5: local protocol and API security testing
+
+The initial Phase 5 engine is intentionally limited to loopback targets. It does not accept remote hosts or DNS names.
+
+Start the fixed local reference service in one terminal:
+
+```powershell
+voxrigor protocol serve --fixture-profile fixed --port 8765 --challenge-ttl-seconds 3
+```
+
+Create an explicit scope file and run the protocol checks in another terminal:
+
+```powershell
+voxrigor protocol init-scope --target-url http://127.0.0.1:8765 --i-authorize-local-target --output .\protocol-scope.json
+voxrigor protocol run --scope .\protocol-scope.json --output .\runs\protocol-fixed
+```
+
+The reference fixture uses disposable in-memory accounts and a synthetic test assertion. It does not perform speaker verification, PAD or liveness detection. To verify that the tests detect known control failures, run the intentionally vulnerable fixture using the controlled demonstration command:
+
+```powershell
+voxrigor protocol demo --fixture-profile vulnerable --output .\runs\protocol-vulnerable
+```
+
+Only run the vulnerable profile on the local fixture. Scope validation accepts loopback IP literals only; the HTTP client disables proxies and redirects and enforces request, response, timeout and total-request limits. Reports exclude request bodies, response payloads, bearer tokens and fixture proofs.
+
+See [PHASE_5_IMPLEMENTATION.md](PHASE_5_IMPLEMENTATION.md) and [PHASE_5_ACCEPTANCE.md](PHASE_5_ACCEPTANCE.md) for supported checks and limitations.

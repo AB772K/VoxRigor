@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -74,3 +75,38 @@ def test_aasist_window_tiles_short_audio_and_truncates_long_audio() -> None:
     truncated = prepare_aasist_l_window(long)
     assert truncated.shape == (1, AASIST_L_WINDOW_SAMPLES)
     assert np.array_equal(truncated[0], long_samples[:AASIST_L_WINDOW_SAMPLES])
+
+
+@pytest.mark.parametrize(
+    ("frames", "channels", "message"),
+    [
+        (48_000, 9, "channel count exceeds"),
+        (40_000_000, 1, "128 MiB memory limit"),
+    ],
+)
+def test_audio_decoder_rejects_oversized_decode_before_read(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    frames: int,
+    channels: int,
+    message: str,
+) -> None:
+    path = tmp_path / "oversized.wav"
+    path.write_bytes(b"fixture")
+    read_called = False
+
+    def fake_info(_path: str) -> SimpleNamespace:
+        return SimpleNamespace(frames=frames, channels=channels, samplerate=48_000)
+
+    def fail_read(*_args: object, **_kwargs: object) -> None:
+        nonlocal read_called
+        read_called = True
+        raise AssertionError("decoder must reject metadata before allocating the sample buffer")
+
+    monkeypatch.setattr(sf, "info", fake_info)
+    monkeypatch.setattr(sf, "read", fail_read)
+
+    with pytest.raises(AudioInputError, match=message):
+        load_audio_file(path)
+
+    assert not read_called

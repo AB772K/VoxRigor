@@ -116,6 +116,14 @@ def load_score_dataset(manifest_path: Path) -> ScoreDataset:
         sidecar_hash = sha256_file(sidecar_path)
         if sidecar_hash != manifest.score_producer.inference_provenance_sha256:
             raise ScoreFileError("Inference provenance sidecar SHA-256 does not match the manifest")
+        condition_file = manifest.score_producer.condition_provenance_file
+        condition_hash = manifest.score_producer.condition_provenance_sha256
+        if condition_file is not None and condition_hash is not None:
+            condition_path = _resolve_score_path(manifest_path, condition_file)
+            if sha256_file(condition_path) != condition_hash:
+                raise ScoreFileError(
+                    "Audio-condition provenance sidecar SHA-256 does not match the manifest"
+                )
 
     seen_ids: set[str] = set()
     records: list[ScoreTrial] = []

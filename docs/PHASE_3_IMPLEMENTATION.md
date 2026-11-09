@@ -1,6 +1,6 @@
 # Phase 3 — Biometric Model Integrations
 
-**Status:** Initial model adapters and batch scoring pipeline are implemented on the Phase 3 branch. Stable model support remains conditional on automated CI and real-checkpoint validation.
+**Status:** Phase 3 implementation gates passed on the development branch. The follow-up pipeline is awaiting owner review in PR #4. Approved-dataset baseline comparison remains a research validation task; this is not a claim of biometric accuracy or stable model certification.
 
 ## Included adapters
 
