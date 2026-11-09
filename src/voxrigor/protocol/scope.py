@@ -49,7 +49,8 @@ class ProtocolScope(BaseModel):
             raise ValueError("protocol testing is restricted to loopback IP addresses")
         if not 1 <= port <= 65535:
             raise ValueError("target_url port must be between 1 and 65535")
-        return f"http://{address.compressed}:{port}"
+        selected_host = f"[{address.compressed}]" if address.version == 6 else address.compressed
+        return f"http://{selected_host}:{port}"
 
     @field_validator("target_label")
     @classmethod

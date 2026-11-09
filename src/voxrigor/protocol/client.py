@@ -118,7 +118,7 @@ class ScopedHttpClient:
 
         try:
             raw = response.read(MAX_RESPONSE_BODY_BYTES + 1)
-            status = int(response.status)
+            status = int(getattr(response, "status", getattr(response, "code", 0)))
         except (OSError, ValueError) as exc:
             raise ProtocolError("Could not read the bounded local target response") from exc
         finally:
