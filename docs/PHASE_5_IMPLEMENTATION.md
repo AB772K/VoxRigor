@@ -6,7 +6,7 @@
 
 Assess security properties around a voice-authentication application's protocol and API workflow without requiring a production identity provider, customer account, cloud service, microphone or real biometric model.
 
-The first slice is a deliberately small HTTP reference service plus a bounded assessment client. It exercises challenge state, session lifecycle, object authorization, function authorization and resource limits. The reference service uses a deterministic synthetic test assertion to stand in for a biometric verifier. It is not speaker recognition, presentation-attack detection, liveness verification or evidence of biometric accuracy.
+The first slice is a deliberately small HTTP reference service plus a bounded assessment client. The lifecycle extension additionally checks challenge-purpose binding, re-enrollment ownership and server-side session expiry. It exercises challenge state, session lifecycle, object authorization, function authorization and resource limits. The reference service uses a deterministic synthetic test assertion to stand in for a biometric verifier. It is not speaker recognition, presentation-attack detection, liveness verification or evidence of biometric accuracy.
 
 ## Safety boundary
 
@@ -54,13 +54,20 @@ The demo command starts a temporary reference service on an OS-assigned loopback
 |---|---|---|
 | PROTOCOL-CHALLENGE-REPLAY | One-time challenge consumption | Reuse of a successful challenge is rejected |
 | PROTOCOL-CHALLENGE-SUBJECT-BINDING | Challenge bound to subject | A challenge issued for Alice cannot verify Bob |
+| PROTOCOL-CHALLENGE-PURPOSE-BINDING | Challenge purpose binding | An enrollment/recovery challenge cannot be reused for authentication |
 | PROTOCOL-CHALLENGE-EXPIRY | Challenge expiry | Expired challenge is rejected, subject to the scope's bounded wait budget |
 | API-OBJECT-AUTHORIZATION | Enrollment object-level authorization | Alice cannot read Bob's enrollment |
+| API-REENROLLMENT-OWNERSHIP | Re-enrollment object ownership | Alice cannot replace Bob's enrollment |
 | API-FUNCTION-AUTHORIZATION | Administrative function-level authorization | Regular user cannot access admin audit function |
 | PROTOCOL-SESSION-REVOCATION | Logout and session invalidation | A logged-out token is rejected by protected endpoints |
+| PROTOCOL-SESSION-EXPIRY | Session expiry | An expired session token is rejected by protected endpoints |
 | API-RESOURCE-CONSUMPTION | Challenge creation rate limit | Repeated challenge creation is rate-limited |
 
-The vulnerable reference profile deliberately omits challenge single-use/subject-binding/expiry enforcement, enrollment ownership checks, admin role checks and challenge rate limiting. It retains session revocation so the suite also demonstrates a control that remains effective in both profiles.
+The vulnerable reference profile deliberately omits challenge single-use/subject/purpose/expiry enforcement, enrollment ownership checks, admin role checks, session expiry enforcement and challenge rate limiting. It retains session revocation so the suite also demonstrates a control that remains effective in both profiles.
+
+Challenge expiry and session expiry use monotonic process clocks in the reference fixture. Runner waits never exceed the scope's explicit test-wait budget. If the service declares a lifetime longer than that budget, the finding is Inconclusive rather than waiting longer.
+
+The enrollment fixture supports a narrowly-scoped re-enrollment operation for the Bob test record. A normal user can update only their own record; an administrator can update another record. The scanner attempts a cross-subject update as Alice and records only the HTTP result metadata. It does not capture or upload real biometric templates.
 
 ## Scope manifest
 

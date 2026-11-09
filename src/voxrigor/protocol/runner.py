@@ -68,8 +68,16 @@ def _evidence(route: str, result: HttpResult) -> dict[str, str | int | float | b
     }
 
 
-def _challenge(client: ScopedHttpClient, subject_id: str) -> tuple[HttpResult, str, str]:
-    result = client.request("POST", "/v1/challenges", payload={"subject_id": subject_id})
+def _challenge(
+    client: ScopedHttpClient,
+    subject_id: str,
+    purpose: str = "authentication",
+) -> tuple[HttpResult, str, str]:
+    result = client.request(
+        "POST",
+        "/v1/challenges",
+        payload={"subject_id": subject_id, "purpose": purpose},
+    )
     challenge_id = result.payload.get("challenge_id")
     nonce = result.payload.get("nonce")
     if result.status_code != 201 or not isinstance(challenge_id, str) or not isinstance(nonce, str):
@@ -82,6 +90,7 @@ def _verify(
     challenge_id: str,
     subject_id: str,
     nonce: str,
+    purpose: str = "authentication",
 ) -> HttpResult:
     return client.request(
         "POST",
@@ -90,17 +99,24 @@ def _verify(
             "challenge_id": challenge_id,
             "subject_id": subject_id,
             "proof": fixture_proof(subject_id, nonce),
+            "purpose": purpose,
         },
     )
 
 
-def _session(client: ScopedHttpClient, subject_id: str) -> str:
+def _session(client: ScopedHttpClient, subject_id: str) -> tuple[str, float]:
     _, challenge_id, nonce = _challenge(client, subject_id)
     result = _verify(client, challenge_id, subject_id, nonce)
     token = result.payload.get("access_token")
-    if result.status_code != 200 or not isinstance(token, str):
+    expires_in = result.payload.get("expires_in")
+    if (
+        result.status_code != 200
+        or not isinstance(token, str)
+        or not isinstance(expires_in, (int, float))
+        or expires_in <= 0
+    ):
         raise ProtocolError("Target did not issue a disposable reference-test session")
-    return token
+    return token, float(expires_in)
 
 
 def _finding(
@@ -207,6 +223,38 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
             )
         )
 
+        # The purpose is part of the challenge binding, not just request metadata.
+        _, purpose_id, purpose_nonce = _challenge(client, "alice", purpose="enrollment")
+        purpose_result = _verify(
+            client,
+            purpose_id,
+            "alice",
+            purpose_nonce,
+            purpose="authentication",
+        )
+        if purpose_result.status_code == 200:
+            purpose_status = CheckStatus.VULNERABLE
+            purpose_summary = "A challenge issued for enrollment was accepted for authentication."
+        elif purpose_result.status_code in {403, 409, 410}:
+            purpose_status = CheckStatus.NO_ISSUE_OBSERVED
+            purpose_summary = "The challenge could not be reused for a different purpose."
+        else:
+            purpose_status = CheckStatus.INCONCLUSIVE
+            purpose_summary = (
+                "The target returned an unexpected response to challenge-purpose mismatch."
+            )
+        findings.append(
+            _finding(
+                "PROTOCOL-CHALLENGE-PURPOSE-BINDING",
+                "Challenge-to-purpose binding",
+                purpose_status,
+                Severity.HIGH,
+                purpose_summary,
+                "Bind each challenge to one explicit server-side purpose and reject cross-purpose use.",
+                _evidence("/v1/verify", purpose_result),
+            )
+        )
+
         # Do not exceed the operator's explicit time budget waiting for expiry.
         expiry_challenge, expiry_id, expiry_nonce = _challenge(client, "charlie")
         ttl_value = expiry_challenge.payload.get("expires_in")
@@ -255,7 +303,7 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
                 )
             )
 
-        alice_token = _session(client, "alice")
+        alice_token, _alice_session_ttl = _session(client, "alice")
         enrollment = client.request(
             "GET",
             "/v1/enrollments/enroll-bob",
@@ -281,6 +329,37 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
                 bola_summary,
                 "Derive the owner from the authenticated session and authorize every object lookup server-side.",
                 _evidence("/v1/enrollments/{enrollment_id}", enrollment),
+            )
+        )
+
+        reenrollment = client.request(
+            "POST",
+            "/v1/enrollments/enroll-bob",
+            payload={"template_sha256": "f" * 64},
+            bearer_token=alice_token,
+        )
+        if reenrollment.status_code == 200:
+            reenrollment_status = CheckStatus.VULNERABLE
+            reenrollment_summary = (
+                "Alice could replace Bob's enrollment fixture despite not owning it."
+            )
+        elif reenrollment.status_code in {403, 404}:
+            reenrollment_status = CheckStatus.NO_ISSUE_OBSERVED
+            reenrollment_summary = "Cross-subject re-enrollment was denied."
+        else:
+            reenrollment_status = CheckStatus.INCONCLUSIVE
+            reenrollment_summary = (
+                "The target returned an unexpected response to cross-subject re-enrollment."
+            )
+        findings.append(
+            _finding(
+                "API-REENROLLMENT-OWNERSHIP",
+                "Re-enrollment object ownership",
+                reenrollment_status,
+                Severity.HIGH,
+                reenrollment_summary,
+                "Authorize re-enrollment against the authenticated subject and require a fresh, purpose-bound enrollment transaction.",
+                _evidence("/v1/enrollments/{enrollment_id}", reenrollment),
             )
         )
 
@@ -331,6 +410,48 @@ def run_protocol_assessment(scope: ProtocolScope, *, framework_version: str) -> 
                 session_summary,
                 "Revoke the server-side session and ensure protected endpoints reject the token immediately.",
                 _evidence("/v1/me", after_logout),
+            )
+        )
+
+        # Session expiry is checked only when the target's declared lifetime fits the explicit wait budget.
+        expiry_token, session_ttl = _session(client, "charlie")
+        session_wait = session_ttl + 0.05
+        if session_wait <= scope.max_test_wait_seconds:
+            time.sleep(session_wait)
+            expired_session = client.request(
+                "GET",
+                "/v1/me",
+                bearer_token=expiry_token,
+            )
+            if expired_session.status_code == 200:
+                session_expiry_status = CheckStatus.VULNERABLE
+                session_expiry_summary = "The session remained usable after its declared expiry."
+            elif expired_session.status_code in {401, 403}:
+                session_expiry_status = CheckStatus.NO_ISSUE_OBSERVED
+                session_expiry_summary = "The expired session was rejected."
+            else:
+                session_expiry_status = CheckStatus.INCONCLUSIVE
+                session_expiry_summary = (
+                    "The target returned an unexpected response for an expired session."
+                )
+            session_expiry_evidence = _evidence("/v1/me", expired_session)
+        else:
+            session_expiry_status = CheckStatus.INCONCLUSIVE
+            session_expiry_summary = "The declared session lifetime exceeds the configured test wait budget; the runner did not wait for expiry."
+            session_expiry_evidence = {
+                "route": "/v1/verify",
+                "reported_expires_in": session_ttl,
+                "max_wait_seconds": scope.max_test_wait_seconds,
+            }
+        findings.append(
+            _finding(
+                "PROTOCOL-SESSION-EXPIRY",
+                "Session expiration",
+                session_expiry_status,
+                Severity.HIGH,
+                session_expiry_summary,
+                "Enforce server-side session expiry and reject expired tokens on every protected endpoint.",
+                session_expiry_evidence,
             )
         )
 

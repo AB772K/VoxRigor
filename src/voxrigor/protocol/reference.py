@@ -32,6 +32,7 @@ class Challenge:
     challenge_id: str
     subject_id: str
     nonce: str
+    purpose: str
     expires_at: float
     used: bool = False
 
@@ -67,16 +68,22 @@ class ReferenceApplication:
             "enroll-alice": {
                 "subject_id": "alice",
                 "template_sha256": hashlib.sha256(b"fixture-alice-template").hexdigest(),
+                "version": "1",
             },
             "enroll-bob": {
                 "subject_id": "bob",
                 "template_sha256": hashlib.sha256(b"fixture-bob-template").hexdigest(),
+                "version": "1",
             },
         }
     )
 
-    def create_challenge(self, subject_id: str) -> tuple[int, dict[str, object]]:
-        now = time.time()
+    def create_challenge(
+        self, subject_id: str, purpose: str = "authentication"
+    ) -> tuple[int, dict[str, object]]:
+        now = time.monotonic()
+        if purpose not in {"authentication", "enrollment", "recovery"}:
+            return 400, {"error": "unsupported_challenge_purpose"}
         if subject_id not in self.accounts:
             return 404, {"error": "unknown_test_subject"}
         with self.lock:
@@ -93,17 +100,25 @@ class ReferenceApplication:
                 challenge_id=challenge_id,
                 subject_id=subject_id,
                 nonce=nonce,
+                purpose=purpose,
                 expires_at=now + self.challenge_ttl_seconds,
             )
             return 201, {
                 "challenge_id": challenge_id,
                 "nonce": nonce,
+                "purpose": purpose,
                 "expires_in": self.challenge_ttl_seconds,
             }
 
     def verify(
-        self, challenge_id: str, subject_id: str, proof: str
+        self,
+        challenge_id: str,
+        subject_id: str,
+        proof: str,
+        purpose: str = "authentication",
     ) -> tuple[int, dict[str, object]]:
+        if purpose not in {"authentication", "enrollment", "recovery"}:
+            return 400, {"error": "unsupported_challenge_purpose"}
         with self.lock:
             challenge = self.challenges.get(challenge_id)
             if challenge is None:
@@ -111,9 +126,11 @@ class ReferenceApplication:
             if self.profile == "fixed":
                 if challenge.subject_id != subject_id:
                     return 403, {"error": "challenge_subject_mismatch"}
+                if challenge.purpose != purpose:
+                    return 403, {"error": "challenge_purpose_mismatch"}
                 if challenge.used:
                     return 409, {"error": "challenge_already_used"}
-                if time.time() > challenge.expires_at:
+                if time.monotonic() > challenge.expires_at:
                     challenge.used = True
                     return 410, {"error": "challenge_expired"}
                 # Consume before validating the assertion so a failed proof cannot be replayed.
@@ -125,7 +142,7 @@ class ReferenceApplication:
             self.sessions[token] = Session(
                 subject_id=subject_id,
                 role=self.accounts[subject_id],
-                expires_at=time.time() + self.session_ttl_seconds,
+                expires_at=time.monotonic() + self.session_ttl_seconds,
             )
             return 200, {
                 "access_token": token,
@@ -139,7 +156,11 @@ class ReferenceApplication:
         token = authorization[7:]
         with self.lock:
             session = self.sessions.get(token)
-            if session is not None and time.time() > session.expires_at:
+            if (
+                self.profile == "fixed"
+                and session is not None
+                and time.monotonic() > session.expires_at
+            ):
                 self.sessions.pop(token, None)
                 session = None
             return token, session
@@ -252,6 +273,7 @@ class ReferenceRequestHandler(BaseHTTPRequestHandler):
                     "enrollment_id": "enroll-bob",
                     "subject_id": record["subject_id"],
                     "template_sha256": record["template_sha256"],
+                    "version": record["version"],
                 },
             )
             return
@@ -284,25 +306,64 @@ class ReferenceRequestHandler(BaseHTTPRequestHandler):
         payload = self._read_json()
         if payload is None:
             return
+        if path == "/v1/enrollments/enroll-bob":
+            _, session = self._session()
+            if session is None:
+                self._send(401, {"error": "authentication_required"})
+                return
+            record = self.app.enrollments["enroll-bob"]
+            if (
+                self.app.profile == "fixed"
+                and session.subject_id != record["subject_id"]
+                and session.role != "admin"
+            ):
+                self._send(403, {"error": "object_access_denied"})
+                return
+            template_hash = payload.get("template_sha256")
+            if (
+                not isinstance(template_hash, str)
+                or len(template_hash) != 64
+                or any(char not in "0123456789abcdef" for char in template_hash)
+            ):
+                self._send(400, {"error": "valid_template_sha256_required"})
+                return
+            with self.app.lock:
+                record["template_sha256"] = template_hash
+                record["version"] = str(int(record["version"]) + 1)
+                new_version = record["version"]
+            self._send(
+                200,
+                {
+                    "enrollment_id": "enroll-bob",
+                    "version": new_version,
+                    "updated": True,
+                },
+            )
+            return
         if path == "/v1/challenges":
             subject = payload.get("subject_id")
-            if not isinstance(subject, str):
-                self._send(400, {"error": "subject_id_required"})
+            purpose = payload.get("purpose", "authentication")
+            if not isinstance(subject, str) or not isinstance(purpose, str):
+                self._send(400, {"error": "subject_id_and_valid_purpose_required"})
                 return
-            status, response = self.app.create_challenge(subject)
+            status, response = self.app.create_challenge(subject, purpose)
             self._send(status, response)
             return
         if path == "/v1/verify":
             challenge_id = payload.get("challenge_id")
             subject_id = payload.get("subject_id")
             proof = payload.get("proof")
-            if not all(isinstance(item, str) for item in (challenge_id, subject_id, proof)):
-                self._send(400, {"error": "challenge_id_subject_id_and_proof_required"})
+            purpose = payload.get("purpose", "authentication")
+            if not all(
+                isinstance(item, str) for item in (challenge_id, subject_id, proof, purpose)
+            ):
+                self._send(400, {"error": "challenge_id_subject_id_proof_and_purpose_required"})
                 return
             status, response = self.app.verify(
                 cast(str, challenge_id),
                 cast(str, subject_id),
                 cast(str, proof),
+                cast(str, purpose),
             )
             self._send(status, response)
             return
@@ -320,6 +381,7 @@ def create_reference_server(
     profile: FixtureProfile = "fixed",
     port: int = 8765,
     challenge_ttl_seconds: float = 3.0,
+    session_ttl_seconds: float = 60.0,
 ) -> ReferenceHTTPServer:
     """Create an in-memory local fixture server. It never binds to a non-loopback address."""
 
@@ -327,5 +389,11 @@ def create_reference_server(
         raise ValueError("port must be between 0 and 65535")
     if not 0.1 <= challenge_ttl_seconds <= 120.0:
         raise ValueError("challenge_ttl_seconds must be between 0.1 and 120 seconds")
-    app = ReferenceApplication(profile=profile, challenge_ttl_seconds=challenge_ttl_seconds)
+    if not 0.1 <= session_ttl_seconds <= 120.0:
+        raise ValueError("session_ttl_seconds must be between 0.1 and 120 seconds")
+    app = ReferenceApplication(
+        profile=profile,
+        challenge_ttl_seconds=challenge_ttl_seconds,
+        session_ttl_seconds=session_ttl_seconds,
+    )
     return ReferenceHTTPServer(("127.0.0.1", port), app)
