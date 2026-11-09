@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import platform
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import UUID, uuid4
@@ -88,10 +89,24 @@ class TestRegistry:
         self._tests: dict[str, TestPlugin] = {}
 
     def register(self, plugin: TestPlugin) -> None:
-        test_id = plugin.descriptor.test_id
-        if test_id in self._tests:
-            raise ValueError(f"Duplicate test identifier: {test_id}")
-        self._tests[test_id] = plugin
+        """Register one implementation without replacing an existing identifier."""
+
+        self.register_many((plugin,))
+
+    def register_many(self, plugins: Iterable[TestPlugin]) -> None:
+        """Atomically register multiple implementations after validating all identifiers."""
+
+        pending: dict[str, TestPlugin] = {}
+        for plugin in plugins:
+            test_id = plugin.descriptor.test_id
+            if test_id in self._tests or test_id in pending:
+                raise ValueError(f"Duplicate test identifier: {test_id}")
+            if not callable(getattr(plugin, "execute", None)):
+                raise ValueError(f"Test implementation has no callable execute method: {test_id}")
+            pending[test_id] = plugin
+        updated = self._tests.copy()
+        updated.update(pending)
+        self._tests = updated
 
     def get(self, test_id: str) -> TestPlugin:
         try:
