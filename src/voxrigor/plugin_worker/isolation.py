@@ -6,7 +6,6 @@ subprocess is deliberately not considered an isolation backend.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -38,7 +37,7 @@ class IsolationBackendUnavailable(RuntimeError):
 class IsolationPolicy(BaseModel):
     """Finite resource ceilings and default-deny policy for a future worker."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
     wall_time_seconds: int = Field(default=300, ge=1, le=3600)
     cpu_time_seconds: int = Field(default=300, ge=1, le=3600)
@@ -80,7 +79,7 @@ def missing_required_controls(readiness: IsolationReadiness) -> tuple[str, ...]:
 
     enforced = set(readiness.enforced_controls)
     reported_missing = set(readiness.missing_controls)
-    return tuple(sorted(REQUIRED_ISOLATION_CONTROLS - enforced | reported_missing))
+    return tuple(sorted((REQUIRED_ISOLATION_CONTROLS - enforced) | reported_missing))
 
 
 def verify_isolation_backend(
@@ -94,7 +93,16 @@ def verify_isolation_backend(
             "No production plugin isolation backend is installed; refusing to launch plugin code"
         )
     selected_policy = policy or IsolationPolicy()
+    if (
+        selected_policy.network_enabled
+        or selected_policy.microphone_enabled
+        or selected_policy.host_filesystem_enabled
+    ):
+        raise IsolationBackendUnavailable(
+            "Network, microphone and general host-filesystem access are not supported by the initial worker policy"
+        )
     try:
+        declared_backend_id = backend.backend_id
         readiness = backend.preflight(selected_policy)
     except IsolationBackendUnavailable:
         raise
@@ -103,6 +111,13 @@ def verify_isolation_backend(
             f"Isolation backend preflight failed ({type(exc).__name__}); refusing execution"
         ) from exc
 
+    if readiness.backend_id != declared_backend_id:
+        raise IsolationBackendUnavailable("Isolation backend identity did not match its preflight result")
+    unknown_controls = set(readiness.enforced_controls) - REQUIRED_ISOLATION_CONTROLS
+    if unknown_controls:
+        raise IsolationBackendUnavailable(
+            "Isolation backend reported unknown security controls: " + ", ".join(sorted(unknown_controls))
+        )
     if not readiness.verified:
         raise IsolationBackendUnavailable(
             f"Isolation backend {readiness.backend_id!r} did not verify its security boundary"
@@ -113,23 +128,4 @@ def verify_isolation_backend(
             f"Isolation backend {readiness.backend_id!r} does not enforce required controls: "
             + ", ".join(missing)
         )
-    if policy is not None and (
-        selected_policy.network_enabled
-        or selected_policy.microphone_enabled
-        or selected_policy.host_filesystem_enabled
-    ):
-        raise IsolationBackendUnavailable(
-            "Network, microphone and general host-filesystem access are not supported by the initial worker policy"
-        )
     return readiness
-
-
-def verify_enforced_controls(
-    enforced_controls: Sequence[str],
-    missing_controls: Sequence[str] = (),
-) -> tuple[str, ...]:
-    """Small pure helper for backend implementations and tests."""
-
-    enforced = set(enforced_controls)
-    missing = set(missing_controls)
-    return tuple(sorted(REQUIRED_ISOLATION_CONTROLS - enforced | missing))
