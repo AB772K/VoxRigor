@@ -29,9 +29,7 @@ def _write_score_dataset(
     directory.mkdir(parents=True, exist_ok=True)
     csv_lines = ["trial_id,label,score,split,speaker_id,source_id,condition"]
     for trial_id, label, score, speaker_id, source_id in rows:
-        csv_lines.append(
-            f"{trial_id},{label},{score},{split},{speaker_id},{source_id},clean"
-        )
+        csv_lines.append(f"{trial_id},{label},{score},{split},{speaker_id},{source_id},clean")
     csv_text = "\n".join(csv_lines) + "\n"
     score_path = directory / "scores.csv"
     score_path.write_text(csv_text, encoding="utf-8", newline="\n")
