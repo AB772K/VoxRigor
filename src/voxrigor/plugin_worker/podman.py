@@ -20,7 +20,7 @@ import sys
 import tempfile
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO
 from uuid import uuid4
@@ -30,6 +30,7 @@ from voxrigor.plugin_worker.isolation import (
     IsolationPolicy,
     IsolationReadiness,
     REQUIRED_ISOLATION_CONTROLS,
+    verify_isolation_backend,
 )
 from voxrigor.plugin_worker.protocol import (
     MAX_WORKER_FRAME_BYTES,
@@ -78,7 +79,7 @@ class WorkerExecutionSpec:
     project_name: str
     granted_permissions: tuple[PluginPermission, ...] = ()
     staged_inputs: tuple[HostStagedInput, ...] = ()
-    policy: IsolationPolicy = IsolationPolicy()
+    policy: IsolationPolicy = field(default_factory=IsolationPolicy)
 
 
 class WorkerExecutionError(RuntimeError):
@@ -343,7 +344,8 @@ class RootlessPodmanBackend:
     def _runtime_preflight(self) -> dict[str, object]:
         if not sys.platform.startswith("linux") or os.name != "posix":
             raise PodmanBackendError("Rootless Podman isolation is supported only on native Linux")
-        if not hasattr(os, "geteuid") or os.geteuid() == 0:
+        get_effective_uid = getattr(os, "geteuid", None)
+        if not callable(get_effective_uid) or get_effective_uid() == 0:
             raise PodmanBackendError("Podman must run as a non-root host user in rootless mode")
         if shutil.which(self.binary) is None:
             raise PodmanBackendError("Podman executable was not found on PATH")
@@ -440,7 +442,7 @@ class RootlessPodmanBackend:
             command.extend(
                 [
                     "--volume",
-                    f"{staged_path}:/inputs/{reference.input_id}:ro",
+                    f"{staged_path}:/inputs/{reference.input_id}:ro,Z",
                 ]
             )
         command.extend(
@@ -501,8 +503,9 @@ class RootlessPodmanBackend:
             "PATH=/usr/local/bin:/usr/bin:/bin",
             "PYTHONNOUSERSITE=1",
             "PYTHONDONTWRITEBYTECODE=1",
+            "container=podman",
         }
-        if not isinstance(environment, list) or set(environment) != allowed_environment:
+        if not isinstance(environment, list) or not set(environment).issubset(allowed_environment) or not allowed_environment - {"container=podman"} <= set(environment):
             raise PodmanBackendError("Worker environment is not limited to the explicit safe allow-list")
 
         ulimits = host.get("Ulimits")
@@ -550,7 +553,6 @@ class RootlessPodmanBackend:
         self,
         policy: IsolationPolicy,
         *,
-        name: str,
         command: list[str],
         expected_binds: tuple[str, ...] = (),
     ) -> str:
@@ -667,7 +669,7 @@ class RootlessPodmanBackend:
             worker_command=("-c", self._probe_script(policy)),
             interactive=False,
         )
-        container_id = self._create_and_inspect(policy, name=name, command=command)
+        container_id = self._create_and_inspect(policy, command=command)
         try:
             self._run_probe(container_id)
         finally:
@@ -739,15 +741,6 @@ def execute_isolated_plugin_test(
     spec: WorkerExecutionSpec,
 ) -> tuple[WorkerDescribeResponse, WorkerExecuteResponse]:
     """Perform a complete describe/execute/shutdown exchange in a verified worker."""
-
-    from voxrigor.plugin_worker.isolation import verify_isolation_backend
-    from voxrigor.plugin_worker.protocol import (
-        WorkerDescribeRequest,
-        WorkerExecuteRequest,
-        WorkerResourceLimits,
-        WorkerShutdownRequest,
-        WorkerShutdownResponse,
-    )
 
     readiness = verify_isolation_backend(backend, spec.policy)
     if not readiness.verified:
