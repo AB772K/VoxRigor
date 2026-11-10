@@ -88,9 +88,11 @@ jobs:
             --tag localhost/voxrigor-worker:ci \
             .
           IMAGE_ID="$(podman image inspect localhost/voxrigor-worker:ci --format '{{.Id}}')"
-          [[ "$IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]]
-          podman image exists "$IMAGE_ID"
-          echo "VOXRIGOR_PODMAN_WORKER_IMAGE=$IMAGE_ID" >> "$GITHUB_ENV"
+          IMAGE_ID="${IMAGE_ID#sha256:}"
+          [[ "$IMAGE_ID" =~ ^[0-9a-f]{64}$ ]]
+          IMAGE_REF="sha256:$IMAGE_ID"
+          podman image exists "$IMAGE_REF"
+          echo "VOXRIGOR_PODMAN_WORKER_IMAGE=$IMAGE_REF" >> "$GITHUB_ENV"
 
       - name: Run actual isolation preflight and external boundary probe
         run: python -m pytest -q tests/test_plugin_worker_podman_integration.py
