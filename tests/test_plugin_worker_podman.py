@@ -45,8 +45,8 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
                 {"Name": "nofile", "Soft": policy.open_file_count, "Hard": policy.open_file_count},
             ],
             "Tmpfs": {
-                "/tmp": "rw,noexec,nosuid,nodev,size=16777216",
-                "/output": f"ro,noexec,nosuid,nodev,size={policy.output_bytes}",
+                "/tmp": "rw,noexec,nosuid,nodev,size=16777216,mode=1777",
+                "/output": f"ro,noexec,nosuid,nodev,size={policy.output_bytes},mode=0555",
             },
             "Binds": [],
             "VolumesFrom": [],
