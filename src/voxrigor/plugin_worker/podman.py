@@ -527,8 +527,10 @@ class RootlessPodmanBackend:
             if actual != expected:
                 raise PodmanBackendError(f"Podman did not apply the required {label}")
         user_namespace = host.get("UsernsMode")
-        if not isinstance(user_namespace, str) or not user_namespace.startswith("auto"):
-            raise PodmanBackendError("Podman did not allocate an isolated automatic user namespace")
+        # Podman's inspect API normalizes --userns=auto to "private"; the
+        # in-container uid_map/gid_map probe verifies the host IDs are absent.
+        if user_namespace != "private":
+            raise PodmanBackendError("Podman did not allocate a private user namespace")
 
         capabilities = host.get("CapDrop")
         if not isinstance(capabilities, list) or not any(
@@ -739,9 +741,11 @@ class RootlessPodmanBackend:
         """Probe kernel-visible controls from inside the configured container."""
 
         get_uid = getattr(os, "getuid", None)
-        if not callable(get_uid):
-            raise PodmanBackendError("The Linux host UID could not be determined")
+        get_gid = getattr(os, "getgid", None)
+        if not callable(get_uid) or not callable(get_gid):
+            raise PodmanBackendError("The Linux host UID/GID could not be determined")
         host_uid = get_uid()
+        host_gid = get_gid()
         return (
             "\n".join(
                 (
@@ -757,6 +761,10 @@ class RootlessPodmanBackend:
                     "assert status.get('CapEff','').strip('0')==''",
                     f"assert os.getuid()=={_CONTAINER_UID}",
                     f"assert os.getuid()!={host_uid}",
+                    "uid_map=[tuple(map(int,line.split())) for line in open('/proc/self/uid_map',encoding='utf-8')]",
+                    "gid_map=[tuple(map(int,line.split())) for line in open('/proc/self/gid_map',encoding='utf-8')]",
+                    f"assert all(not host_start <= {host_uid} < host_start + length for _,host_start,length in uid_map)",
+                    f"assert all(not host_start <= {host_gid} < host_start + length for _,host_start,length in gid_map)",
                     "assert set(os.listdir('/sys/class/net'))<= {'lo'}",
                     "assert resource.getrlimit(resource.RLIMIT_CPU)==("
                     f"{policy.cpu_time_seconds},{policy.cpu_time_seconds})",
