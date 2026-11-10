@@ -1,0 +1,89 @@
+name: Linux rootless Podman worker integration
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/podman-worker-integration.yml"
+      - "containers/plugin-worker/**"
+      - "examples/plugins/demo-voice/**"
+      - "src/voxrigor/plugin_worker/**"
+      - "tests/test_plugin_worker_podman.py"
+      - "tests/test_plugin_worker_podman_runtime.py"
+      - "tests/test_plugin_worker_podman_integration.py"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rootless-podman:
+    name: Real rootless Podman worker probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install rootless Podman runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs
+
+      - name: Verify runner supports the required rootless runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(id -u)" -ne 0
+          podman info --format json > /tmp/voxrigor-podman-info.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          info = json.loads(Path("/tmp/voxrigor-podman-info.json").read_text())
+          host = info.get("host", {})
+          security = host.get("security", {})
+          assert security.get("rootless") is True, "Podman is not running rootless"
+          assert security.get("seccompEnabled") is True, "Podman seccomp is unavailable"
+          assert host.get("cgroupVersion") == "v2", "cgroups v2 is required"
+          print("Rootless Podman, seccomp and cgroups v2 are available.")
+          PY
+
+      - name: Build offline worker wheelhouse
+        run: |
+          python -m pip install --upgrade pip
+          mkdir -p wheelhouse
+          python -m pip wheel --no-deps --wheel-dir wheelhouse .
+          python -m pip wheel --wheel-dir wheelhouse "pydantic>=2.7,<3" "typer>=0.12,<1"
+          python -m pip wheel --no-deps --wheel-dir wheelhouse ./examples/plugins/demo-voice
+          python -m pip install -e ".[dev]"
+
+      - name: Build digest-pinned worker image
+        shell: bash
+        run: |
+          set -euo pipefail
+          podman pull docker.io/library/python:3.12-slim
+          BASE_IMAGE="$(podman image inspect docker.io/library/python:3.12-slim --format '{{ index .RepoDigests 0 }}')"
+          test -n "$BASE_IMAGE"
+          [[ "$BASE_IMAGE" == *@sha256:* ]]
+          podman build \
+            --pull=never \
+            --file containers/plugin-worker/Containerfile \
+            --build-arg "PYTHON_BASE_IMAGE=$BASE_IMAGE" \
+            --build-arg "VOXRIGOR_DISTRIBUTIONS=voxrigor voxrigor-demo-voice-plugin" \
+            --tag localhost/voxrigor-worker:ci \
+            .
+          IMAGE_ID="$(podman image inspect localhost/voxrigor-worker:ci --format '{{.Id}}')"
+          [[ "$IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]]
+          podman image exists "$IMAGE_ID"
+          echo "VOXRIGOR_PODMAN_WORKER_IMAGE=$IMAGE_ID" >> "$GITHUB_ENV"
+
+      - name: Run actual isolation preflight and external boundary probe
+        run: python -m pytest -q tests/test_plugin_worker_podman_integration.py
