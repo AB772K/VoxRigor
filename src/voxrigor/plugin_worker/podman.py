@@ -104,7 +104,11 @@ class _WorkerSession:
         self.staged_directory = staged_directory
         self.staged_mounts = staged_mounts
         self.process: subprocess.Popen[bytes] | None = None
-        self._messages: queue.Queue[WorkerMessage | BaseException | None] = queue.Queue()
+        # Only one not-yet-consumed frame may be retained on the host. A
+        # compromised worker that floods stdout is back-pressured by this
+        # queue instead of growing host memory without bound.
+        self._messages: queue.Queue[WorkerMessage | BaseException | None] = queue.Queue(maxsize=1)
+        self.container_id: str | None = None
         self._stderr = bytearray()
         self._stderr_lock = threading.Lock()
         self._reader_threads: list[threading.Thread] = []
@@ -135,6 +139,7 @@ class _WorkerSession:
             container_id = raw_id.strip()
             if not container_id:
                 raise WorkerExecutionError("Podman returned no container ID")
+            self.container_id = container_id
             expected_binds = tuple(
                 (str(path), f"/inputs/{reference.input_id}")
                 for reference, path in self.staged_mounts
@@ -155,8 +160,11 @@ class _WorkerSession:
             self.process = attach
             self._start_reader_threads()
         except BaseException:
-            self.backend._remove_container(container_id or self.container_name)
-            self.staged_directory.cleanup()
+            try:
+                self.backend._remove_container(container_id or self.container_name)
+            finally:
+                self.container_id = None
+                self.staged_directory.cleanup()
             raise
 
     def _start_reader_threads(self) -> None:
@@ -179,17 +187,29 @@ class _WorkerSession:
         stderr_thread.start()
         self._reader_threads.extend((stdout_thread, stderr_thread))
 
+    def _enqueue_message(self, message: WorkerMessage | BaseException | None) -> bool:
+        """Queue one frame with backpressure; never buffer an unbounded worker stream."""
+
+        while not self._closed:
+            try:
+                self._messages.put(message, timeout=0.1)
+                return True
+            except queue.Full:
+                continue
+        return False
+
     def _read_protocol(self, stream: BinaryIO) -> None:
         while True:
             try:
                 frame = stream.readline(MAX_WORKER_FRAME_BYTES + 2)
                 if not frame:
-                    self._messages.put(None)
+                    self._enqueue_message(None)
                     return
                 message = decode_worker_frame(frame)
-                self._messages.put(message)
+                if not self._enqueue_message(message):
+                    return
             except BaseException as exc:
-                self._messages.put(exc)
+                self._enqueue_message(exc)
                 return
 
     def _read_stderr(self, stream: BinaryIO) -> None:
@@ -241,44 +261,53 @@ class _WorkerSession:
             raise TimeoutError("Plugin worker did not exit after shutdown acknowledgement") from exc
 
     def _kill_container(self) -> None:
-        for command in (
-            [self.backend.binary, "kill", "--signal", "KILL", self.container_name],
-            [self.backend.binary, "rm", "--force", "--volumes", self.container_name],
-        ):
-            try:
-                subprocess.run(
-                    command,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    check=False,
-                    timeout=8,
-                )
-            except (OSError, subprocess.TimeoutExpired):
-                continue
+        if self.container_id is None:
+            return
+        # A worker may already have exited, so a failed "kill" is not itself
+        # fatal. The forced removal below is the authoritative cleanup gate.
+        with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+            subprocess.run(
+                [self.backend.binary, "kill", "--signal", "KILL", self.container_id],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=8,
+            )
+        self.backend._remove_container(self.container_id)
+        self.container_id = None
 
     def close(self) -> None:
         if self._closed:
             return
         self._closed = True
         process = self.process
-        if process is not None and process.poll() is None:
+        cleanup_error: BaseException | None = None
+        try:
             self._kill_container()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                with contextlib.suppress(subprocess.TimeoutExpired):
+        except BaseException as exc:
+            cleanup_error = exc
+        try:
+            if process is not None and process.poll() is None:
+                try:
                     process.wait(timeout=5)
-        self._kill_container()
-        if process is not None:
-            for stream in (process.stdin, process.stdout, process.stderr):
-                if stream is not None:
-                    with contextlib.suppress(OSError):
-                        stream.close()
-        for thread in self._reader_threads:
-            thread.join(timeout=1)
-        self.staged_directory.cleanup()
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    with contextlib.suppress(subprocess.TimeoutExpired):
+                        process.wait(timeout=5)
+            if process is not None:
+                for stream in (process.stdin, process.stdout, process.stderr):
+                    if stream is not None:
+                        with contextlib.suppress(OSError):
+                            stream.close()
+            for thread in self._reader_threads:
+                thread.join(timeout=1)
+        finally:
+            self.staged_directory.cleanup()
+        if cleanup_error is not None:
+            raise WorkerExecutionError(
+                "Could not confirm removal of the isolated worker container"
+            ) from cleanup_error
 
     def __enter__(self) -> _WorkerSession:
         self.start()
@@ -425,6 +454,10 @@ class RootlessPodmanBackend:
             str(policy.process_count),
             "--memory",
             str(policy.memory_bytes),
+            # Equal memory and memory+swap values prevent extra swap allowance.
+            "--memory-swap",
+            str(policy.memory_bytes),
+            "--log-driver=none",
             "--cpus",
             str(_CPU_RATE),
             "--ulimit",
@@ -484,6 +517,7 @@ class RootlessPodmanBackend:
             "PID namespace": (host.get("PidMode") or "private", "private"),
             "IPC namespace": (host.get("IpcMode") or "private", "private"),
             "memory limit": (host.get("Memory"), policy.memory_bytes),
+            "memory plus swap limit": (host.get("MemorySwap"), policy.memory_bytes),
             "process-count limit": (host.get("PidsLimit"), policy.process_count),
             "CPU quota": (host.get("NanoCpus"), 1_000_000_000),
             "container identity": (config.get("User"), f"{_CONTAINER_UID}:{_CONTAINER_GID}"),
@@ -505,6 +539,15 @@ class RootlessPodmanBackend:
             "no-new-privileges" in str(value).lower() for value in security_options
         ):
             raise PodmanBackendError("Podman did not enable no-new-privileges")
+        if any(
+            str(value).strip().lower() == "seccomp=unconfined"
+            for value in security_options
+        ):
+            raise PodmanBackendError("Podman explicitly disabled the seccomp profile")
+
+        log_config = host.get("LogConfig")
+        if not isinstance(log_config, dict) or log_config.get("Type") != "none":
+            raise PodmanBackendError("Podman did not disable persistent container logging")
 
         devices = host.get("Devices")
         if devices not in (None, []):
@@ -648,14 +691,30 @@ class RootlessPodmanBackend:
             raise
 
     def _remove_container(self, container_id: str) -> None:
-        with contextlib.suppress(OSError, subprocess.TimeoutExpired):
-            subprocess.run(
+        try:
+            completed = subprocess.run(
                 [self.binary, "rm", "--force", "--volumes", container_id],
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
                 check=False,
                 timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise PodmanBackendError(
+                f"Could not remove isolated worker container ({type(exc).__name__})"
+            ) from exc
+        if completed.returncode != 0:
+            detail = completed.stderr.strip().replace("\n", " ")[:400]
+            lowered = detail.lower()
+            if any(
+                phrase in lowered
+                for phrase in ("no such container", "no container with name", "not found")
+            ):
+                return
+            raise PodmanBackendError(
+                f"Could not remove isolated worker container (exit {completed.returncode}): "
+                f"{detail}"
             )
 
     def _probe_script(self, policy: IsolationPolicy) -> str:
