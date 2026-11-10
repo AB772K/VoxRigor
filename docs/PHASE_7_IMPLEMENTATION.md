@@ -92,16 +92,20 @@ Passing these tests validates the SDK contract and registry behavior only. It do
 The plugin API is currently experimental at `0.1`; its version is independent of the VoxRigor package version. The loader requires an exact API-version match and does not silently accept unknown versions. The repository's compatibility, migration and deprecation rules are documented in [Plugin SDK Versioning and Compatibility Policy](PLUGIN_SDK_COMPATIBILITY.md). That policy distinguishes experimental `0.x` behavior from compatibility promises that will apply only after a separately approved stable `1.0` plugin API gate.
 
 
-## Isolated plugin worker — design only
+## Isolated plugin worker — experimental Linux implementation
 
-A platform-specific worker architecture has been documented in [Isolated Plugin Worker Design](PLUGIN_WORKER_ISOLATION_DESIGN.md). It covers process isolation, bounded JSON IPC, staged-file capabilities, Linux rootless OCI and Windows AppContainer candidate backends, resource controls, fail-closed behavior and adversarial acceptance tests. **This design is not implemented.** The current `--plugin-config` loader still executes third-party code in-process with the current user's OS permissions; it is not a sandbox.
+The bounded worker protocol, worker bootstrap, host-side supervisor and an experimental Linux-only rootless-Podman backend are implemented. The backend requires a native Linux host, rootless Podman, seccomp, cgroups v2 and an immutable worker image. It performs preflight/container-inspect checks before a worker starts, stages and verifies read-only inputs, bounds IPC buffering and resource use, and validates the worker response before returning it. See [Isolated Plugin Worker Design](PLUGIN_WORKER_ISOLATION_DESIGN.md) for controls and limitations.
 
-## Isolated plugin worker — protocol foundation implemented; OS isolation remains open
+A dedicated workflow now builds the worker image and runs a real Podman preflight plus host-file/host-loopback boundary probe. This runtime workflow must pass; synthetic/unit CI alone is not evidence of OS enforcement. The Linux backend remains experimental and is not a production security guarantee. Windows AppContainer/Job Object support, output artifact brokering, cooperative cancellation, comprehensive recovery tests and normal CLI integration remain open. The existing `--plugin-config` CLI path still runs plugins in-process and is not sandboxed.
 
-The first worker-infrastructure slice is implemented as protocol and preflight contracts only:
+## Worker protocol, Linux backend and current validation boundary
 
-- `src/voxrigor/plugin_worker/protocol.py` defines strict versioned JSONL messages and a bounded codec (1 MiB frames, LF-only framing, duplicate-key rejection, strict UTF-8/JSON, no Python object serialization, opaque staged-input IDs and namespaced test IDs).
-- `src/voxrigor/plugin_worker/isolation.py` defines finite policy/readiness models and a fail-closed backend preflight contract. It refuses a missing/unverified backend, identity mismatch, unsupported access or missing controls.
-- `tests/test_plugin_worker_protocol.py` exercises malformed/oversized IPC, invalid paths/namespaces/results, version mismatches and backend-preflight failure cases across the six-job OS/Python matrix.
+The current implementation includes:
 
-**No production isolation backend or worker launcher exists yet.** The fake backend tests verify only the host-side interface contract; they do not prove that Linux namespaces/seccomp/cgroups or Windows AppContainer/Job Objects are actually enforced. The current `--plugin-config` path still imports and executes plugin code inside the host process with the current user's OS permissions. Do not treat this protocol foundation as a sandbox.
+- `src/voxrigor/plugin_worker/protocol.py`: strict versioned JSONL messages and a bounded 1 MiB codec with LF-only framing, duplicate-key rejection, strict UTF-8/JSON, opaque staged-input IDs, namespaced test IDs and constrained scalar results.
+- `src/voxrigor/plugin_worker/isolation.py`: finite policy/readiness models and a fail-closed backend contract.
+- `src/voxrigor/plugin_worker/podman.py`: experimental native-Linux rootless Podman backend, image pinning, runtime preflight, container inspection, external in-container control probes, staged-input broker, one-shot worker supervisor, bounded host IPC buffering and cleanup.
+- `src/voxrigor/plugin_worker/worker_main.py`: isolated worker bootstrap that loads the selected plugin inside the worker, registers its tests, executes one selected test and returns bounded structured data.
+- `tests/test_plugin_worker_podman_integration.py` and `.github/workflows/podman-worker-integration.yml`: opt-in real Podman validation for the host-file and host-loopback boundary. The workflow result is required before marking the Linux runtime gate complete.
+
+The backend explicitly refuses unsupported network, microphone, general host-filesystem and filesystem-write capabilities. Its current output mount is read-only; no artifact-export broker is implemented. The normal `--plugin-config` CLI path still uses the in-process plugin loader. No Windows backend, production guarantee, full cancellation/recovery implementation or signed publisher verification is claimed.
