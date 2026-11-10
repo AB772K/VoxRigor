@@ -456,9 +456,10 @@ class RootlessPodmanBackend:
             str(policy.process_count),
             "--memory",
             str(policy.memory_bytes),
-            # Equal memory and memory+swap values prevent extra swap allowance.
+            # Podman defines --memory-swap as memory plus swap and requires
+            # it to exceed --memory. Permit only one byte beyond the RAM cap.
             "--memory-swap",
-            str(policy.memory_bytes),
+            str(policy.memory_bytes + 1),
             "--log-driver=none",
             "--cpus",
             str(_CPU_RATE),
@@ -519,7 +520,7 @@ class RootlessPodmanBackend:
             "PID namespace": (host.get("PidMode") or "private", "private"),
             "IPC namespace": (host.get("IpcMode") or "private", "private"),
             "memory limit": (host.get("Memory"), policy.memory_bytes),
-            "memory plus swap limit": (host.get("MemorySwap"), policy.memory_bytes),
+            "memory plus swap limit": (host.get("MemorySwap"), policy.memory_bytes + 1),
             "process-count limit": (host.get("PidsLimit"), policy.process_count),
             "CPU quota": (host.get("NanoCpus"), 1_000_000_000),
             "container identity": (config.get("User"), f"{_CONTAINER_UID}:{_CONTAINER_GID}"),
@@ -750,6 +751,8 @@ class RootlessPodmanBackend:
                     f"assert pids=={str(policy.process_count)!r}",
                     "mem=open('/sys/fs/cgroup/memory.max').read().strip()",
                     f"assert mem=={str(policy.memory_bytes)!r}",
+                    "swap=open('/sys/fs/cgroup/memory.swap.max').read().strip()",
+                    "assert swap=='1'",
                     "cpu=open('/sys/fs/cgroup/cpu.max').read().split()",
                     "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1])",
                     f"probe_path='/etc/.voxrigor-read-only-probe-{uuid4().hex}'",
