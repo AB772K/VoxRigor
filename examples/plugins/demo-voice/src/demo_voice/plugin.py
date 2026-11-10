@@ -37,8 +37,6 @@ class PluginContractDiagnostic:
         )
 
 
-
-
 class WorkerBoundaryProbe:
     """Probe whether the worker can reach one host-only file or host loopback listener."""
 
