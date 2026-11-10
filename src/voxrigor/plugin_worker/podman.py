@@ -527,10 +527,17 @@ class RootlessPodmanBackend:
             if actual != expected:
                 raise PodmanBackendError(f"Podman did not apply the required {label}")
         user_namespace = host.get("UsernsMode")
-        # Podman's inspect API normalizes --userns=auto to "private"; the
-        # in-container uid_map/gid_map probe verifies the host IDs are absent.
-        if user_namespace != "private":
-            raise PodmanBackendError("Podman did not allocate a private user namespace")
+        # Podman's rootless outer user namespace is created outside libpod and
+        # may be reported as an empty mode. Accept that representation only
+        # because the in-container uid_map/gid_map probe below must prove the
+        # host caller's UID/GID are absent. Explicit host/shared modes fail.
+        if not isinstance(user_namespace, str) or (
+            user_namespace not in ("", "private")
+            and not user_namespace.startswith("auto")
+        ):
+            raise PodmanBackendError(
+                f"Podman reported an unsupported user namespace mode: {user_namespace!r}"
+            )
 
         capabilities = host.get("CapDrop")
         if not isinstance(capabilities, list) or not any(
