@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import socket
+from pathlib import Path
+
 from voxrigor.models import ResultStatus, TestDescriptor
 from voxrigor.plugins import PluginMetadata, PluginRegistrationContext
 from voxrigor.testing import TestContext, TestOutcome
@@ -34,8 +37,48 @@ class PluginContractDiagnostic:
         )
 
 
+
+
+
+class WorkerBoundaryProbe:
+    """Probe whether the worker can reach one host-only file or host loopback listener."""
+
+    descriptor = TestDescriptor(
+        test_id="demo.voice.worker-boundary-probe",
+        version="0.1.0",
+        name="Worker boundary probe",
+        category="worker_isolation",
+        description="Checks that one host sentinel and host loopback listener are not reachable.",
+    )
+
+    def execute(self, context: TestContext) -> TestOutcome:
+        sentinel_path, port_text = context.project.name.split("|", maxsplit=1)
+        try:
+            Path(sentinel_path).read_bytes()
+            sentinel_readable = True
+        except OSError:
+            sentinel_readable = False
+
+        try:
+            with socket.create_connection(("127.0.0.1", int(port_text)), timeout=1):
+                host_loopback_reachable = True
+        except OSError:
+            host_loopback_reachable = False
+
+        return TestOutcome(
+            status=ResultStatus.INCONCLUSIVE,
+            measurements={
+                "host_sentinel_readable": sentinel_readable,
+                "host_loopback_reachable": host_loopback_reachable,
+            },
+            limitations=(
+                "Narrow integration probe only; it does not replace a full adversarial sandbox review.",
+            ),
+        )
+
+
 class DemoVoicePlugin:
-    """Example external plugin exposing one diagnostic test and no permissions."""
+    """Example external plugin exposing diagnostics and a boundary probe, with no permissions."""
 
     metadata = PluginMetadata(
         plugin_id="demo.voice",
@@ -49,6 +92,7 @@ class DemoVoicePlugin:
 
     def register(self, context: PluginRegistrationContext) -> None:
         context.register(PluginContractDiagnostic())
+        context.register(WorkerBoundaryProbe())
 
 
 def create_plugin() -> DemoVoicePlugin:
