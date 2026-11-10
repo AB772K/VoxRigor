@@ -36,6 +36,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y podman uidmap slirp4netns fuse-overlayfs
+          USER_NAME="$(id -un)"
+          if ! grep -q "^${USER_NAME}:" /etc/subuid; then
+            sudo usermod --add-subuids 100000-165535 "$USER_NAME"
+          fi
+          if ! grep -q "^${USER_NAME}:" /etc/subgid; then
+            sudo usermod --add-subgids 100000-165535 "$USER_NAME"
+          fi
 
       - name: Verify runner supports the required rootless runtime
         shell: bash
