@@ -30,6 +30,6 @@
 - [ ] Complete adversarial validation of the isolated-worker lifecycle, Linux backend and later Windows backend, including resource limits, capability brokering and failure recovery. The design document and synthetic tests alone are not a production sandbox claim.
 - [x] Validate the example plugin wheel build/install/discovery/execution path on all six supported OS/Python CI combinations.
 
-Passing contract tests does not make untrusted plugins safe. No sandbox or capability enforcement is included in this version.
+Passing SDK contract tests does not make plugins safe. The standard in-process `--plugin-config` CLI path remains unsandboxed and its permission labels are not OS-enforced. The experimental Linux worker enforces only the explicitly documented subset and must not be described as production-ready until real-runtime and adversarial acceptance gates pass.
 
 The plugin API remains experimental (`0.1`). A stable `1.0` API is a separate release gate; this policy does not imply a current backwards-compatibility guarantee.
