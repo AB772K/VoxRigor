@@ -93,6 +93,8 @@ def test_container_command_has_default_deny_security_flags() -> None:
         "--security-opt=no-new-privileges",
         "--pids-limit",
         "--memory",
+        "--memory-swap",
+        "--log-driver=none",
         "--cpus",
         "--ulimit",
         "--tmpfs",
