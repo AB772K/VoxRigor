@@ -35,7 +35,7 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
             "MemorySwap": policy.memory_bytes + 1,
             "PidsLimit": policy.process_count,
             "NanoCpus": 1_000_000_000,
-            "UsernsMode": "private",
+            "UsernsMode": "",
             "CapDrop": ["ALL"],
             "SecurityOpt": ["no-new-privileges"],
             "LogConfig": {"Type": "none"},
