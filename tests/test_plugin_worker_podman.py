@@ -152,6 +152,11 @@ def test_container_inspect_verification_accepts_the_complete_policy() -> None:
         ("PidsLimit", -1, "process-count limit"),
         ("NanoCpus", 0, "CPU quota"),
         ("UsernsMode", "host", "user namespace"),
+        (
+            "IDMappings",
+            {"UidMap": ["0:0:65536"], "GidMap": ["0:1:65536"]},
+            "rootless parent UID",
+        ),
         ("CapDrop", [], "drop all Linux capabilities"),
         ("Devices", [{"PathOnHost": "/dev/snd"}], "host devices"),
         (
