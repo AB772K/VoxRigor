@@ -430,15 +430,11 @@ class RootlessPodmanBackend:
         uid = str(_CONTAINER_UID)
         gid = str(_CONTAINER_GID)
         temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
-        output_mount = (
-            f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},mode=0555"
-        )
+        output_mount = f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},mode=0555"
         # Podman accepts the tmpfs mode flag but rejects Docker-style uid/gid
         # mount options. A sticky world-writable /tmp is safe within this
         # private PID/network/user namespace and remains size-bounded.
-        temporary_mount = (
-            f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=1777"
-        )
+        temporary_mount = f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=1777"
         command = [
             self.binary,
             action,
