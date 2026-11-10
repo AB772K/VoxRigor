@@ -35,7 +35,7 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
             "MemorySwap": policy.memory_bytes + 1,
             "PidsLimit": policy.process_count,
             "NanoCpus": 1_000_000_000,
-            "UsernsMode": "auto",
+            "UsernsMode": "private",
             "CapDrop": ["ALL"],
             "SecurityOpt": ["no-new-privileges"],
             "LogConfig": {"Type": "none"},
@@ -197,6 +197,9 @@ def test_container_inspect_verification_requires_exactly_the_staged_bind_list(
 def test_in_container_probe_script_is_valid_python() -> None:
     script = _backend()._probe_script(IsolationPolicy())
     compile(script, "<voxrigor-podman-probe>", "exec")
+    assert "/proc/self/uid_map" in script
+    assert "/proc/self/gid_map" in script
+    assert "host_start + length" in script
 
 
 def test_preflight_refuses_non_linux_before_invoking_podman(
