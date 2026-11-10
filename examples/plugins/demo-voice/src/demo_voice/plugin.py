@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import socket
 from pathlib import Path
+import socket
 
 from voxrigor.models import ResultStatus, TestDescriptor
 from voxrigor.plugins import PluginMetadata, PluginRegistrationContext
