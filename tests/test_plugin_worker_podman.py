@@ -32,7 +32,7 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
             "PidMode": "private",
             "IpcMode": "private",
             "Memory": policy.memory_bytes,
-            "MemorySwap": policy.memory_bytes,
+            "MemorySwap": policy.memory_bytes + 1,
             "PidsLimit": policy.process_count,
             "NanoCpus": 1_000_000_000,
             "UsernsMode": "auto",
