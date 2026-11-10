@@ -538,6 +538,34 @@ class RootlessPodmanBackend:
             raise PodmanBackendError(
                 f"Podman reported an unsupported user namespace mode: {user_namespace!r}"
             )
+        id_mappings = host.get("IDMappings")
+        if not isinstance(id_mappings, dict):
+            raise PodmanBackendError("Podman did not report effective UID/GID mappings")
+        for label, key in (("UID", "UidMap"), ("GID", "GidMap")):
+            entries = id_mappings.get(key)
+            if not isinstance(entries, list) or not entries:
+                raise PodmanBackendError(f"Podman did not report effective {label} mappings")
+            for entry in entries:
+                if not isinstance(entry, str):
+                    raise PodmanBackendError(f"Podman returned an invalid {label} mapping")
+                fields = entry.split(":")
+                if len(fields) != 3:
+                    raise PodmanBackendError(f"Podman returned an invalid {label} mapping")
+                try:
+                    container_start, parent_start, length = map(int, fields)
+                except ValueError as exc:
+                    raise PodmanBackendError(
+                        f"Podman returned a non-numeric {label} mapping"
+                    ) from exc
+                if container_start < 0 or parent_start < 0 or length <= 0:
+                    raise PodmanBackendError(f"Podman returned an invalid {label} mapping")
+                # In the rootless parent namespace, podman unshare runs as UID/GID 0.
+                # auto/nomap must not map that identity into the worker, even when
+                # libpod displays UsernsMode as empty for rootless containers.
+                if parent_start == 0:
+                    raise PodmanBackendError(
+                        f"Podman mapped the rootless parent {label} into the worker"
+                    )
 
         capabilities = host.get("CapDrop")
         if not isinstance(capabilities, list) or not any(
@@ -747,12 +775,11 @@ class RootlessPodmanBackend:
     def _probe_script(self, policy: IsolationPolicy) -> str:
         """Probe kernel-visible controls from inside the configured container."""
 
-        get_uid = getattr(os, "getuid", None)
-        get_gid = getattr(os, "getgid", None)
-        if not callable(get_uid) or not callable(get_gid):
-            raise PodmanBackendError("The Linux host UID/GID could not be determined")
-        host_uid = get_uid()
-        host_gid = get_gid()
+        # /proc/*_map reports IDs relative to the parent user namespace.
+        # For rootless Podman that parent is podman unshare, where the
+        # invoking host identity is represented by UID/GID 0.
+        parent_uid = 0
+        parent_gid = 0
         return (
             "\n".join(
                 (
@@ -767,11 +794,12 @@ class RootlessPodmanBackend:
                     "assert status.get('Seccomp')=='2'",
                     "assert status.get('CapEff','').strip('0')==''",
                     f"assert os.getuid()=={_CONTAINER_UID}",
-                    f"assert os.getuid()!={host_uid}",
+                    f"assert os.getuid()!={parent_uid}",
+                    f"assert os.getgid()!={parent_gid}",
                     "uid_map=[tuple(map(int,line.split())) for line in open('/proc/self/uid_map',encoding='utf-8')]",
                     "gid_map=[tuple(map(int,line.split())) for line in open('/proc/self/gid_map',encoding='utf-8')]",
-                    f"assert all(not host_start <= {host_uid} < host_start + length for _,host_start,length in uid_map)",
-                    f"assert all(not host_start <= {host_gid} < host_start + length for _,host_start,length in gid_map)",
+                    f"assert all(not parent_start <= {parent_uid} < parent_start + length for _,parent_start,length in uid_map)",
+                    f"assert all(not parent_start <= {parent_gid} < parent_start + length for _,parent_start,length in gid_map)",
                     "assert set(os.listdir('/sys/class/net'))<= {'lo'}",
                     "assert resource.getrlimit(resource.RLIMIT_CPU)==("
                     f"{policy.cpu_time_seconds},{policy.cpu_time_seconds})",
