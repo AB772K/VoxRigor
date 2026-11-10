@@ -542,10 +542,7 @@ class RootlessPodmanBackend:
             "no-new-privileges" in str(value).lower() for value in security_options
         ):
             raise PodmanBackendError("Podman did not enable no-new-privileges")
-        if any(
-            str(value).strip().lower() == "seccomp=unconfined"
-            for value in security_options
-        ):
+        if any(str(value).strip().lower() == "seccomp=unconfined" for value in security_options):
             raise PodmanBackendError("Podman explicitly disabled the seccomp profile")
 
         log_config = host.get("LogConfig")
