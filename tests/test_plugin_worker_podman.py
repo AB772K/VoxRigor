@@ -32,11 +32,13 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
             "PidMode": "private",
             "IpcMode": "private",
             "Memory": policy.memory_bytes,
+            "MemorySwap": policy.memory_bytes,
             "PidsLimit": policy.process_count,
             "NanoCpus": 1_000_000_000,
             "UsernsMode": "auto",
             "CapDrop": ["ALL"],
             "SecurityOpt": ["no-new-privileges"],
+            "LogConfig": {"Type": "none"},
             "Devices": [],
             "Ulimits": [
                 {"Name": "cpu", "Soft": policy.cpu_time_seconds, "Hard": policy.cpu_time_seconds},
@@ -139,12 +141,18 @@ def test_container_inspect_verification_accepts_the_complete_policy() -> None:
         ("NetworkMode", "bridge", "network isolation"),
         ("PidMode", "host", "PID namespace"),
         ("Memory", 0, "memory limit"),
+        ("MemorySwap", -1, "memory plus swap"),
+        ("LogConfig", {"Type": "json-file"}, "persistent container logging"),
         ("PidsLimit", -1, "process-count limit"),
         ("NanoCpus", 0, "CPU quota"),
         ("UsernsMode", "host", "user namespace"),
         ("CapDrop", [], "drop all Linux capabilities"),
         ("Devices", [{"PathOnHost": "/dev/snd"}], "host devices"),
-        ("SecurityOpt", ["seccomp=unconfined"], "no-new-privileges"),
+        (
+            "SecurityOpt",
+            ["no-new-privileges", "seccomp=unconfined"],
+            "seccomp profile",
+        ),
     ],
 )
 def test_container_inspect_verification_rejects_weakened_controls(
