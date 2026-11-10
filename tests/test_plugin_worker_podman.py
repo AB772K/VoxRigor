@@ -68,6 +68,8 @@ def test_worker_image_must_be_pinned_by_sha256_digest() -> None:
         RootlessPodmanBackend("registry.example.invalid/voxrigor-worker:latest")
 
     backend = _backend()
+    local_image = RootlessPodmanBackend("sha256:" + "b" * 64)
+    assert local_image.worker_image == "sha256:" + "b" * 64
     assert backend.backend_id == "podman-rootless-oci"
 
 
