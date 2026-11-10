@@ -20,12 +20,14 @@
 - [x] Define experimental/stable plugin API versioning and deprecation rules; add a contract test proving exact API-version acceptance and rejection.
 - [x] Implement the versioned, bounded JSONL IPC foundation with strict message discriminators, version handshake, duplicate-key/malformed-frame rejection, opaque staged-input references and namespaced test/result validation.
 - [x] Implement a fail-closed isolation-backend preflight contract and tests for missing/unverified backends, identity mismatches, missing controls and unsupported access. Tests use a fake backend and do not claim real OS enforcement.
-- [ ] Implement a production Linux isolation backend (rootless OCI or stronger reviewed boundary) and prove namespaces, seccomp, cgroups, read-only mounts and no-network behavior with external probes.
-- [ ] Implement a production Windows isolation backend (AppContainer plus Job Object or a separately reviewed stronger boundary) and prove restricted identity, ACLs, handles and resource limits with external probes.
-- [ ] Implement host/worker launch supervision, staged-input brokering, bounded result/artifact validation, cancellation, process-tree cleanup and failure recovery. The current CLI must not silently switch away from its in-process path before a supported backend exists.
+- [x] Implement an experimental Linux-only rootless-Podman backend with immutable image selection, rootless/seccomp/cgroups-v2 preflight, container inspection, private namespaces, no-network policy, read-only root and staged-input mounts, bounded resources, and an explicit host-side worker supervisor.
+- [ ] Pass the dedicated real rootless-Podman integration workflow on a supported Linux runner; externally verify effective identity, seccomp, capabilities, cgroup limits, swap ceiling, host-file denial, host-loopback isolation and cleanup. Mocked tests do not satisfy this gate.
+- [ ] Implement a Windows isolation backend (AppContainer plus Job Object or a separately reviewed stronger boundary) and prove restricted identity, ACLs, handles and resource limits with external probes.
+- [x] Implement the first host/worker lifecycle slice: staged-input brokering, version handshake, plugin description, one selected test execution, bounded scalar result validation, wall-clock supervision, shutdown acknowledgement and container/process cleanup.
+- [ ] Complete output-artifact brokering, cooperative cancellation, comprehensive crash/timeout/OOM recovery probes and auditable execution provenance. The normal CLI must not silently switch away from its in-process path before each supported backend passes its acceptance gates.
 - [ ] Add signed plugin/distribution provenance verification if it is required by the project threat model.
 - [x] Document a separately isolated plugin-worker design covering the host/worker trust boundary, IPC, capability brokering, Linux/Windows backend requirements, resource limits, fail-closed behavior and adversarial acceptance tests.
-- [ ] Implement and adversarially validate the isolated worker lifecycle, platform backends, resource limits, capability brokering and failure recovery. The design document is not an implementation or a sandbox claim.
+- [ ] Complete adversarial validation of the isolated-worker lifecycle, Linux backend and later Windows backend, including resource limits, capability brokering and failure recovery. The design document and synthetic tests alone are not a production sandbox claim.
 - [x] Validate the example plugin wheel build/install/discovery/execution path on all six supported OS/Python CI combinations.
 
 Passing contract tests does not make untrusted plugins safe. No sandbox or capability enforcement is included in this version.
