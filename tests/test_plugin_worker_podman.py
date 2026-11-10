@@ -36,6 +36,10 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
             "PidsLimit": policy.process_count,
             "NanoCpus": 1_000_000_000,
             "UsernsMode": "",
+            "IDMappings": {
+                "UidMap": ["0:1:65536"],
+                "GidMap": ["0:1:65536"],
+            },
             "CapDrop": ["ALL"],
             "SecurityOpt": ["no-new-privileges"],
             "LogConfig": {"Type": "none"},
@@ -199,7 +203,9 @@ def test_in_container_probe_script_is_valid_python() -> None:
     compile(script, "<voxrigor-podman-probe>", "exec")
     assert "/proc/self/uid_map" in script
     assert "/proc/self/gid_map" in script
-    assert "host_start + length" in script
+    assert "parent_uid=0" in script
+    assert "parent_gid=0" in script
+    assert "parent_start + length" in script
 
 
 def test_preflight_refuses_non_linux_before_invoking_podman(
