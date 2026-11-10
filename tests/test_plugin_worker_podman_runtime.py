@@ -97,7 +97,7 @@ def _container_document(policy: IsolationPolicy | None = None) -> dict[str, obje
             "PidMode": "private",
             "IpcMode": "private",
             "Memory": selected.memory_bytes,
-            "MemorySwap": selected.memory_bytes,
+            "MemorySwap": selected.memory_bytes + 1,
             "PidsLimit": selected.process_count,
             "NanoCpus": 1_000_000_000,
             "UsernsMode": "auto",
