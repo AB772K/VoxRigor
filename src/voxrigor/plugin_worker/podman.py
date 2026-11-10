@@ -52,7 +52,7 @@ from voxrigor.plugin_worker.protocol import (
 )
 from voxrigor.plugins import PluginPermission
 
-_PINNED_IMAGE_RE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
+_PINNED_IMAGE_RE = re.compile(r"^(?:[^\s@]+@sha256:[0-9a-f]{64}|sha256:[0-9a-f]{64})$")
 _CONTAINER_UID = 10001
 _CONTAINER_GID = 10001
 _CPU_RATE = 1.0
@@ -324,7 +324,9 @@ class RootlessPodmanBackend:
 
     def __init__(self, worker_image: str, binary: str = "podman") -> None:
         if not _PINNED_IMAGE_RE.fullmatch(worker_image):
-            raise ValueError("worker_image must be pinned by an immutable @sha256 digest")
+            raise ValueError(
+                "worker_image must be an immutable @sha256 reference or local sha256 image ID"
+            )
         if Path(binary).name != binary:
             raise ValueError("binary must be an executable name resolved through PATH")
         self.worker_image = worker_image
@@ -736,6 +738,7 @@ class RootlessPodmanBackend:
                     "            status[key]=value.strip()",
                     "assert status.get('NoNewPrivs')=='1'",
                     "assert status.get('Seccomp')=='2'",
+                    "assert status.get('CapEff','').strip('0')==''",
                     f"assert os.getuid()=={_CONTAINER_UID}",
                     f"assert os.getuid()!={host_uid}",
                     "assert set(os.listdir('/sys/class/net'))<= {'lo'}",
@@ -749,9 +752,10 @@ class RootlessPodmanBackend:
                     f"assert mem=={str(policy.memory_bytes)!r}",
                     "cpu=open('/sys/fs/cgroup/cpu.max').read().split()",
                     "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1])",
+                    f"probe_path='/etc/.voxrigor-read-only-probe-{uuid4().hex}'",
                     "read_only=False",
                     "try:",
-                    "    with open('/etc/.voxrigor-read-only-probe','x'): pass",
+                    "    with open(probe_path,'x'): pass",
                     "except OSError:",
                     "    read_only=True",
                     "assert read_only",
