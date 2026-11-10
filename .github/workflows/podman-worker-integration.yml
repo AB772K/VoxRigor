@@ -13,6 +13,10 @@ on:
       - "pyproject.toml"
   workflow_dispatch:
 
+concurrency:
+  group: podman-worker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
