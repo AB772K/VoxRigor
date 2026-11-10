@@ -101,6 +101,10 @@ def _container_document(policy: IsolationPolicy | None = None) -> dict[str, obje
             "PidsLimit": selected.process_count,
             "NanoCpus": 1_000_000_000,
             "UsernsMode": "private",
+            "IDMappings": {
+                "UidMap": ["0:1:65536"],
+                "GidMap": ["0:1:65536"],
+            },
             "CapDrop": ["ALL"],
             "SecurityOpt": ["no-new-privileges"],
             "LogConfig": {"Type": "none"},
