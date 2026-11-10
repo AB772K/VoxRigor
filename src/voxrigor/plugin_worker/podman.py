@@ -431,11 +431,13 @@ class RootlessPodmanBackend:
         gid = str(_CONTAINER_GID)
         temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
         output_mount = (
-            f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},"
-            f"mode=0555,uid={uid},gid={gid}"
+            f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},mode=0555"
         )
+        # Podman accepts the tmpfs mode flag but rejects Docker-style uid/gid
+        # mount options. A sticky world-writable /tmp is safe within this
+        # private PID/network/user namespace and remains size-bounded.
         temporary_mount = (
-            f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=0700,uid={uid},gid={gid}"
+            f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=1777"
         )
         command = [
             self.binary,
@@ -592,12 +594,32 @@ class RootlessPodmanBackend:
         tmpfs = host.get("Tmpfs")
         if not isinstance(tmpfs, dict):
             raise PodmanBackendError("Podman did not configure bounded tmpfs mounts")
-        output_settings = str(tmpfs.get("/output", "")).lower()
-        if f"size={policy.output_bytes}" not in output_settings or "ro" not in output_settings:
-            raise PodmanBackendError("Podman did not apply a bounded read-only output mount")
-        if "/tmp" not in tmpfs:
+        output_settings = set(str(tmpfs.get("/output", "")).lower().split(","))
+        required_output_settings = {
+            "ro",
+            "noexec",
+            "nosuid",
+            "nodev",
+            f"size={policy.output_bytes}",
+            "mode=0555",
+        }
+        if not required_output_settings.issubset(output_settings):
             raise PodmanBackendError(
-                "Podman did not create an ephemeral bounded temporary directory"
+                "Podman did not apply the bounded read-only output mount policy"
+            )
+        temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
+        temporary_settings = set(str(tmpfs.get("/tmp", "")).lower().split(","))
+        required_temporary_settings = {
+            "rw",
+            "noexec",
+            "nosuid",
+            "nodev",
+            f"size={temporary_size}",
+            "mode=1777",
+        }
+        if not required_temporary_settings.issubset(temporary_settings):
+            raise PodmanBackendError(
+                "Podman did not apply the bounded writable temporary-directory policy"
             )
 
         binds = host.get("Binds") or []
