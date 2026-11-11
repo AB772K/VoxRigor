@@ -187,28 +187,19 @@ def test_container_inspect_verification_rejects_weakened_controls(
         )
 
 
-@pytest.mark.parametrize(
-    ("key", "value", "message"),
-    [
-        ("EffectiveCaps", ["CAP_CHOWN"], "effective Linux capability set"),
-        ("BoundingCaps", ["CAP_SYS_ADMIN"], "bounding Linux capability set"),
-    ],
-)
-def test_container_inspect_verification_rejects_remaining_capabilities(
-    key: str,
-    value: object,
-    message: str,
-) -> None:
+def test_container_inspect_capability_summaries_are_not_treated_as_kernel_proof() -> None:
     policy = IsolationPolicy()
     document = _container_document(policy)
-    document[key] = value
+    document["EffectiveCaps"] = ["CAP_CHOWN", "CAP_SETUID"]
+    document["BoundingCaps"] = ["CAP_SYS_ADMIN"]
 
-    with pytest.raises(PodmanBackendError, match=message):
-        RootlessPodmanBackend._verify_container_document(
-            document,
-            policy,
-            expected_binds=(),
-        )
+    # Podman's inspect summaries are not authoritative for a running process.
+    # The real preflight separately proves that every kernel-visible set is zero.
+    RootlessPodmanBackend._verify_container_document(
+        document,
+        policy,
+        expected_binds=(),
+    )
 
 
 def test_container_inspect_verification_requires_exactly_the_staged_bind_list(
@@ -238,8 +229,7 @@ def test_in_container_probe_script_is_valid_python() -> None:
     assert "parent_gid=0" in script
     assert "parent_start + length" in script
     assert all(
-        capability in script
-        for capability in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")
+        capability in script for capability in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")
     )
 
 

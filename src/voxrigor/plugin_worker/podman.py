@@ -566,15 +566,10 @@ class RootlessPodmanBackend:
                         f"Podman mapped the rootless parent {label} into the worker"
                     )
 
-        # Podman expands --cap-drop=ALL into the capabilities removed from
-        # its OCI default set; HostConfig.CapDrop therefore need not contain
-        # the literal string "ALL". Verify the actual inspect capability sets.
-        for label, key in (("effective", "EffectiveCaps"), ("bounding", "BoundingCaps")):
-            actual_capabilities = document.get(key)
-            if not isinstance(actual_capabilities, list) or actual_capabilities:
-                raise PodmanBackendError(
-                    f"Podman did not clear the {label} Linux capability set"
-                )
+        # Podman's inspect capability arrays are configuration summaries, not
+        # proof of the capabilities available to a live worker process. The
+        # preflight below checks CapInh/Prm/Eff/Bnd/Amb from /proc/self/status
+        # inside the constrained container before any plugin code is launched.
         added_capabilities = host.get("CapAdd")
         if not isinstance(added_capabilities, list) or added_capabilities:
             raise PodmanBackendError("Podman unexpectedly added Linux capabilities")
@@ -798,7 +793,10 @@ class RootlessPodmanBackend:
                     "            status[key]=value.strip()",
                     "assert status.get('NoNewPrivs')=='1'",
                     "assert status.get('Seccomp')=='2'",
-                    "assert all(key in status and int(status[key],16)==0 for key in ('CapInh','CapPrm','CapEff','CapBnd','CapAmb'))",
+                    "capability_keys=('CapInh','CapPrm','CapEff','CapBnd','CapAmb')",
+                    "assert all(key in status for key in capability_keys)",
+                    "capabilities={key:int(status[key],16) for key in capability_keys}",
+                    "assert not any(capabilities.values()), f'Worker capability sets are not empty: {capabilities}'",
                     f"assert os.getuid()=={_CONTAINER_UID}",
                     f"assert os.getuid()!={parent_uid}",
                     f"assert os.getgid()!={parent_gid}",
