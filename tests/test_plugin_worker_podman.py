@@ -26,6 +26,8 @@ def _backend() -> RootlessPodmanBackend:
 
 def _container_document(policy: IsolationPolicy) -> dict[str, object]:
     return {
+        "EffectiveCaps": [],
+        "BoundingCaps": [],
         "HostConfig": {
             "ReadonlyRootfs": True,
             "NetworkMode": "none",
@@ -40,7 +42,7 @@ def _container_document(policy: IsolationPolicy) -> dict[str, object]:
                 "UidMap": ["0:1:65536"],
                 "GidMap": ["0:1:65536"],
             },
-            "CapDrop": ["ALL"],
+            "CapAdd": [],
             "SecurityOpt": ["no-new-privileges"],
             "LogConfig": {"Type": "none"},
             "Devices": [],
@@ -157,7 +159,7 @@ def test_container_inspect_verification_accepts_the_complete_policy() -> None:
             {"UidMap": ["0:0:65536"], "GidMap": ["0:1:65536"]},
             "rootless parent UID",
         ),
-        ("CapDrop", [], "drop all Linux capabilities"),
+        ("CapAdd", ["CAP_SYS_ADMIN"], "added Linux capabilities"),
         ("Devices", [{"PathOnHost": "/dev/snd"}], "host devices"),
         (
             "SecurityOpt",
@@ -176,6 +178,30 @@ def test_container_inspect_verification_rejects_weakened_controls(
     host = document["HostConfig"]
     assert isinstance(host, dict)
     host[key] = value
+
+    with pytest.raises(PodmanBackendError, match=message):
+        RootlessPodmanBackend._verify_container_document(
+            document,
+            policy,
+            expected_binds=(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "message"),
+    [
+        ("EffectiveCaps", ["CAP_CHOWN"], "effective Linux capability set"),
+        ("BoundingCaps", ["CAP_SYS_ADMIN"], "bounding Linux capability set"),
+    ],
+)
+def test_container_inspect_verification_rejects_remaining_capabilities(
+    key: str,
+    value: object,
+    message: str,
+) -> None:
+    policy = IsolationPolicy()
+    document = _container_document(policy)
+    document[key] = value
 
     with pytest.raises(PodmanBackendError, match=message):
         RootlessPodmanBackend._verify_container_document(
@@ -211,6 +237,10 @@ def test_in_container_probe_script_is_valid_python() -> None:
     assert "parent_uid=0" in script
     assert "parent_gid=0" in script
     assert "parent_start + length" in script
+    assert all(
+        capability in script
+        for capability in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")
+    )
 
 
 def test_preflight_refuses_non_linux_before_invoking_podman(
