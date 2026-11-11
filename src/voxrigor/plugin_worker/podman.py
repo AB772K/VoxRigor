@@ -532,8 +532,7 @@ class RootlessPodmanBackend:
         # because the in-container uid_map/gid_map probe below must prove the
         # host caller's UID/GID are absent. Explicit host/shared modes fail.
         if not isinstance(user_namespace, str) or (
-            user_namespace not in ("", "private")
-            and not user_namespace.startswith("auto")
+            user_namespace not in ("", "private") and not user_namespace.startswith("auto")
         ):
             raise PodmanBackendError(
                 f"Podman reported an unsupported user namespace mode: {user_namespace!r}"
@@ -567,11 +566,18 @@ class RootlessPodmanBackend:
                         f"Podman mapped the rootless parent {label} into the worker"
                     )
 
-        capabilities = host.get("CapDrop")
-        if not isinstance(capabilities, list) or not any(
-            str(value).upper() == "ALL" for value in capabilities
-        ):
-            raise PodmanBackendError("Podman did not drop all Linux capabilities")
+        # Podman expands --cap-drop=ALL into the capabilities removed from
+        # its OCI default set; HostConfig.CapDrop therefore need not contain
+        # the literal string "ALL". Verify the actual inspect capability sets.
+        for label, key in (("effective", "EffectiveCaps"), ("bounding", "BoundingCaps")):
+            actual_capabilities = document.get(key)
+            if not isinstance(actual_capabilities, list) or actual_capabilities:
+                raise PodmanBackendError(
+                    f"Podman did not clear the {label} Linux capability set"
+                )
+        added_capabilities = host.get("CapAdd")
+        if not isinstance(added_capabilities, list) or added_capabilities:
+            raise PodmanBackendError("Podman unexpectedly added Linux capabilities")
         security_options = host.get("SecurityOpt")
         if not isinstance(security_options, list) or not any(
             "no-new-privileges" in str(value).lower() for value in security_options
@@ -792,7 +798,7 @@ class RootlessPodmanBackend:
                     "            status[key]=value.strip()",
                     "assert status.get('NoNewPrivs')=='1'",
                     "assert status.get('Seccomp')=='2'",
-                    "assert status.get('CapEff','').strip('0')==''",
+                    "assert all(key in status and int(status[key],16)==0 for key in ('CapInh','CapPrm','CapEff','CapBnd','CapAmb'))",
                     f"assert os.getuid()=={_CONTAINER_UID}",
                     f"assert os.getuid()!={parent_uid}",
                     f"assert os.getgid()!={parent_gid}",
