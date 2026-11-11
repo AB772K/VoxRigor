@@ -233,6 +233,7 @@ def test_in_container_probe_script_is_valid_python() -> None:
     assert "parent_gid=0" in script
     assert "parent_start + length" in script
     assert "memory.swap.max mismatch" in script
+    assert "0 <= int(swap) <= 1" in script
     assert all(
         capability in script for capability in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")
     )

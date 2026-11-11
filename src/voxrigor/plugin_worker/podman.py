@@ -799,7 +799,7 @@ class RootlessPodmanBackend:
                     "mem=open('/sys/fs/cgroup/memory.max').read().strip()",
                     f"assert mem=={str(policy.memory_bytes)!r}, 'memory.max mismatch: %r' % (mem,)",
                     "swap=open('/sys/fs/cgroup/memory.swap.max').read().strip()",
-                    "assert swap=='1', f'memory.swap.max mismatch: {swap}'",
+                    "assert swap.isdecimal() and 0 <= int(swap) <= 1, f'memory.swap.max mismatch: {swap}'",
                     "cpu=open('/sys/fs/cgroup/cpu.max').read().split()",
                     "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1]), f'cpu.max mismatch: {cpu}'",
                     f"probe_path='/etc/.voxrigor-read-only-probe-{uuid4().hex}'",
