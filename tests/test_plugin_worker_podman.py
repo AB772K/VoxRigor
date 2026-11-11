@@ -187,14 +187,18 @@ def test_container_inspect_verification_rejects_weakened_controls(
         )
 
 
-def test_container_inspect_capability_summaries_are_not_treated_as_kernel_proof() -> None:
+def test_container_inspect_summaries_are_not_treated_as_kernel_proof() -> None:
     policy = IsolationPolicy()
     document = _container_document(policy)
     document["EffectiveCaps"] = ["CAP_CHOWN", "CAP_SETUID"]
     document["BoundingCaps"] = ["CAP_SYS_ADMIN"]
+    host = document["HostConfig"]
+    assert isinstance(host, dict)
+    host["Ulimits"] = []
 
     # Podman's inspect summaries are not authoritative for a running process.
-    # The real preflight separately proves that every kernel-visible set is zero.
+    # The real preflight separately verifies the kernel-visible capability
+    # sets and effective CPU/open-file limits before plugin code is launched.
     RootlessPodmanBackend._verify_container_document(
         document,
         policy,

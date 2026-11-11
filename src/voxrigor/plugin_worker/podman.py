@@ -606,24 +606,9 @@ class RootlessPodmanBackend:
                 "Worker environment is not limited to the explicit safe allow-list"
             )
 
-        ulimits = host.get("Ulimits")
-        if not isinstance(ulimits, list):
-            raise PodmanBackendError("Podman did not expose the configured ulimit settings")
-        observed_limits = {
-            str(item.get("Name")): (item.get("Soft"), item.get("Hard"))
-            for item in ulimits
-            if isinstance(item, dict)
-        }
-        if observed_limits.get("cpu") != (
-            policy.cpu_time_seconds,
-            policy.cpu_time_seconds,
-        ):
-            raise PodmanBackendError("Podman did not apply the CPU-time limit")
-        if observed_limits.get("nofile") != (
-            policy.open_file_count,
-            policy.open_file_count,
-        ):
-            raise PodmanBackendError("Podman did not apply the open-file limit")
+        # Podman's HostConfig.Ulimits is a Docker-compatible inspect summary.
+        # The live preflight process verifies both RLIMITs with getrlimit below,
+        # which is the effective kernel limit seen by a worker process.
 
         tmpfs = host.get("Tmpfs")
         if not isinstance(tmpfs, dict):
@@ -805,10 +790,10 @@ class RootlessPodmanBackend:
                     f"assert all(not parent_start <= {parent_uid} < parent_start + length for _,parent_start,length in uid_map)",
                     f"assert all(not parent_start <= {parent_gid} < parent_start + length for _,parent_start,length in gid_map)",
                     "assert set(os.listdir('/sys/class/net'))<= {'lo'}",
-                    "assert resource.getrlimit(resource.RLIMIT_CPU)==("
-                    f"{policy.cpu_time_seconds},{policy.cpu_time_seconds})",
-                    "assert resource.getrlimit(resource.RLIMIT_NOFILE)==("
-                    f"{policy.open_file_count},{policy.open_file_count})",
+                    "cpu_limit=resource.getrlimit(resource.RLIMIT_CPU)",
+                    f"assert cpu_limit==({policy.cpu_time_seconds},{policy.cpu_time_seconds}), 'CPU-time limit mismatch: %r' % (cpu_limit,)",
+                    "nofile_limit=resource.getrlimit(resource.RLIMIT_NOFILE)",
+                    f"assert nofile_limit==({policy.open_file_count},{policy.open_file_count}), 'open-file limit mismatch: %r' % (nofile_limit,)",
                     "pids=open('/sys/fs/cgroup/pids.max').read().strip()",
                     f"assert pids=={str(policy.process_count)!r}",
                     "mem=open('/sys/fs/cgroup/memory.max').read().strip()",
