@@ -26,25 +26,33 @@ def _backend() -> RootlessPodmanBackend:
 
 def _container_document(policy: IsolationPolicy) -> dict[str, object]:
     return {
+        "EffectiveCaps": [],
+        "BoundingCaps": [],
         "HostConfig": {
             "ReadonlyRootfs": True,
             "NetworkMode": "none",
             "PidMode": "private",
             "IpcMode": "private",
             "Memory": policy.memory_bytes,
+            "MemorySwap": policy.memory_bytes + 1,
             "PidsLimit": policy.process_count,
             "NanoCpus": 1_000_000_000,
-            "UsernsMode": "auto",
-            "CapDrop": ["ALL"],
+            "UsernsMode": "",
+            "IDMappings": {
+                "UidMap": ["0:1:65536"],
+                "GidMap": ["0:1:65536"],
+            },
+            "CapAdd": [],
             "SecurityOpt": ["no-new-privileges"],
+            "LogConfig": {"Type": "none"},
             "Devices": [],
             "Ulimits": [
                 {"Name": "cpu", "Soft": policy.cpu_time_seconds, "Hard": policy.cpu_time_seconds},
                 {"Name": "nofile", "Soft": policy.open_file_count, "Hard": policy.open_file_count},
             ],
             "Tmpfs": {
-                "/tmp": "rw,noexec,nosuid,nodev,size=16777216",
-                "/output": f"ro,noexec,nosuid,nodev,size={policy.output_bytes}",
+                "/tmp": "rw,noexec,nosuid,nodev,size=16777216,mode=1777",
+                "/output": f"ro,noexec,nosuid,nodev,size={policy.output_bytes},mode=0555",
             },
             "Binds": [],
             "VolumesFrom": [],
@@ -66,6 +74,8 @@ def test_worker_image_must_be_pinned_by_sha256_digest() -> None:
         RootlessPodmanBackend("registry.example.invalid/voxrigor-worker:latest")
 
     backend = _backend()
+    local_image = RootlessPodmanBackend("sha256:" + "b" * 64)
+    assert local_image.worker_image == "sha256:" + "b" * 64
     assert backend.backend_id == "podman-rootless-oci"
 
 
@@ -93,6 +103,8 @@ def test_container_command_has_default_deny_security_flags() -> None:
         "--security-opt=no-new-privileges",
         "--pids-limit",
         "--memory",
+        "--memory-swap",
+        "--log-driver=none",
         "--cpus",
         "--ulimit",
         "--tmpfs",
@@ -137,12 +149,23 @@ def test_container_inspect_verification_accepts_the_complete_policy() -> None:
         ("NetworkMode", "bridge", "network isolation"),
         ("PidMode", "host", "PID namespace"),
         ("Memory", 0, "memory limit"),
+        ("MemorySwap", -1, "memory plus swap"),
+        ("LogConfig", {"Type": "json-file"}, "persistent container logging"),
         ("PidsLimit", -1, "process-count limit"),
         ("NanoCpus", 0, "CPU quota"),
         ("UsernsMode", "host", "user namespace"),
-        ("CapDrop", [], "drop all Linux capabilities"),
+        (
+            "IDMappings",
+            {"UidMap": ["0:0:65536"], "GidMap": ["0:1:65536"]},
+            "rootless parent UID",
+        ),
+        ("CapAdd", ["CAP_SYS_ADMIN"], "added Linux capabilities"),
         ("Devices", [{"PathOnHost": "/dev/snd"}], "host devices"),
-        ("SecurityOpt", ["seccomp=unconfined"], "no-new-privileges"),
+        (
+            "SecurityOpt",
+            ["no-new-privileges", "seccomp=unconfined"],
+            "seccomp profile",
+        ),
     ],
 )
 def test_container_inspect_verification_rejects_weakened_controls(
@@ -162,6 +185,25 @@ def test_container_inspect_verification_rejects_weakened_controls(
             policy,
             expected_binds=(),
         )
+
+
+def test_container_inspect_summaries_are_not_treated_as_kernel_proof() -> None:
+    policy = IsolationPolicy()
+    document = _container_document(policy)
+    document["EffectiveCaps"] = ["CAP_CHOWN", "CAP_SETUID"]
+    document["BoundingCaps"] = ["CAP_SYS_ADMIN"]
+    host = document["HostConfig"]
+    assert isinstance(host, dict)
+    host["Ulimits"] = []
+
+    # Podman's inspect summaries are not authoritative for a running process.
+    # The real preflight separately verifies the kernel-visible capability
+    # sets and effective CPU/open-file limits before plugin code is launched.
+    RootlessPodmanBackend._verify_container_document(
+        document,
+        policy,
+        expected_binds=(),
+    )
 
 
 def test_container_inspect_verification_requires_exactly_the_staged_bind_list(
@@ -185,6 +227,16 @@ def test_container_inspect_verification_requires_exactly_the_staged_bind_list(
 def test_in_container_probe_script_is_valid_python() -> None:
     script = _backend()._probe_script(IsolationPolicy())
     compile(script, "<voxrigor-podman-probe>", "exec")
+    assert "/proc/self/uid_map" in script
+    assert "/proc/self/gid_map" in script
+    assert "parent_uid=0" in script
+    assert "parent_gid=0" in script
+    assert "parent_start + length" in script
+    assert "memory.swap.max mismatch" in script
+    assert "0 <= int(swap) <= 1" in script
+    assert all(
+        capability in script for capability in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")
+    )
 
 
 def test_preflight_refuses_non_linux_before_invoking_podman(

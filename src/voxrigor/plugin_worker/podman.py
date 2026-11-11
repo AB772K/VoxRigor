@@ -52,7 +52,7 @@ from voxrigor.plugin_worker.protocol import (
 )
 from voxrigor.plugins import PluginPermission
 
-_PINNED_IMAGE_RE = re.compile(r"^[^\s@]+@sha256:[0-9a-f]{64}$")
+_PINNED_IMAGE_RE = re.compile(r"^(?:[^\s@]+@sha256:[0-9a-f]{64}|sha256:[0-9a-f]{64})$")
 _CONTAINER_UID = 10001
 _CONTAINER_GID = 10001
 _CPU_RATE = 1.0
@@ -104,7 +104,11 @@ class _WorkerSession:
         self.staged_directory = staged_directory
         self.staged_mounts = staged_mounts
         self.process: subprocess.Popen[bytes] | None = None
-        self._messages: queue.Queue[WorkerMessage | BaseException | None] = queue.Queue()
+        # Only one not-yet-consumed frame may be retained on the host. A
+        # compromised worker that floods stdout is back-pressured by this
+        # queue instead of growing host memory without bound.
+        self._messages: queue.Queue[WorkerMessage | BaseException | None] = queue.Queue(maxsize=1)
+        self.container_id: str | None = None
         self._stderr = bytearray()
         self._stderr_lock = threading.Lock()
         self._reader_threads: list[threading.Thread] = []
@@ -135,6 +139,7 @@ class _WorkerSession:
             container_id = raw_id.strip()
             if not container_id:
                 raise WorkerExecutionError("Podman returned no container ID")
+            self.container_id = container_id
             expected_binds = tuple(
                 (str(path), f"/inputs/{reference.input_id}")
                 for reference, path in self.staged_mounts
@@ -155,8 +160,11 @@ class _WorkerSession:
             self.process = attach
             self._start_reader_threads()
         except BaseException:
-            self.backend._remove_container(container_id or self.container_name)
-            self.staged_directory.cleanup()
+            try:
+                self.backend._remove_container(container_id or self.container_name)
+            finally:
+                self.container_id = None
+                self.staged_directory.cleanup()
             raise
 
     def _start_reader_threads(self) -> None:
@@ -179,17 +187,29 @@ class _WorkerSession:
         stderr_thread.start()
         self._reader_threads.extend((stdout_thread, stderr_thread))
 
+    def _enqueue_message(self, message: WorkerMessage | BaseException | None) -> bool:
+        """Queue one frame with backpressure; never buffer an unbounded worker stream."""
+
+        while not self._closed:
+            try:
+                self._messages.put(message, timeout=0.1)
+                return True
+            except queue.Full:
+                continue
+        return False
+
     def _read_protocol(self, stream: BinaryIO) -> None:
         while True:
             try:
                 frame = stream.readline(MAX_WORKER_FRAME_BYTES + 2)
                 if not frame:
-                    self._messages.put(None)
+                    self._enqueue_message(None)
                     return
                 message = decode_worker_frame(frame)
-                self._messages.put(message)
+                if not self._enqueue_message(message):
+                    return
             except BaseException as exc:
-                self._messages.put(exc)
+                self._enqueue_message(exc)
                 return
 
     def _read_stderr(self, stream: BinaryIO) -> None:
@@ -241,44 +261,53 @@ class _WorkerSession:
             raise TimeoutError("Plugin worker did not exit after shutdown acknowledgement") from exc
 
     def _kill_container(self) -> None:
-        for command in (
-            [self.backend.binary, "kill", "--signal", "KILL", self.container_name],
-            [self.backend.binary, "rm", "--force", "--volumes", self.container_name],
-        ):
-            try:
-                subprocess.run(
-                    command,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    check=False,
-                    timeout=8,
-                )
-            except (OSError, subprocess.TimeoutExpired):
-                continue
+        if self.container_id is None:
+            return
+        # A worker may already have exited, so a failed "kill" is not itself
+        # fatal. The forced removal below is the authoritative cleanup gate.
+        with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+            subprocess.run(
+                [self.backend.binary, "kill", "--signal", "KILL", self.container_id],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=8,
+            )
+        self.backend._remove_container(self.container_id)
+        self.container_id = None
 
     def close(self) -> None:
         if self._closed:
             return
         self._closed = True
         process = self.process
-        if process is not None and process.poll() is None:
+        cleanup_error: BaseException | None = None
+        try:
             self._kill_container()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                with contextlib.suppress(subprocess.TimeoutExpired):
+        except BaseException as exc:
+            cleanup_error = exc
+        try:
+            if process is not None and process.poll() is None:
+                try:
                     process.wait(timeout=5)
-        self._kill_container()
-        if process is not None:
-            for stream in (process.stdin, process.stdout, process.stderr):
-                if stream is not None:
-                    with contextlib.suppress(OSError):
-                        stream.close()
-        for thread in self._reader_threads:
-            thread.join(timeout=1)
-        self.staged_directory.cleanup()
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    with contextlib.suppress(subprocess.TimeoutExpired):
+                        process.wait(timeout=5)
+            if process is not None:
+                for stream in (process.stdin, process.stdout, process.stderr):
+                    if stream is not None:
+                        with contextlib.suppress(OSError):
+                            stream.close()
+            for thread in self._reader_threads:
+                thread.join(timeout=1)
+        finally:
+            self.staged_directory.cleanup()
+        if cleanup_error is not None:
+            raise WorkerExecutionError(
+                "Could not confirm removal of the isolated worker container"
+            ) from cleanup_error
 
     def __enter__(self) -> _WorkerSession:
         self.start()
@@ -295,7 +324,9 @@ class RootlessPodmanBackend:
 
     def __init__(self, worker_image: str, binary: str = "podman") -> None:
         if not _PINNED_IMAGE_RE.fullmatch(worker_image):
-            raise ValueError("worker_image must be pinned by an immutable @sha256 digest")
+            raise ValueError(
+                "worker_image must be an immutable @sha256 reference or local sha256 image ID"
+            )
         if Path(binary).name != binary:
             raise ValueError("binary must be an executable name resolved through PATH")
         self.worker_image = worker_image
@@ -399,13 +430,11 @@ class RootlessPodmanBackend:
         uid = str(_CONTAINER_UID)
         gid = str(_CONTAINER_GID)
         temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
-        output_mount = (
-            f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},"
-            f"mode=0555,uid={uid},gid={gid}"
-        )
-        temporary_mount = (
-            f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=0700,uid={uid},gid={gid}"
-        )
+        output_mount = f"/output:ro,noexec,nosuid,nodev,size={policy.output_bytes},mode=0555"
+        # Podman accepts the tmpfs mode flag but rejects Docker-style uid/gid
+        # mount options. A sticky world-writable /tmp is safe within this
+        # private PID/network/user namespace and remains size-bounded.
+        temporary_mount = f"/tmp:rw,noexec,nosuid,nodev,size={temporary_size},mode=1777"
         command = [
             self.binary,
             action,
@@ -425,6 +454,11 @@ class RootlessPodmanBackend:
             str(policy.process_count),
             "--memory",
             str(policy.memory_bytes),
+            # Podman defines --memory-swap as memory plus swap and requires
+            # it to exceed --memory. Permit only one byte beyond the RAM cap.
+            "--memory-swap",
+            str(policy.memory_bytes + 1),
+            "--log-driver=none",
             "--cpus",
             str(_CPU_RATE),
             "--ulimit",
@@ -484,6 +518,7 @@ class RootlessPodmanBackend:
             "PID namespace": (host.get("PidMode") or "private", "private"),
             "IPC namespace": (host.get("IpcMode") or "private", "private"),
             "memory limit": (host.get("Memory"), policy.memory_bytes),
+            "memory plus swap limit": (host.get("MemorySwap"), policy.memory_bytes + 1),
             "process-count limit": (host.get("PidsLimit"), policy.process_count),
             "CPU quota": (host.get("NanoCpus"), 1_000_000_000),
             "container identity": (config.get("User"), f"{_CONTAINER_UID}:{_CONTAINER_GID}"),
@@ -492,19 +527,63 @@ class RootlessPodmanBackend:
             if actual != expected:
                 raise PodmanBackendError(f"Podman did not apply the required {label}")
         user_namespace = host.get("UsernsMode")
-        if not isinstance(user_namespace, str) or not user_namespace.startswith("auto"):
-            raise PodmanBackendError("Podman did not allocate an isolated automatic user namespace")
-
-        capabilities = host.get("CapDrop")
-        if not isinstance(capabilities, list) or not any(
-            str(value).upper() == "ALL" for value in capabilities
+        # Podman's rootless outer user namespace is created outside libpod and
+        # may be reported as an empty mode. Accept that representation only
+        # because the in-container uid_map/gid_map probe below must prove the
+        # host caller's UID/GID are absent. Explicit host/shared modes fail.
+        if not isinstance(user_namespace, str) or (
+            user_namespace not in ("", "private") and not user_namespace.startswith("auto")
         ):
-            raise PodmanBackendError("Podman did not drop all Linux capabilities")
+            raise PodmanBackendError(
+                f"Podman reported an unsupported user namespace mode: {user_namespace!r}"
+            )
+        id_mappings = host.get("IDMappings")
+        if not isinstance(id_mappings, dict):
+            raise PodmanBackendError("Podman did not report effective UID/GID mappings")
+        for label, key in (("UID", "UidMap"), ("GID", "GidMap")):
+            entries = id_mappings.get(key)
+            if not isinstance(entries, list) or not entries:
+                raise PodmanBackendError(f"Podman did not report effective {label} mappings")
+            for entry in entries:
+                if not isinstance(entry, str):
+                    raise PodmanBackendError(f"Podman returned an invalid {label} mapping")
+                fields = entry.split(":")
+                if len(fields) != 3:
+                    raise PodmanBackendError(f"Podman returned an invalid {label} mapping")
+                try:
+                    container_start, parent_start, length = map(int, fields)
+                except ValueError as exc:
+                    raise PodmanBackendError(
+                        f"Podman returned a non-numeric {label} mapping"
+                    ) from exc
+                if container_start < 0 or parent_start < 0 or length <= 0:
+                    raise PodmanBackendError(f"Podman returned an invalid {label} mapping")
+                # In the rootless parent namespace, podman unshare runs as UID/GID 0.
+                # auto/nomap must not map that identity into the worker, even when
+                # libpod displays UsernsMode as empty for rootless containers.
+                if parent_start == 0:
+                    raise PodmanBackendError(
+                        f"Podman mapped the rootless parent {label} into the worker"
+                    )
+
+        # Podman's inspect capability arrays are configuration summaries, not
+        # proof of the capabilities available to a live worker process. The
+        # preflight below checks CapInh/Prm/Eff/Bnd/Amb from /proc/self/status
+        # inside the constrained container before any plugin code is launched.
+        added_capabilities = host.get("CapAdd")
+        if not isinstance(added_capabilities, list) or added_capabilities:
+            raise PodmanBackendError("Podman unexpectedly added Linux capabilities")
         security_options = host.get("SecurityOpt")
         if not isinstance(security_options, list) or not any(
             "no-new-privileges" in str(value).lower() for value in security_options
         ):
             raise PodmanBackendError("Podman did not enable no-new-privileges")
+        if any(str(value).strip().lower() == "seccomp=unconfined" for value in security_options):
+            raise PodmanBackendError("Podman explicitly disabled the seccomp profile")
+
+        log_config = host.get("LogConfig")
+        if not isinstance(log_config, dict) or log_config.get("Type") != "none":
+            raise PodmanBackendError("Podman did not disable persistent container logging")
 
         devices = host.get("Devices")
         if devices not in (None, []):
@@ -527,34 +606,39 @@ class RootlessPodmanBackend:
                 "Worker environment is not limited to the explicit safe allow-list"
             )
 
-        ulimits = host.get("Ulimits")
-        if not isinstance(ulimits, list):
-            raise PodmanBackendError("Podman did not expose the configured ulimit settings")
-        observed_limits = {
-            str(item.get("Name")): (item.get("Soft"), item.get("Hard"))
-            for item in ulimits
-            if isinstance(item, dict)
-        }
-        if observed_limits.get("cpu") != (
-            policy.cpu_time_seconds,
-            policy.cpu_time_seconds,
-        ):
-            raise PodmanBackendError("Podman did not apply the CPU-time limit")
-        if observed_limits.get("nofile") != (
-            policy.open_file_count,
-            policy.open_file_count,
-        ):
-            raise PodmanBackendError("Podman did not apply the open-file limit")
+        # Podman's HostConfig.Ulimits is a Docker-compatible inspect summary.
+        # The live preflight process verifies both RLIMITs with getrlimit below,
+        # which is the effective kernel limit seen by a worker process.
 
         tmpfs = host.get("Tmpfs")
         if not isinstance(tmpfs, dict):
             raise PodmanBackendError("Podman did not configure bounded tmpfs mounts")
-        output_settings = str(tmpfs.get("/output", "")).lower()
-        if f"size={policy.output_bytes}" not in output_settings or "ro" not in output_settings:
-            raise PodmanBackendError("Podman did not apply a bounded read-only output mount")
-        if "/tmp" not in tmpfs:
+        output_settings = set(str(tmpfs.get("/output", "")).lower().split(","))
+        required_output_settings = {
+            "ro",
+            "noexec",
+            "nosuid",
+            "nodev",
+            f"size={policy.output_bytes}",
+            "mode=0555",
+        }
+        if not required_output_settings.issubset(output_settings):
             raise PodmanBackendError(
-                "Podman did not create an ephemeral bounded temporary directory"
+                "Podman did not apply the bounded read-only output mount policy"
+            )
+        temporary_size = max(16 * 1024 * 1024, min(policy.memory_bytes // 4, 64 * 1024 * 1024))
+        temporary_settings = set(str(tmpfs.get("/tmp", "")).lower().split(","))
+        required_temporary_settings = {
+            "rw",
+            "noexec",
+            "nosuid",
+            "nodev",
+            f"size={temporary_size}",
+            "mode=1777",
+        }
+        if not required_temporary_settings.issubset(temporary_settings):
+            raise PodmanBackendError(
+                "Podman did not apply the bounded writable temporary-directory policy"
             )
 
         binds = host.get("Binds") or []
@@ -648,23 +732,40 @@ class RootlessPodmanBackend:
             raise
 
     def _remove_container(self, container_id: str) -> None:
-        with contextlib.suppress(OSError, subprocess.TimeoutExpired):
-            subprocess.run(
+        try:
+            completed = subprocess.run(
                 [self.binary, "rm", "--force", "--volumes", container_id],
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
                 check=False,
                 timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise PodmanBackendError(
+                f"Could not remove isolated worker container ({type(exc).__name__})"
+            ) from exc
+        if completed.returncode != 0:
+            detail = completed.stderr.strip().replace("\n", " ")[:400]
+            lowered = detail.lower()
+            if any(
+                phrase in lowered
+                for phrase in ("no such container", "no container with name", "not found")
+            ):
+                return
+            raise PodmanBackendError(
+                f"Could not remove isolated worker container (exit {completed.returncode}): "
+                f"{detail}"
             )
 
     def _probe_script(self, policy: IsolationPolicy) -> str:
         """Probe kernel-visible controls from inside the configured container."""
 
-        get_uid = getattr(os, "getuid", None)
-        if not callable(get_uid):
-            raise PodmanBackendError("The Linux host UID could not be determined")
-        host_uid = get_uid()
+        # /proc/*_map reports IDs relative to the parent user namespace.
+        # For rootless Podman that parent is podman unshare, where the
+        # invoking host identity is represented by UID/GID 0.
+        parent_uid = 0
+        parent_gid = 0
         return (
             "\n".join(
                 (
@@ -677,25 +778,37 @@ class RootlessPodmanBackend:
                     "            status[key]=value.strip()",
                     "assert status.get('NoNewPrivs')=='1'",
                     "assert status.get('Seccomp')=='2'",
+                    "capability_keys=('CapInh','CapPrm','CapEff','CapBnd','CapAmb')",
+                    "assert all(key in status for key in capability_keys)",
+                    "capabilities={key:int(status[key],16) for key in capability_keys}",
+                    "assert not any(capabilities.values()), f'Worker capability sets are not empty: {capabilities}'",
                     f"assert os.getuid()=={_CONTAINER_UID}",
-                    f"assert os.getuid()!={host_uid}",
+                    f"assert os.getuid()!={parent_uid}",
+                    f"assert os.getgid()!={parent_gid}",
+                    "uid_map=[tuple(map(int,line.split())) for line in open('/proc/self/uid_map',encoding='utf-8')]",
+                    "gid_map=[tuple(map(int,line.split())) for line in open('/proc/self/gid_map',encoding='utf-8')]",
+                    f"assert all(not parent_start <= {parent_uid} < parent_start + length for _,parent_start,length in uid_map)",
+                    f"assert all(not parent_start <= {parent_gid} < parent_start + length for _,parent_start,length in gid_map)",
                     "assert set(os.listdir('/sys/class/net'))<= {'lo'}",
-                    "assert resource.getrlimit(resource.RLIMIT_CPU)==("
-                    f"{policy.cpu_time_seconds},{policy.cpu_time_seconds})",
-                    "assert resource.getrlimit(resource.RLIMIT_NOFILE)==("
-                    f"{policy.open_file_count},{policy.open_file_count})",
+                    "cpu_limit=resource.getrlimit(resource.RLIMIT_CPU)",
+                    f"assert cpu_limit==({policy.cpu_time_seconds},{policy.cpu_time_seconds}), 'CPU-time limit mismatch: %r' % (cpu_limit,)",
+                    "nofile_limit=resource.getrlimit(resource.RLIMIT_NOFILE)",
+                    f"assert nofile_limit==({policy.open_file_count},{policy.open_file_count}), 'open-file limit mismatch: %r' % (nofile_limit,)",
                     "pids=open('/sys/fs/cgroup/pids.max').read().strip()",
-                    f"assert pids=={str(policy.process_count)!r}",
+                    f"assert pids=={str(policy.process_count)!r}, 'pids.max mismatch: %r' % (pids,)",
                     "mem=open('/sys/fs/cgroup/memory.max').read().strip()",
-                    f"assert mem=={str(policy.memory_bytes)!r}",
+                    f"assert mem=={str(policy.memory_bytes)!r}, 'memory.max mismatch: %r' % (mem,)",
+                    "swap=open('/sys/fs/cgroup/memory.swap.max').read().strip()",
+                    "assert swap.isdecimal() and 0 <= int(swap) <= 1, f'memory.swap.max mismatch: {swap}'",
                     "cpu=open('/sys/fs/cgroup/cpu.max').read().split()",
-                    "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1])",
+                    "assert len(cpu)==2 and cpu[0]!='max' and int(cpu[0])<=int(cpu[1]), f'cpu.max mismatch: {cpu}'",
+                    f"probe_path='/etc/.voxrigor-read-only-probe-{uuid4().hex}'",
                     "read_only=False",
                     "try:",
-                    "    with open('/etc/.voxrigor-read-only-probe','x'): pass",
+                    "    with open(probe_path,'x'): pass",
                     "except OSError:",
                     "    read_only=True",
-                    "assert read_only",
+                    "assert read_only, 'worker root filesystem remained writable'",
                     "print(json.dumps({'ok':True,'uid':os.getuid(),'seccomp':status['Seccomp']}))",
                 )
             )

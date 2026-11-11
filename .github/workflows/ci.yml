@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, "phase-*", "feature/**"]
+    branches: [main, "feature/**"]
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

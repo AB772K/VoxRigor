@@ -5,6 +5,7 @@ import io
 import json
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -96,11 +97,17 @@ def _container_document(policy: IsolationPolicy | None = None) -> dict[str, obje
             "PidMode": "private",
             "IpcMode": "private",
             "Memory": selected.memory_bytes,
+            "MemorySwap": selected.memory_bytes + 1,
             "PidsLimit": selected.process_count,
             "NanoCpus": 1_000_000_000,
-            "UsernsMode": "auto",
+            "UsernsMode": "private",
+            "IDMappings": {
+                "UidMap": ["0:1:65536"],
+                "GidMap": ["0:1:65536"],
+            },
             "CapDrop": ["ALL"],
             "SecurityOpt": ["no-new-privileges"],
+            "LogConfig": {"Type": "none"},
             "Devices": [],
             "Ulimits": [
                 {
@@ -115,8 +122,8 @@ def _container_document(policy: IsolationPolicy | None = None) -> dict[str, obje
                 },
             ],
             "Tmpfs": {
-                "/tmp": "rw,noexec,nosuid,nodev,size=16777216",
-                "/output": f"ro,noexec,nosuid,nodev,size={selected.output_bytes}",
+                "/tmp": "rw,noexec,nosuid,nodev,size=16777216,mode=1777",
+                "/output": f"ro,noexec,nosuid,nodev,size={selected.output_bytes},mode=0555",
             },
             "Binds": [],
             "VolumesFrom": [],
@@ -399,11 +406,27 @@ def test_create_and_inspect_removes_container_when_verification_fails(
     assert removed == ["container-id"]
 
 
-def test_remove_container_swallows_cleanup_process_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_remove_container_reports_cleanup_process_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def fail(*_args: object, **_kwargs: object) -> object:
-        raise OSError("podman already gone")
+        raise OSError("podman runtime unavailable")
 
     monkeypatch.setattr(podman_module.subprocess, "run", fail)
+    with pytest.raises(PodmanBackendError, match="Could not remove isolated worker container"):
+        _backend()._remove_container("container-id")
+
+
+def test_remove_container_accepts_an_already_missing_container(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        podman_module.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1, stdout="", stderr="no such container: container-id"
+        ),
+    )
     _backend()._remove_container("container-id")
 
 
@@ -569,6 +592,39 @@ def test_worker_session_protocol_reader_stderr_and_send_receive(
     session.close()
     session.close()
     assert not Path(directory.name).exists()
+
+
+def test_worker_session_protocol_queue_is_bounded_and_backpressures() -> None:
+    directory = tempfile.TemporaryDirectory()
+    session = _WorkerSession(_backend(), "worker-name", _spec(), directory, ())
+    first = WorkerHello(
+        protocol_version=WORKER_PROTOCOL_VERSION,
+        worker_version="0.2.0",
+        plugin_api_version=PLUGIN_API_VERSION,
+    )
+    second = WorkerShutdownResponse()
+
+    assert session._messages.maxsize == 1
+    assert session._enqueue_message(first) is True
+
+    started = threading.Event()
+    finished = threading.Event()
+
+    def enqueue_second() -> None:
+        started.set()
+        session._enqueue_message(second)
+        finished.set()
+
+    thread = threading.Thread(target=enqueue_second)
+    thread.start()
+    assert started.wait(1)
+    assert finished.wait(0.05) is False
+    assert session.receive(1) == first
+    assert finished.wait(1) is True
+    assert session.receive(1) == second
+    session._closed = True
+    thread.join(timeout=1)
+    directory.cleanup()
 
 
 def test_worker_session_reader_surfaces_invalid_frames_and_send_requires_live_process() -> None:
